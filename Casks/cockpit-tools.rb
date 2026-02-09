@@ -10,6 +10,12 @@ cask "cockpit-tools" do
 
   auto_updates true
 
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-cr", "#{appdir}/Cockpit Tools.app"],
+                   sudo: true
+  end
+
   app "Cockpit Tools.app"
 
   zap trash: [
@@ -20,10 +26,8 @@ cask "cockpit-tools" do
   ]
 
   caveats <<~EOS
-    If you encounter the "App is damaged" error, please run:
+    The app is automatically quarantined by macOS. A postflight hook has been added to remove this quarantine.
+    If you still encounter the "App is damaged" error, please run:
       sudo xattr -rd com.apple.quarantine "/Applications/Cockpit Tools.app"
-
-    Or install with the --no-quarantine flag:
-      brew install --cask --no-quarantine cockpit-tools
   EOS
 end
