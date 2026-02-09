@@ -308,56 +308,19 @@ pub async fn stop_instance(instance_id: String) -> Result<InstanceProfileView, S
 }
 
 #[tauri::command]
-pub async fn force_stop_instance(instance_id: String) -> Result<InstanceProfileView, String> {
-    if instance_id == DEFAULT_INSTANCE_ID {
-        let default_dir = modules::instance::get_default_user_data_dir()?;
-        let default_dir_str = default_dir.to_string_lossy().to_string();
-        let default_settings = modules::instance::load_default_settings()?;
-        if let Some(pid) =
-            modules::process::resolve_antigravity_pid(default_settings.last_pid, None)
-        {
-            modules::process::force_kill_pid(pid)?;
-        }
-        let _ = modules::instance::update_default_pid(None)?;
-        let running = false;
-        let default_bind_account_id = resolve_default_account_id(&default_settings);
-        return Ok(InstanceProfileView {
-            id: DEFAULT_INSTANCE_ID.to_string(),
-            name: String::new(),
-            user_data_dir: default_dir_str,
-            extra_args: default_settings.extra_args,
-            bind_account_id: default_bind_account_id,
-            created_at: 0,
-            last_launched_at: None,
-            last_pid: None,
-            running,
-            initialized: modules::instance::is_profile_initialized(&default_dir),
-            is_default: true,
-            follow_local_account: default_settings.follow_local_account,
-        });
-    }
-
-    let store = modules::instance::load_instance_store()?;
-    let instance = store
-        .instances
-        .into_iter()
-        .find(|item| item.id == instance_id)
-        .ok_or("实例不存在")?;
-
-    if let Some(pid) = modules::process::resolve_antigravity_pid(
-        instance.last_pid,
-        Some(&instance.user_data_dir),
-    ) {
-        modules::process::force_kill_pid(pid)?;
-    }
-    let updated = modules::instance::update_instance_pid(&instance.id, None)?;
-    let initialized = is_profile_initialized(&updated.user_data_dir);
-    Ok(InstanceProfileView::from_profile(updated, false, initialized))
-}
-
-#[tauri::command]
 pub async fn close_all_instances() -> Result<(), String> {
-    modules::process::close_antigravity(20)?;
+    let store = modules::instance::load_instance_store()?;
+    let default_dir = modules::instance::get_default_user_data_dir()?;
+    let mut target_dirs: Vec<String> = Vec::new();
+    target_dirs.push(default_dir.to_string_lossy().to_string());
+    for instance in &store.instances {
+        let dir = instance.user_data_dir.trim();
+        if !dir.is_empty() {
+            target_dirs.push(dir.to_string());
+        }
+    }
+
+    modules::process::close_antigravity_instances(&target_dirs, 20)?;
     let _ = modules::instance::clear_all_pids();
     Ok(())
 }

@@ -47,3 +47,13 @@ md5 = "0.7"
 tiny_http = "0.12"
 urlencoding = "2.1"
 lazy_static = "1.5"
+
+# VS Code Copilot token injection (Windows only)
+aes-gcm = "0.10"
+aes = "0.8"
+cbc = "0.1"
+pbkdf2 = "0.12"
+sha1 = "0.10"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }

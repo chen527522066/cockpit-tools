@@ -886,11 +886,16 @@
     "export": "Exportar",
     "flowNotice": {
       "title": "Guía de cuentas de GitHub Copilot (clic para expandir/contraer)",
-      "desc": "Flujo actual: autorizar una cuenta nueva -> consultar y mostrar cuotas -> vincular cuenta en la vista multiinstancia.",
-      "reason": "Por qué no hay cambio de cuenta en un clic: el estado de inicio de sesión de VS Code está gestionado por sesiones de GitHub y SecretStorage de la extensión, y las apps externas no pueden reemplazar esas credenciales.",
-      "storage": "Ubicación de datos de inicio de sesión: principalmente en SecretStorage de VS Code (llavero/gestor de credenciales del sistema) y en la base de estado global (p. ej. ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternativa: usar aislamiento multiinstancia (distinto --user-data-dir). Inicia sesión una vez por instancia y luego ejecuta por instancia para cambiar rápidamente al entorno de cuenta objetivo."
-    }
+      "desc": "Cambiar de cuenta requiere leer el almacenamiento local de autenticación de VS Code y usar el servicio de credenciales del sistema para descifrar y reescribir; los datos se procesan solo en local.",
+      "reason": "Alcance de permisos: leer la base de autenticación de VS Code (state.vscdb) y usar el cifrado del sistema (Windows DPAPI / macOS Keychain / Linux Secret Service) para descifrar y reescribir.",
+      "storage": "Alcance de lectura: solo se procesan datos relacionados con sesiones de inicio de GitHub; no se modifican secretos del sistema ni se suben claves o tokens.",
+      "alternative": "Alternativa: usar aislamiento multiinstancia (distinto --user-data-dir). Inicia sesión una vez por instancia y luego ejecuta por instancia para cambiar rápidamente al entorno de cuenta objetivo.",
+      "inject": "Cambio con un clic: Esta herramienta lee el material de cifrado local de VS Code (DPAPI/Keychain/Secret Service), descifra la sesión de autenticación en state.vscdb, reemplaza el token de GitHub Copilot y vuelve a cifrarla; todo localmente en tu equipo."
+    },
+    "injectToVSCode": "Cambiar a VS Code",
+    "injecting": "Inyectando...",
+    "injectSuccess": "El token se inyectó correctamente en VS Code. VS Code se está iniciando.",
+    "injectRequireClose": "Cierra VS Code antes de inyectar."
   },
   "dashboard": {
     "title": "Panel de cuentas",

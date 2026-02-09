@@ -64,10 +64,6 @@ export async function stopInstance(instanceId: string): Promise<InstanceProfile>
   return await invoke('stop_instance', { instanceId });
 }
 
-export async function forceStopInstance(instanceId: string): Promise<InstanceProfile> {
-  return await invoke('force_stop_instance', { instanceId });
-}
-
 export async function closeAllInstances(): Promise<void> {
   return await invoke('close_all_instances');
 }

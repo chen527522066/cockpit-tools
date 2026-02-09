@@ -22,7 +22,6 @@ import { FileCorruptedModal, parseFileCorruptedError, type FileCorruptedError } 
 import type { InstanceStoreState } from '../stores/createInstanceStore';
 
 type MessageState = { text: string; tone?: 'error' };
-type RestartStrategy = 'safe' | 'force';
 type AccountLike = { id: string; email: string };
 type InstanceSortField = 'createdAt' | 'lastLaunchedAt';
 type SortDirection = 'asc' | 'desc';
@@ -33,8 +32,7 @@ interface InstancesManagerProps<TAccount extends AccountLike> {
   fetchAccounts: () => Promise<void>;
   renderAccountQuotaPreview: (account: TAccount) => ReactNode;
   getAccountSearchText?: (account: TAccount) => string;
-  restartStrategyStorageKey?: string;
-  restartStrategyMode?: 'antigravity' | 'codex';
+  appType?: 'antigravity' | 'codex' | 'vscode';
 }
 
 const INSTANCE_AUTO_REFRESH_INTERVAL_MS = 10_000;
@@ -58,8 +56,7 @@ export function InstancesManager<TAccount extends AccountLike>({
   fetchAccounts,
   renderAccountQuotaPreview,
   getAccountSearchText,
-  restartStrategyStorageKey = 'instancesRestartStrategy',
-  restartStrategyMode = 'antigravity',
+  appType = 'antigravity',
 }: InstancesManagerProps<TAccount>) {
   const { t } = useTranslation();
   const {
@@ -75,7 +72,6 @@ export function InstancesManager<TAccount extends AccountLike>({
     deleteInstance,
     startInstance,
     stopInstance,
-    forceStopInstance,
     openInstanceWindow,
     closeAllInstances,
   } = instanceStore;
@@ -87,12 +83,6 @@ export function InstancesManager<TAccount extends AccountLike>({
   const [runningNoticeInstance, setRunningNoticeInstance] = useState<InstanceProfile | null>(null);
   const [initGuideInstance, setInitGuideInstance] = useState<InstanceProfile | null>(null);
   const [deleteConfirmInstance, setDeleteConfirmInstance] = useState<InstanceProfile | null>(null);
-  const [showStrategyModal, setShowStrategyModal] = useState(false);
-  const [restartStrategy, setRestartStrategy] = useState<RestartStrategy>(() => {
-    const saved = localStorage.getItem(restartStrategyStorageKey);
-    return saved === 'force' ? 'force' : 'safe';
-  });
-  const [pendingStrategy, setPendingStrategy] = useState<RestartStrategy>('safe');
   const [restartingAll, setRestartingAll] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
@@ -112,7 +102,6 @@ export function InstancesManager<TAccount extends AccountLike>({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<InstanceSortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const appType = restartStrategyMode === 'codex' ? 'codex' : 'antigravity';
 
   useEffect(() => {
     fetchDefaults();
@@ -146,10 +135,6 @@ export function InstancesManager<TAccount extends AccountLike>({
       setMessage({ text: String(error), tone: 'error' });
     }
   }, [error]);
-
-  useEffect(() => {
-    localStorage.setItem(restartStrategyStorageKey, restartStrategy);
-  }, [restartStrategy, restartStrategyStorageKey]);
 
   useEffect(() => {
     if (!formError || !showModal) return;
@@ -488,13 +473,8 @@ export function InstancesManager<TAccount extends AccountLike>({
     setRunningNoticeInstance(null);
     setActionLoading(target.id);
     try {
-      if (restartStrategy === 'safe') {
-        await stopInstance(target.id);
-        await startInstance(target.id);
-      } else {
-        await forceStopInstance(target.id);
-        await startInstance(target.id);
-      }
+      await stopInstance(target.id);
+      await startInstance(target.id);
       triggerDelayedRefreshAfterStart();
       setMessage({ text: t('instances.messages.started', '实例已启动') });
     } catch (e) {
@@ -565,11 +545,6 @@ export function InstancesManager<TAccount extends AccountLike>({
     } finally {
       setBulkActionLoading(false);
     }
-  };
-
-  const handleConfirmStrategy = () => {
-    setRestartStrategy(pendingStrategy);
-    setShowStrategyModal(false);
   };
 
   const resolveAccount = (instance: InstanceProfile) => {
@@ -1036,13 +1011,6 @@ export function InstancesManager<TAccount extends AccountLike>({
     }
   };
 
-  const resolveRestartText = (codexKey: string, baseKey: string, fallback: string) => {
-    if (restartStrategyMode === 'codex') {
-      return t(codexKey, t(baseKey, fallback));
-    }
-    return t(baseKey, fallback);
-  };
-
   return (
     <>
       {fileCorruptedError && (
@@ -1360,15 +1328,7 @@ export function InstancesManager<TAccount extends AccountLike>({
             </div>
             <div className="modal-body">
               <p className="form-hint">
-                {t('instances.runningDialog.desc', '实例已在运行中，可立马前往或按当前策略重启。')}
-              </p>
-              <p className="form-hint">
-                {t('instances.runningDialog.current', '当前策略：{{name}}', {
-                  name:
-                    restartStrategy === 'safe'
-                      ? t('instances.restartStrategy.safe.title', '安全重启（推荐）')
-                      : t('instances.restartStrategy.force.title', '强制重启'),
-                })}
+                {t('instances.runningDialog.desc', '实例已在运行中，可立马前往或关闭后重启。')}
               </p>
               <div className="form-group">
                 <label>{t('instances.runningDialog.pathLabel', '实例目录')}</label>
@@ -1381,167 +1341,6 @@ export function InstancesManager<TAccount extends AccountLike>({
               </button>
               <button className="btn btn-danger" onClick={handleForceRestart}>
                 {t('instances.runningDialog.restart', '关闭并重启')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showStrategyModal && (
-        <div className="modal-overlay" onClick={() => setShowStrategyModal(false)}>
-          <div className="modal restart-strategy-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{t('instances.restartStrategy.title', '重启策略')}</h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowStrategyModal(false)}
-                aria-label={t('common.close', '关闭')}
-              >
-                <X />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p className="form-hint">
-                {t('instances.restartStrategy.desc', '选择实例重启方式，不同方式影响退出范围与稳定性。')}
-              </p>
-
-              <div
-                className={`restart-strategy-option ${pendingStrategy === 'safe' ? 'selected' : ''}`}
-                onClick={() => setPendingStrategy('safe')}
-              >
-                <label className="restart-strategy-header">
-                  <input
-                    type="radio"
-                    name="restartStrategy"
-                    checked={pendingStrategy === 'safe'}
-                    onChange={() => setPendingStrategy('safe')}
-                  />
-                  <span className="restart-strategy-title">
-                    {t('instances.restartStrategy.safe.title', '安全重启（推荐）')}
-                  </span>
-                  <span className="restart-strategy-badge">
-                    {t('instances.restartStrategy.recommended', '推荐')}
-                  </span>
-                </label>
-                <div className="restart-strategy-body">
-                  <div className="restart-strategy-line">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.principle', '技术原理')}
-                    </span>
-                    <span>
-                      {resolveRestartText(
-                        'codex.instances.restartStrategy.safe.principle',
-                        'instances.restartStrategy.safe.principle',
-                        '向所有 Antigravity 进程发送 SIGTERM，请求应用自行保存并退出，退出后再启动目标实例（必要时会强制结束）。',
-                      )}
-                    </span>
-                  </div>
-                  <div className="restart-strategy-command">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.command', '命令')}
-                    </span>
-                    <div className="restart-strategy-command-list">
-                      <code>
-                        {resolveRestartText(
-                          'codex.instances.restartStrategy.safe.commandMac',
-                          'instances.restartStrategy.safe.commandMac',
-                          'macOS/Linux: kill -15 <pid> （全部 Antigravity 进程）',
-                        )}
-                      </code>
-                      <code>
-                        {resolveRestartText(
-                          'codex.instances.restartStrategy.safe.commandWin',
-                          'instances.restartStrategy.safe.commandWin',
-                          'Windows: taskkill /F /PID <pid> （全部 Antigravity 进程）',
-                        )}
-                      </code>
-                    </div>
-                  </div>
-                  <div className="restart-strategy-line">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.pros', '优点')}
-                    </span>
-                    <span>{t('instances.restartStrategy.safe.pros', '更接近正常退出，不易触发崩溃提示，数据更安全。')}</span>
-                  </div>
-                  <div className="restart-strategy-line">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.cons', '缺点')}
-                    </span>
-                    <span>{t('instances.restartStrategy.safe.cons', '只能整体退出并重启，无法只重启单个实例。')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`restart-strategy-option ${pendingStrategy === 'force' ? 'selected' : ''}`}
-                onClick={() => setPendingStrategy('force')}
-              >
-                <label className="restart-strategy-header">
-                  <input
-                    type="radio"
-                    name="restartStrategy"
-                    checked={pendingStrategy === 'force'}
-                    onChange={() => setPendingStrategy('force')}
-                  />
-                  <span className="restart-strategy-title">
-                    {t('instances.restartStrategy.force.title', '强制重启')}
-                  </span>
-                </label>
-                <div className="restart-strategy-body">
-                  <div className="restart-strategy-line">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.principle', '技术原理')}
-                    </span>
-                    <span>
-                      {resolveRestartText(
-                        'codex.instances.restartStrategy.force.principle',
-                        'instances.restartStrategy.force.principle',
-                        '按 --user-data-dir 匹配进程并强制终止（SIGKILL / taskkill /F），再启动目标实例。',
-                      )}
-                    </span>
-                  </div>
-                  <div className="restart-strategy-command">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.command', '命令')}
-                    </span>
-                    <div className="restart-strategy-command-list">
-                      <code>
-                        {resolveRestartText(
-                          'codex.instances.restartStrategy.force.commandMac',
-                          'instances.restartStrategy.force.commandMac',
-                          'macOS/Linux: pkill -9 -f "--user-data-dir <dir>"',
-                        )}
-                      </code>
-                      <code>
-                        {resolveRestartText(
-                          'codex.instances.restartStrategy.force.commandWin',
-                          'instances.restartStrategy.force.commandWin',
-                          'Windows: taskkill /F /PID <pid> （匹配 --user-data-dir）',
-                        )}
-                      </code>
-                    </div>
-                  </div>
-                  <div className="restart-strategy-line">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.pros', '优点')}
-                    </span>
-                    <span>{t('instances.restartStrategy.force.pros', '可精准重启单个实例。')}</span>
-                  </div>
-                  <div className="restart-strategy-line">
-                    <span className="restart-strategy-label">
-                      {t('instances.restartStrategy.labels.cons', '缺点')}
-                    </span>
-                    <span>{t('instances.restartStrategy.force.cons', '可能触发“意外终止”提示，存在未保存数据丢失风险。')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowStrategyModal(false)}>
-                {t('common.cancel', '取消')}
-              </button>
-              <button className="btn btn-primary" onClick={handleConfirmStrategy}>
-                {t('common.confirm', '确认')}
               </button>
             </div>
           </div>

@@ -84,7 +84,7 @@ export function GitHubCopilotInstancesContent() {
         fetchAccounts={fetchAccounts}
         renderAccountQuotaPreview={renderGitHubCopilotQuotaPreview}
         getAccountSearchText={(account) => account.email}
-        restartStrategyStorageKey="githubCopilotInstancesRestartStrategy"
+        appType="vscode"
       />
     </div>
   );

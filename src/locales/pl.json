@@ -1116,10 +1116,15 @@
     "export": "Eksportuj",
     "flowNotice": {
       "title": "Przewodnik po kontach GitHub Copilot (kliknij, aby rozwinąć/zwinąć)",
-      "desc": "Aktualny przepływ: autoryzuj nowe konto -> pobierz i wyświetl limity -> powiąż konto w widoku wielu instancji.",
-      "reason": "Dlaczego przełączanie konta jednym kliknięciem nie jest dostępne: stan logowania VS Code jest zarządzany przez sesje GitHub i SecretStorage rozszerzenia, a zewnętrzne aplikacje nie mogą podmienić tych poświadczeń.",
-      "storage": "Lokalizacja danych logowania: głównie SecretStorage VS Code (systemowy pęk kluczy/menedżer poświadczeń) oraz globalna baza stanu (np. ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternatywa: użyj izolacji wielu instancji (różne --user-data-dir). Zaloguj się raz na instancję, a potem uruchamiaj po instancji, aby szybko przełączać się do środowiska docelowego konta."
-    }
+      "desc": "Przełączanie konta wymaga odczytu lokalnego magazynu uwierzytelniania VS Code oraz użycia systemowej usługi poświadczeń do odszyfrowania i ponownego zapisu; dane są przetwarzane wyłącznie lokalnie.",
+      "reason": "Zakres uprawnień: odczyt bazy uwierzytelniania VS Code (state.vscdb) oraz użycie szyfrowania systemowego (Windows DPAPI / macOS Keychain / Linux Secret Service) do odszyfrowania i ponownego zapisu.",
+      "storage": "Zakres odczytu: przetwarzane są tylko dane związane z sesją logowania GitHub; systemowe sekrety nie są modyfikowane i żadne klucze ani tokeny nie są wysyłane.",
+      "alternative": "Alternatywa: użyj izolacji wielu instancji (różne --user-data-dir). Zaloguj się raz na instancję, a potem uruchamiaj po instancji, aby szybko przełączać się do środowiska docelowego konta.",
+      "inject": "Przełączanie jednym kliknięciem: to narzędzie odczytuje lokalny materiał szyfrujący VS Code (DPAPI/Keychain/Secret Service), odszyfrowuje sesję uwierzytelniania w state.vscdb, podmienia token GitHub Copilot i ponownie szyfruje dane — wszystko lokalnie na Twoim urządzeniu."
+    },
+    "injectToVSCode": "Przełącz do VS Code",
+    "injecting": "Wstrzykiwanie...",
+    "injectSuccess": "Token został pomyślnie wstrzyknięty do VS Code. VS Code jest uruchamiany.",
+    "injectRequireClose": "Przed wstrzyknięciem zamknij VS Code."
   }
 }

@@ -1116,10 +1116,15 @@
     "export": "Exporter",
     "flowNotice": {
       "title": "Guide des comptes GitHub Copilot (cliquer pour déplier/replier)",
-      "desc": "Flux actuel : autoriser un nouveau compte -> récupérer et afficher les quotas -> lier le compte dans la vue multi-instance.",
-      "reason": "Pourquoi le changement de compte en un clic n'est pas disponible : l'état de connexion de VS Code est géré par les sessions GitHub et le SecretStorage de l'extension, et les applications externes ne peuvent pas remplacer ces identifiants.",
-      "storage": "Emplacement des données de connexion : principalement dans le SecretStorage de VS Code (trousseau/gestionnaire d'identifiants du système) et la base d'état globale (par ex. ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternative : utiliser l'isolation multi-instance (--user-data-dir différent). Connectez-vous une fois par instance, puis lancez par instance pour basculer rapidement vers l'environnement du compte cible."
-    }
+      "desc": "Le changement de compte nécessite la lecture du stockage d’authentification local de VS Code et l’utilisation du service d’identifiants du système pour déchiffrer et réécrire ; les données restent traitées uniquement en local.",
+      "reason": "Portée des autorisations : lire la base d’authentification VS Code (state.vscdb) et appeler le chiffrement système (Windows DPAPI / macOS Keychain / Linux Secret Service) pour déchiffrer et réécrire.",
+      "storage": "Portée de lecture : seules les données liées aux sessions de connexion GitHub sont traitées ; les secrets système ne sont pas modifiés et aucune clé ni aucun jeton n’est envoyé.",
+      "alternative": "Alternative : utiliser l'isolation multi-instance (--user-data-dir différent). Connectez-vous une fois par instance, puis lancez par instance pour basculer rapidement vers l'environnement du compte cible.",
+      "inject": "Changement en un clic : cet outil lit le matériel de chiffrement local de VS Code (DPAPI/Keychain/Secret Service), déchiffre la session d’authentification dans state.vscdb, remplace le jeton GitHub Copilot puis rechiffre le tout — entièrement en local sur votre machine."
+    },
+    "injectToVSCode": "Basculer vers VS Code",
+    "injecting": "Injection en cours...",
+    "injectSuccess": "Le jeton a été injecté dans VS Code avec succès. VS Code est en cours de lancement.",
+    "injectRequireClose": "Veuillez fermer VS Code avant l’injection."
   }
 }

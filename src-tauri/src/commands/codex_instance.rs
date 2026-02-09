@@ -281,54 +281,19 @@ pub async fn codex_stop_instance(instance_id: String) -> Result<InstanceProfileV
 }
 
 #[tauri::command]
-pub async fn codex_force_stop_instance(instance_id: String) -> Result<InstanceProfileView, String> {
-    if instance_id == DEFAULT_INSTANCE_ID {
-        let default_dir = modules::codex_instance::get_default_codex_home()?;
-        let default_dir_str = default_dir.to_string_lossy().to_string();
-        let default_settings = modules::codex_instance::load_default_settings()?;
-        if let Some(pid) = modules::process::resolve_codex_pid(default_settings.last_pid, None) {
-            modules::process::force_kill_pid(pid)?;
-        }
-        let _ = modules::codex_instance::update_default_pid(None)?;
-        let running = false;
-        let default_bind_account_id = resolve_default_account_id(&default_settings);
-        return Ok(InstanceProfileView {
-            id: DEFAULT_INSTANCE_ID.to_string(),
-            name: String::new(),
-            user_data_dir: default_dir_str,
-            extra_args: default_settings.extra_args,
-            bind_account_id: default_bind_account_id,
-            created_at: 0,
-            last_launched_at: None,
-            last_pid: None,
-            running,
-            initialized: modules::instance::is_profile_initialized(&default_dir),
-            is_default: true,
-            follow_local_account: default_settings.follow_local_account,
-        });
-    }
-
-    let store = modules::codex_instance::load_instance_store()?;
-    let instance = store
-        .instances
-        .into_iter()
-        .find(|item| item.id == instance_id)
-        .ok_or("实例不存在")?;
-
-    if let Some(pid) = modules::process::resolve_codex_pid(
-        instance.last_pid,
-        Some(&instance.user_data_dir),
-    ) {
-        modules::process::force_kill_pid(pid)?;
-    }
-    let updated = modules::codex_instance::update_instance_pid(&instance.id, None)?;
-    let initialized = is_profile_initialized(&updated.user_data_dir);
-    Ok(InstanceProfileView::from_profile(updated, false, initialized))
-}
-
-#[tauri::command]
 pub async fn codex_close_all_instances() -> Result<(), String> {
-    modules::process::close_codex(20)?;
+    let store = modules::codex_instance::load_instance_store()?;
+    let default_home = modules::codex_instance::get_default_codex_home()?;
+    let mut target_homes: Vec<String> = Vec::new();
+    target_homes.push(default_home.to_string_lossy().to_string());
+    for instance in &store.instances {
+        let home = instance.user_data_dir.trim();
+        if !home.is_empty() {
+            target_homes.push(home.to_string());
+        }
+    }
+
+    modules::process::close_codex_instances(&target_homes, 20)?;
     let _ = modules::codex_instance::clear_all_pids();
     Ok(())
 }

@@ -1116,10 +1116,15 @@
     "export": "Exportovat",
     "flowNotice": {
       "title": "Průvodce účty GitHub Copilot (kliknutím rozbalit/sbalit)",
-      "desc": "Aktuální postup: autorizovat nový účet -> načíst a zobrazit kvóty -> propojit účet v zobrazení více instancí.",
-      "reason": "Proč nelze přepnout účet jedním kliknutím: stav přihlášení ve VS Code je spravován relacemi GitHub a SecretStorage rozšíření, externí aplikace tyto přihlašovací údaje nemohou nahradit.",
-      "storage": "Umístění přihlašovacích dat: hlavně ve VS Code SecretStorage (systémová klíčenka/správce přihlašovacích údajů) a v databázi globálního stavu (např. ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternativa: použijte izolaci více instancí (odlišné --user-data-dir). V každé instanci se přihlaste jednou a poté spouštějte podle instance pro rychlé přepnutí na cílové prostředí účtu."
-    }
+      "desc": "Přepnutí účtu vyžaduje čtení lokálního úložiště ověření ve VS Code a použití systémové služby přihlašovacích údajů pro dešifrování a zpětný zápis; data se zpracovávají pouze lokálně.",
+      "reason": "Rozsah oprávnění: čtení databáze ověření VS Code (state.vscdb) a volání systémového šifrování (Windows DPAPI / macOS Keychain / Linux Secret Service) pro dešifrování a zpětný zápis.",
+      "storage": "Rozsah čtení: zpracovávají se pouze položky související s relací přihlášení GitHub, systémové tajné klíče se neupravují a žádné klíče ani tokeny se neodesílají.",
+      "alternative": "Alternativa: použijte izolaci více instancí (odlišné --user-data-dir). V každé instanci se přihlaste jednou a poté spouštějte podle instance pro rychlé přepnutí na cílové prostředí účtu.",
+      "inject": "Přepnutí jedním kliknutím: Tento nástroj načte lokální šifrovací materiál VS Code (DPAPI/Keychain/Secret Service), dešifruje autentizační relaci ve state.vscdb, nahradí token GitHub Copilot a znovu ji zašifruje — vše lokálně na vašem zařízení."
+    },
+    "injectToVSCode": "Přepnout do VS Code",
+    "injecting": "Probíhá injektování...",
+    "injectSuccess": "Token byl úspěšně vložen do VS Code. VS Code se spouští.",
+    "injectRequireClose": "Před injektováním prosím zavřete VS Code."
   }
 }

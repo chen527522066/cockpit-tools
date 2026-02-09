@@ -1116,10 +1116,15 @@
     "export": "エクスポート",
     "flowNotice": {
       "title": "GitHub Copilot アカウントガイド（クリックで展開/折りたたみ）",
-      "desc": "現在の流れ: 新しいアカウントを認可 -> クォータを取得して表示 -> マルチインスタンス画面でアカウントを紐付け。",
-      "reason": "ワンクリックでアカウント切り替えができない理由: VS Code のログイン状態は GitHub セッションと拡張機能の SecretStorage で管理されており、外部アプリからこれらの認証情報を置き換えることはできません。",
-      "storage": "ログイン関連データの保存先: 主に VS Code の SecretStorage（システムのキーチェーン/資格情報マネージャー）とグローバル状態データベース（例: ~/Library/Application Support/Code/User/globalStorage/state.vscdb）。",
-      "alternative": "代替案: マルチインスタンス分離（異なる --user-data-dir）を利用します。インスタンスごとに一度ログインすれば、以後はインスタンス単位で起動して目的のアカウント環境へ素早く切り替えられます。"
-    }
+      "desc": "アカウント切り替えでは、VS Code のローカル認証ストレージを読み取り、システムの資格情報サービスを使って復号・再書き込みを行う必要があります。データは端末内のみで処理されます。",
+      "reason": "必要な権限: VS Code 認証データベース（state.vscdb）を読み取り、システム暗号化機能（Windows DPAPI / macOS Keychain / Linux Secret Service）を呼び出して復号・再書き込みを行います。",
+      "storage": "読み取り範囲: GitHub ログインセッション関連データのみを処理し、システム秘密鍵自体は変更せず、鍵やトークンをアップロードしません。",
+      "alternative": "代替案: マルチインスタンス分離（異なる --user-data-dir）を利用します。インスタンスごとに一度ログインすれば、以後はインスタンス単位で起動して目的のアカウント環境へ素早く切り替えられます。",
+      "inject": "ワンクリック切り替え: このツールはローカルの VS Code 暗号化情報（DPAPI/Keychain/Secret Service）を読み取り、state.vscdb 内の認証セッションを復号して GitHub Copilot トークンを置き換え、再暗号化します。処理はすべて端末内で完結します。"
+    },
+    "injectToVSCode": "VS Codeに切り替え",
+    "injecting": "注入中...",
+    "injectSuccess": "トークンをVS Codeに正常に注入しました。VS Codeを起動しています。",
+    "injectRequireClose": "注入する前にVS Codeを閉じてください。"
   }
 }

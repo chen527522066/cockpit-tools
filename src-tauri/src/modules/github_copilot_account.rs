@@ -33,6 +33,11 @@ pub fn accounts_index_path_string() -> Result<String, String> {
     Ok(get_accounts_index_path()?.to_string_lossy().to_string())
 }
 
+/// Load a single account by ID (public wrapper)
+pub fn load_account(account_id: &str) -> Option<GitHubCopilotAccount> {
+    load_account_file(account_id)
+}
+
 fn load_account_file(account_id: &str) -> Option<GitHubCopilotAccount> {
     let account_path = get_accounts_dir()
         .ok()

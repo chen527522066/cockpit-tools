@@ -74,8 +74,7 @@ export function CodexInstancesContent() {
         fetchAccounts={fetchAccounts}
         renderAccountQuotaPreview={renderCodexQuotaPreview}
         getAccountSearchText={(account) => account.email}
-        restartStrategyStorageKey="codexInstancesRestartStrategy"
-        restartStrategyMode="codex"
+        appType="codex"
       />
     </div>
   );

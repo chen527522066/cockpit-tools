@@ -1116,10 +1116,15 @@
     "export": "Esporta",
     "flowNotice": {
       "title": "Guida agli account GitHub Copilot (clicca per espandere/comprimere)",
-      "desc": "Flusso attuale: autorizza un nuovo account -> recupera e mostra le quote -> collega l'account nella vista multi-istanza.",
-      "reason": "Perché il cambio account con un clic non è disponibile: lo stato di accesso in VS Code è gestito dalle sessioni GitHub e dal SecretStorage dell'estensione, e le app esterne non possono sostituire queste credenziali.",
-      "storage": "Posizione dei dati di accesso: principalmente nel SecretStorage di VS Code (portachiavi/gestore credenziali di sistema) e nel database di stato globale (ad esempio ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternativa: usa l'isolamento multi-istanza (diverso --user-data-dir). Accedi una volta per istanza e poi avvia per istanza per passare rapidamente all'ambiente account desiderato."
-    }
+      "desc": "Il cambio account richiede la lettura dello storage di autenticazione locale di VS Code e l’uso del servizio credenziali di sistema per decifrare e riscrivere; i dati vengono elaborati solo in locale.",
+      "reason": "Ambito permessi: leggere il database di autenticazione di VS Code (state.vscdb) e usare la cifratura di sistema (Windows DPAPI / macOS Keychain / Linux Secret Service) per decifrare e riscrivere.",
+      "storage": "Ambito di lettura: vengono trattati solo i dati relativi alle sessioni di accesso GitHub; i segreti di sistema non vengono modificati e non viene caricato alcun token o chiave.",
+      "alternative": "Alternativa: usa l'isolamento multi-istanza (diverso --user-data-dir). Accedi una volta per istanza e poi avvia per istanza per passare rapidamente all'ambiente account desiderato.",
+      "inject": "Cambio con un clic: questo strumento legge il materiale di crittografia locale di VS Code (DPAPI/Keychain/Secret Service), decifra la sessione di autenticazione in state.vscdb, sostituisce il token GitHub Copilot e cifra di nuovo il tutto — interamente in locale sul tuo dispositivo."
+    },
+    "injectToVSCode": "Passa a VS Code",
+    "injecting": "Iniezione in corso...",
+    "injectSuccess": "Il token è stato inserito correttamente in VS Code. VS Code si sta avviando.",
+    "injectRequireClose": "Chiudi VS Code prima di eseguire l'iniezione."
   }
 }

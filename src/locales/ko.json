@@ -1116,10 +1116,15 @@
     "export": "내보내기",
     "flowNotice": {
       "title": "GitHub Copilot 계정 안내(클릭하여 펼치기/접기)",
-      "desc": "현재 흐름: 새 계정 인증 -> 할당량 조회 및 표시 -> 멀티 인스턴스 화면에서 계정 바인딩.",
-      "reason": "원클릭 계정 전환이 불가능한 이유: VS Code 로그인 상태는 GitHub 세션과 확장 프로그램 SecretStorage에서 관리되며, 외부 앱이 해당 자격 증명을 대체할 수 없습니다.",
-      "storage": "로그인 데이터 위치: 주로 VS Code SecretStorage(시스템 키체인/자격 증명 관리자)와 전역 상태 데이터베이스(예: ~/Library/Application Support/Code/User/globalStorage/state.vscdb)에 저장됩니다.",
-      "alternative": "대안: 멀티 인스턴스 격리(서로 다른 --user-data-dir)를 사용하세요. 인스턴스별로 한 번만 로그인하면 이후에는 인스턴스 단위 실행으로 원하는 계정 환경으로 빠르게 전환할 수 있습니다."
-    }
+      "desc": "계정 전환 시 VS Code 로컬 인증 저장소를 읽고 시스템 자격 증명 서비스를 사용해 복호화 및 재기록이 필요하며, 데이터는 로컬에서만 처리됩니다.",
+      "reason": "권한 범위: VS Code 인증 데이터베이스(state.vscdb)를 읽고 시스템 암호화 기능(Windows DPAPI / macOS Keychain / Linux Secret Service)을 호출해 복호화 및 재기록을 수행합니다.",
+      "storage": "읽기 범위: GitHub 로그인 세션 관련 데이터만 처리하며, 시스템 비밀키 자체는 수정하지 않고 어떤 키나 토큰도 업로드하지 않습니다.",
+      "alternative": "대안: 멀티 인스턴스 격리(서로 다른 --user-data-dir)를 사용하세요. 인스턴스별로 한 번만 로그인하면 이후에는 인스턴스 단위 실행으로 원하는 계정 환경으로 빠르게 전환할 수 있습니다.",
+      "inject": "원클릭 전환: 이 도구는 로컬 VS Code 암호화 자료(DPAPI/Keychain/Secret Service)를 읽어 state.vscdb의 인증 세션을 복호화한 뒤 GitHub Copilot 토큰을 교체하고 다시 암호화합니다. 모든 처리는 로컬 장치에서만 수행됩니다."
+    },
+    "injectToVSCode": "VS Code로 전환",
+    "injecting": "주입 중...",
+    "injectSuccess": "토큰을 VS Code에 성공적으로 주입했습니다. VS Code를 실행하는 중입니다.",
+    "injectRequireClose": "주입하기 전에 VS Code를 종료해 주세요."
   }
 }

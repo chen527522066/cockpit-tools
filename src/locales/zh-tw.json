@@ -1116,10 +1116,15 @@
     "export": "匯出",
     "flowNotice": {
       "title": "GitHub Copilot 帳號指南（點擊展開/收合）",
-      "desc": "目前流程：授權新帳號 -> 查詢並顯示額度 -> 在多開檢視中綁定帳號。",
-      "reason": "為何無法一鍵切換帳號：VS Code 的登入狀態由 GitHub 工作階段與擴充套件 SecretStorage 管理，外部應用無法替換這些憑證。",
-      "storage": "登入資料位置：主要在 VS Code SecretStorage（系統鑰匙圈/憑證管理器）與全域狀態資料庫（例如 ~/Library/Application Support/Code/User/globalStorage/state.vscdb）。",
-      "alternative": "替代方案：使用多開隔離（不同 --user-data-dir）。每個實例登入一次，之後按實例啟動即可快速切換到目標帳號環境。"
-    }
+      "desc": "切換帳號時需要讀取 VS Code 本機認證儲存，並呼叫系統憑證服務完成解密與回寫；資料僅在本機處理。",
+      "reason": "權限需求：讀取 VS Code 認證資料庫（state.vscdb），並呼叫系統加密能力（Windows DPAPI / macOS Keychain / Linux Secret Service）進行解密與寫回。",
+      "storage": "讀取範圍：僅處理 GitHub 登入工作階段相關資料，不會修改系統密鑰本身，也不會上傳密鑰或權杖。",
+      "alternative": "替代方案：使用多開隔離（不同 --user-data-dir）。每個實例登入一次，之後按實例啟動即可快速切換到目標帳號環境。",
+      "inject": "一鍵切換：本工具會讀取本機 VS Code 加密材料（DPAPI/Keychain/Secret Service），解密 state.vscdb 中的驗證工作階段，替換 GitHub Copilot 權杖後再加密，全部流程都在本機完成。"
+    },
+    "injectToVSCode": "切換到 VS Code",
+    "injecting": "注入中...",
+    "injectSuccess": "已成功將權杖注入 VS Code，VS Code 正在啟動。",
+    "injectRequireClose": "注入前請先關閉 VS Code。"
   }
 }

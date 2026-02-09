@@ -28,6 +28,7 @@ pub mod codex_instance;
 pub mod github_copilot_oauth;
 pub mod github_copilot_account;
 pub mod github_copilot_instance;
+pub mod vscode_inject;
 
 // 重新导出常用函数
 pub use account::*;

@@ -1116,10 +1116,15 @@
     "export": "Dışa aktar",
     "flowNotice": {
       "title": "GitHub Copilot hesap kılavuzu (genişletmek/daraltmak için tıklayın)",
-      "desc": "Mevcut akış: yeni hesabı yetkilendir -> kotaları çekip göster -> çoklu örnek görünümünde hesabı bağla.",
-      "reason": "Neden tek tıkla hesap değişimi yok: VS Code oturum durumu GitHub oturumları ve eklenti SecretStorage tarafından yönetilir; harici uygulamalar bu kimlik bilgilerini değiştiremez.",
-      "storage": "Oturum verilerinin konumu: ağırlıklı olarak VS Code SecretStorage (sistem anahtar zinciri/kimlik bilgisi yöneticisi) ve genel durum veritabanı (ör. ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternatif: çoklu örnek izolasyonunu kullanın (farklı --user-data-dir). Her örnek için bir kez giriş yapın, ardından hedef hesap ortamına hızlı geçiş için örnek bazında başlatın."
-    }
+      "desc": "Hesap değiştirme, VS Code yerel kimlik doğrulama deposunun okunmasını ve şifre çözme/geri yazma için sistem kimlik bilgisi hizmetinin kullanılmasını gerektirir; veriler yalnızca yerelde işlenir.",
+      "reason": "İzin kapsamı: VS Code kimlik doğrulama veritabanını (state.vscdb) okumak ve şifre çözme/geri yazma için sistem şifreleme yeteneklerini (Windows DPAPI / macOS Keychain / Linux Secret Service) çağırmak.",
+      "storage": "Okuma kapsamı: yalnızca GitHub oturum açma oturumu ile ilgili veriler işlenir; sistem gizli anahtarları değiştirilmez ve hiçbir anahtar ya da belirteç yüklenmez.",
+      "alternative": "Alternatif: çoklu örnek izolasyonunu kullanın (farklı --user-data-dir). Her örnek için bir kez giriş yapın, ardından hedef hesap ortamına hızlı geçiş için örnek bazında başlatın.",
+      "inject": "Tek tıkla geçiş: Bu araç VS Code'un yerel şifreleme materyalini (DPAPI/Keychain/Secret Service) okur, state.vscdb içindeki kimlik doğrulama oturumunu çözer, GitHub Copilot belirtecini değiştirir ve yeniden şifreler — tüm işlem cihazınızda yerel olarak yapılır."
+    },
+    "injectToVSCode": "VS Code'a geç",
+    "injecting": "Enjekte ediliyor...",
+    "injectSuccess": "Belirteç VS Code'a başarıyla enjekte edildi. VS Code başlatılıyor.",
+    "injectRequireClose": "Enjeksiyondan önce lütfen VS Code'u kapatın."
   }
 }

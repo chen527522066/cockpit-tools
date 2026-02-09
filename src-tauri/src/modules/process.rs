@@ -1653,6 +1653,8 @@ pub fn resolve_vscode_pid_from_entries(
             if dir == &target {
                 matches.push(*pid);
             }
+        } else if is_vscode_pid_for_user_data_dir(*pid, &target) {
+            matches.push(*pid);
         }
     }
 
@@ -1698,7 +1700,55 @@ fn is_vscode_pid_for_user_data_dir(pid: u32, target: &str) -> bool {
     let dir = extract_user_data_dir(args)
         .map(|value| normalize_path_for_compare(&value))
         .filter(|value| !value.is_empty());
-    dir.map(|value| value == target).unwrap_or(false)
+    if let Some(value) = dir {
+        return value == target;
+    }
+
+    is_default_vscode_user_data_dir(target)
+}
+
+fn is_default_vscode_user_data_dir(target: &str) -> bool {
+    if target.is_empty() {
+        return false;
+    }
+
+    let default_dir = get_default_vscode_user_data_dir_for_os()
+        .map(|value| normalize_path_for_compare(&value))
+        .filter(|value| !value.is_empty());
+
+    match default_dir {
+        Some(default_dir) => default_dir == target,
+        None => false,
+    }
+}
+
+fn get_default_vscode_user_data_dir_for_os() -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        let home = dirs::home_dir()?;
+        return Some(
+            home.join("Library")
+                .join("Application Support")
+                .join("Code")
+                .to_string_lossy()
+                .to_string(),
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let appdata = std::env::var("APPDATA").ok()?;
+        return Some(Path::new(&appdata).join("Code").to_string_lossy().to_string());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let home = dirs::home_dir()?;
+        return Some(home.join(".config").join("Code").to_string_lossy().to_string());
+    }
+
+    #[allow(unreachable_code)]
+    None
 }
 
 pub fn focus_vscode_instance(last_pid: Option<u32>, user_data_dir: &str) -> Result<u32, String> {
@@ -2365,6 +2415,77 @@ pub fn close_antigravity(timeout_secs: u64) -> Result<(), String> {
     Ok(())
 }
 
+/// 关闭受管 Antigravity 实例（按 user-data-dir 匹配，包含默认实例目录）
+pub fn close_antigravity_instances(user_data_dirs: &[String], timeout_secs: u64) -> Result<(), String> {
+    crate::modules::logger::log_info("正在关闭受管 Antigravity 实例...");
+
+    let target_dirs: HashSet<String> = user_data_dirs
+        .iter()
+        .map(|value| normalize_path_for_compare(value))
+        .filter(|value| !value.is_empty())
+        .collect();
+    if target_dirs.is_empty() {
+        crate::modules::logger::log_info("未提供可关闭的 Antigravity 实例目录");
+        return Ok(());
+    }
+
+    let default_dir = crate::modules::instance::get_default_user_data_dir()
+        .ok()
+        .map(|value| normalize_path_for_compare(&value.to_string_lossy()))
+        .filter(|value| !value.is_empty());
+    let entries = collect_antigravity_process_entries();
+    let mut pids: Vec<u32> = entries
+        .iter()
+        .filter_map(|(pid, dir)| {
+            let resolved_dir = dir
+                .as_ref()
+                .map(|value| normalize_path_for_compare(value))
+                .filter(|value| !value.is_empty())
+                .or_else(|| default_dir.clone());
+            if resolved_dir
+                .as_ref()
+                .map(|value| target_dirs.contains(value))
+                .unwrap_or(false)
+            {
+                Some(*pid)
+            } else {
+                None
+            }
+        })
+        .collect();
+    pids.sort();
+    pids.dedup();
+    if pids.is_empty() {
+        crate::modules::logger::log_info("受管 Antigravity 实例未在运行，无需关闭");
+        return Ok(());
+    }
+
+    crate::modules::logger::log_info(&format!(
+        "准备关闭 {} 个受管 Antigravity 主进程...",
+        pids.len()
+    ));
+    let _ = close_pids(&pids, timeout_secs);
+
+    let still_running = collect_antigravity_process_entries()
+        .into_iter()
+        .any(|(_, dir)| {
+            let resolved_dir = dir
+                .as_ref()
+                .map(|value| normalize_path_for_compare(value))
+                .filter(|value| !value.is_empty())
+                .or_else(|| default_dir.clone());
+            resolved_dir
+                .as_ref()
+                .map(|value| target_dirs.contains(value))
+                .unwrap_or(false)
+        });
+    if still_running {
+        return Err("无法关闭受管 Antigravity 实例进程，请手动关闭后重试".to_string());
+    }
+
+    Ok(())
+}
+
 /// 关闭指定实例（按 user-data-dir 匹配）
 
 #[allow(dead_code)]
@@ -2404,22 +2525,6 @@ pub fn close_pid(pid: u32, timeout_secs: u64) -> Result<(), String> {
     }
 }
 
-pub fn force_kill_pid(pid: u32) -> Result<(), String> {
-    if pid == 0 {
-        return Err("PID 无效，无法关闭进程".to_string());
-    }
-    if !is_pid_running(pid) {
-        return Ok(());
-    }
-
-    send_force_signal(pid);
-    if wait_pids_exit(&[pid], 5) {
-        Ok(())
-    } else {
-        Err("无法强制关闭实例进程，请手动关闭后重试".to_string())
-    }
-}
-
 fn send_close_signal(pid: u32) {
     if pid == 0 || !is_pid_running(pid) {
         return;
@@ -2435,24 +2540,6 @@ fn send_close_signal(pid: u32) {
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     {
         let _ = Command::new("kill").args(["-15", &pid.to_string()]).output();
-    }
-}
-
-fn send_force_signal(pid: u32) {
-    if pid == 0 || !is_pid_running(pid) {
-        return;
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        let _ = Command::new("taskkill")
-            .args(["/F", "/T", "/PID", &pid.to_string()])
-            .output();
-    }
-
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    {
-        let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
     }
 }
 
@@ -2503,31 +2590,6 @@ fn close_pids(pids: &[u32], timeout_secs: u64) -> Result<(), String> {
     } else {
         Err("无法关闭实例进程，请手动关闭后重试".to_string())
     }
-}
-
-/// 关闭指定实例（按 user-data-dir 匹配）
-
-#[allow(dead_code)]
-pub fn force_kill_antigravity_instance(user_data_dir: &str) -> Result<(), String> {
-    let target = normalize_path_for_compare(user_data_dir);
-    if target.is_empty() {
-        return Err("实例目录为空，无法关闭".to_string());
-    }
-
-    let pids = collect_antigravity_pids_by_user_data_dir(user_data_dir);
-    if pids.is_empty() {
-        return Ok(());
-    }
-
-    for pid in &pids {
-        let _ = force_kill_pid(*pid);
-    }
-
-    if !collect_antigravity_pids_by_user_data_dir(user_data_dir).is_empty() {
-        return Err("无法关闭实例进程，请手动关闭后重试".to_string());
-    }
-
-    Ok(())
 }
 
 /// 启动 Antigravity
@@ -2999,6 +3061,79 @@ pub fn close_codex(timeout_secs: u64) -> Result<(), String> {
     }
 }
 
+/// 关闭受管 Codex 实例（按 CODEX_HOME 匹配，包含默认实例目录）
+pub fn close_codex_instances(codex_homes: &[String], timeout_secs: u64) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        crate::modules::logger::log_info("正在关闭受管 Codex 实例...");
+
+        let target_homes: HashSet<String> = codex_homes
+            .iter()
+            .map(|value| normalize_path_for_compare(value))
+            .filter(|value| !value.is_empty())
+            .collect();
+        if target_homes.is_empty() {
+            crate::modules::logger::log_info("未提供可关闭的 Codex 实例目录");
+            return Ok(());
+        }
+
+        let default_home = normalize_path_for_compare(
+            &crate::modules::codex_account::get_codex_home()
+                .to_string_lossy()
+                .to_string(),
+        );
+        let entries = collect_codex_process_entries();
+        let mut pids: Vec<u32> = entries
+            .iter()
+            .filter_map(|(pid, home)| {
+                let resolved_home = home
+                    .as_ref()
+                    .map(|value| normalize_path_for_compare(value))
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_else(|| default_home.clone());
+                if !resolved_home.is_empty() && target_homes.contains(&resolved_home) {
+                    Some(*pid)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        pids.sort();
+        pids.dedup();
+        if pids.is_empty() {
+            crate::modules::logger::log_info("受管 Codex 实例未在运行，无需关闭");
+            return Ok(());
+        }
+
+        crate::modules::logger::log_info(&format!(
+            "准备关闭 {} 个受管 Codex 主进程...",
+            pids.len()
+        ));
+        let _ = close_pids(&pids, timeout_secs);
+
+        let still_running = collect_codex_process_entries()
+            .into_iter()
+            .any(|(_, home)| {
+                let resolved_home = home
+                    .as_ref()
+                    .map(|value| normalize_path_for_compare(value))
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_else(|| default_home.clone());
+                !resolved_home.is_empty() && target_homes.contains(&resolved_home)
+            });
+        if still_running {
+            return Err("无法关闭受管 Codex 实例进程，请手动关闭后重试".to_string());
+        }
+        return Ok(());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (codex_homes, timeout_secs);
+        Err("Codex 多开实例仅支持 macOS".to_string())
+    }
+}
+
 /// 关闭指定 Codex 实例（按 CODEX_HOME 匹配）
 
 #[allow(dead_code)]
@@ -3031,42 +3166,6 @@ pub fn close_codex_instance(codex_home: &str, timeout_secs: u64) -> Result<(), S
     #[cfg(not(target_os = "macos"))]
     {
         let _ = (codex_home, timeout_secs);
-        Err("Codex 多开实例仅支持 macOS".to_string())
-    }
-}
-
-/// 关闭指定 Codex 实例（按 CODEX_HOME 匹配）
-
-#[allow(dead_code)]
-pub fn force_kill_codex_instance(codex_home: &str) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        let default_home = crate::modules::codex_account::get_codex_home()
-            .to_string_lossy()
-            .to_string();
-        let target = normalize_path_for_compare(codex_home);
-        if target.is_empty() {
-            return Err("实例目录为空，无法关闭".to_string());
-        }
-
-        let pids = collect_codex_pids_by_home(codex_home, &default_home);
-        if pids.is_empty() {
-            return Ok(());
-        }
-
-        for pid in &pids {
-            let _ = force_kill_pid(*pid);
-        }
-
-        if !collect_codex_pids_by_home(codex_home, &default_home).is_empty() {
-            return Err("无法关闭实例进程，请手动关闭后重试".to_string());
-        }
-        return Ok(());
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = codex_home;
         Err("Codex 多开实例仅支持 macOS".to_string())
     }
 }
@@ -3663,6 +3762,94 @@ pub fn start_vscode_with_args_with_new_window(
 
 pub fn start_vscode_with_args(user_data_dir: &str, extra_args: &[String]) -> Result<u32, String> {
     start_vscode_with_args_with_new_window(user_data_dir, extra_args, false)
+}
+
+pub fn start_vscode_default_with_args_with_new_window(
+    extra_args: &[String],
+    use_new_window: bool,
+) -> Result<u32, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let launch_path = resolve_vscode_launch_path()?;
+        let mut cmd = Command::new(&launch_path);
+        if use_new_window {
+            cmd.arg("--new-window");
+        } else {
+            cmd.arg("--reuse-window");
+        }
+        for arg in extra_args {
+            let trimmed = arg.trim();
+            if !trimmed.is_empty() {
+                cmd.arg(trimmed);
+            }
+        }
+        let child = spawn_detached_unix(&mut cmd).map_err(|e| format!("启动 VS Code 失败: {}", e))?;
+        crate::modules::logger::log_info("VS Code 默认实例启动命令已发送");
+        return Ok(child.id());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+
+        let launch_path = resolve_vscode_launch_path()?;
+        let mut cmd = Command::new(&launch_path);
+        if should_detach_child() {
+            cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
+            cmd.stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null());
+        } else {
+            cmd.creation_flags(0x08000000);
+        }
+        if use_new_window {
+            cmd.arg("--new-window");
+        } else {
+            cmd.arg("--reuse-window");
+        }
+        for arg in extra_args {
+            let trimmed = arg.trim();
+            if !trimmed.is_empty() {
+                cmd.arg(trimmed);
+            }
+        }
+        let child = cmd
+            .spawn()
+            .map_err(|e| format!("启动 VS Code 失败: {}", e))?;
+        crate::modules::logger::log_info("VS Code 默认实例启动命令已发送");
+        return Ok(child.id());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let launch_path = resolve_vscode_launch_path()?;
+        let mut cmd = Command::new(&launch_path);
+        if should_detach_child() {
+            cmd.stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null());
+        }
+        if use_new_window {
+            cmd.arg("--new-window");
+        } else {
+            cmd.arg("--reuse-window");
+        }
+        for arg in extra_args {
+            let trimmed = arg.trim();
+            if !trimmed.is_empty() {
+                cmd.arg(trimmed);
+            }
+        }
+        let child = spawn_detached_unix(&mut cmd).map_err(|e| format!("启动 VS Code 失败: {}", e))?;
+        crate::modules::logger::log_info("VS Code 默认实例启动命令已发送");
+        return Ok(child.id());
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    {
+        let _ = (extra_args, use_new_window);
+        Err("GitHub Copilot 多开实例仅支持 macOS、Windows 和 Linux".to_string())
+    }
 }
 
 pub fn close_vscode(user_data_dirs: &[String], timeout_secs: u64) -> Result<(), String> {

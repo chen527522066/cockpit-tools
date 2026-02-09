@@ -27,7 +27,6 @@ export type InstanceStoreState = {
   deleteInstance: (instanceId: string) => Promise<void>;
   startInstance: (instanceId: string) => Promise<InstanceProfile>;
   stopInstance: (instanceId: string) => Promise<InstanceProfile>;
-  forceStopInstance: (instanceId: string) => Promise<InstanceProfile>;
   closeAllInstances: () => Promise<void>;
   openInstanceWindow: (instanceId: string) => Promise<void>;
 };
@@ -53,7 +52,6 @@ type InstanceService = {
   deleteInstance: (instanceId: string) => Promise<void>;
   startInstance: (instanceId: string) => Promise<InstanceProfile>;
   stopInstance: (instanceId: string) => Promise<InstanceProfile>;
-  forceStopInstance: (instanceId: string) => Promise<InstanceProfile>;
   closeAllInstances: () => Promise<void>;
   openInstanceWindow: (instanceId: string) => Promise<void>;
 };
@@ -140,12 +138,6 @@ export function createInstanceStore(service: InstanceService, cacheKey: string) 
 
     stopInstance: async (instanceId) => {
       const instance = await service.stopInstance(instanceId);
-      await get().fetchInstances();
-      return instance;
-    },
-
-    forceStopInstance: async (instanceId) => {
-      const instance = await service.forceStopInstance(instanceId);
       await get().fetchInstances();
       return instance;
     },

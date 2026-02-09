@@ -64,10 +64,6 @@ export async function stopInstance(instanceId: string): Promise<InstanceProfile>
   return await invoke('github_copilot_stop_instance', { instanceId });
 }
 
-export async function forceStopInstance(instanceId: string): Promise<InstanceProfile> {
-  return await invoke('github_copilot_force_stop_instance', { instanceId });
-}
-
 export async function closeAllInstances(): Promise<void> {
   return await invoke('github_copilot_close_all_instances');
 }

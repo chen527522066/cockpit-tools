@@ -227,6 +227,7 @@ pub fn run() {
             commands::github_copilot::add_github_copilot_account_with_token,
             commands::github_copilot::update_github_copilot_account_tags,
             commands::github_copilot::get_github_copilot_accounts_index_path,
+            commands::github_copilot::inject_github_copilot_to_vscode,
 
             // GitHub Copilot Instance Commands
             commands::github_copilot_instance::github_copilot_get_instance_defaults,
@@ -237,7 +238,6 @@ pub fn run() {
             commands::github_copilot_instance::github_copilot_start_instance,
             commands::github_copilot_instance::github_copilot_stop_instance,
             commands::github_copilot_instance::github_copilot_open_instance_window,
-            commands::github_copilot_instance::github_copilot_force_stop_instance,
             commands::github_copilot_instance::github_copilot_close_all_instances,
 
             // Codex Instance Commands
@@ -249,7 +249,6 @@ pub fn run() {
             commands::codex_instance::codex_start_instance,
             commands::codex_instance::codex_stop_instance,
             commands::codex_instance::codex_open_instance_window,
-            commands::codex_instance::codex_force_stop_instance,
             commands::codex_instance::codex_close_all_instances,
 
             // Instance Commands
@@ -261,7 +260,6 @@ pub fn run() {
             commands::instance::start_instance,
             commands::instance::stop_instance,
             commands::instance::open_instance_window,
-            commands::instance::force_stop_instance,
             commands::instance::close_all_instances,
 
         ])

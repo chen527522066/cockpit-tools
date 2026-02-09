@@ -1116,10 +1116,15 @@
     "export": "Xuất",
     "flowNotice": {
       "title": "Hướng dẫn tài khoản GitHub Copilot (bấm để mở rộng/thu gọn)",
-      "desc": "Luồng hiện tại: cấp quyền tài khoản mới -> lấy và hiển thị hạn mức -> liên kết tài khoản trong chế độ đa phiên bản.",
-      "reason": "Vì sao không thể chuyển tài khoản bằng một cú nhấp: trạng thái đăng nhập VS Code được quản lý bởi phiên GitHub và SecretStorage của tiện ích, ứng dụng bên ngoài không thể thay thế các thông tin xác thực này.",
-      "storage": "Vị trí dữ liệu đăng nhập: chủ yếu trong SecretStorage của VS Code (keychain/trình quản lý thông tin xác thực hệ thống) và cơ sở dữ liệu trạng thái toàn cục (ví dụ: ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Giải pháp thay thế: dùng cô lập đa phiên bản (khác --user-data-dir). Đăng nhập một lần cho mỗi phiên bản, sau đó khởi chạy theo phiên bản để chuyển nhanh sang môi trường tài khoản mục tiêu."
-    }
+      "desc": "Việc chuyển tài khoản yêu cầu đọc kho xác thực cục bộ của VS Code và dùng dịch vụ thông tin xác thực hệ thống để giải mã/ghi lại; dữ liệu chỉ được xử lý trên máy cục bộ.",
+      "reason": "Phạm vi quyền: đọc cơ sở dữ liệu xác thực VS Code (state.vscdb) và gọi khả năng mã hóa hệ thống (Windows DPAPI / macOS Keychain / Linux Secret Service) để giải mã/ghi lại.",
+      "storage": "Phạm vi đọc: chỉ xử lý dữ liệu liên quan đến phiên đăng nhập GitHub; không chỉnh sửa bí mật hệ thống và không tải lên khóa hay token.",
+      "alternative": "Giải pháp thay thế: dùng cô lập đa phiên bản (khác --user-data-dir). Đăng nhập một lần cho mỗi phiên bản, sau đó khởi chạy theo phiên bản để chuyển nhanh sang môi trường tài khoản mục tiêu.",
+      "inject": "Chuyển đổi một lần nhấp: công cụ này đọc dữ liệu mã hóa cục bộ của VS Code (DPAPI/Keychain/Secret Service), giải mã phiên xác thực trong state.vscdb, thay thế token GitHub Copilot rồi mã hóa lại — mọi thao tác đều diễn ra cục bộ trên máy của bạn."
+    },
+    "injectToVSCode": "Chuyển sang VS Code",
+    "injecting": "Đang chèn...",
+    "injectSuccess": "Đã chèn token vào VS Code thành công. VS Code đang được khởi chạy.",
+    "injectRequireClose": "Vui lòng đóng VS Code trước khi chèn."
   }
 }

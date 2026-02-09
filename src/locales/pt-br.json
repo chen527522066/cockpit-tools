@@ -886,11 +886,16 @@
     "export": "Exportar",
     "flowNotice": {
       "title": "Guia de contas do GitHub Copilot (clique para expandir/recolher)",
-      "desc": "Fluxo atual: autorizar nova conta -> consultar e exibir cotas -> vincular conta na visualização multi-instância.",
-      "reason": "Por que não há troca de conta com um clique: o estado de login do VS Code é gerenciado por sessões do GitHub e SecretStorage da extensão, e apps externas não podem substituir essas credenciais.",
-      "storage": "Local dos dados de login: principalmente no SecretStorage do VS Code (chaveiro/gerenciador de credenciais do sistema) e no banco de estado global (por exemplo, ~/Library/Application Support/Code/User/globalStorage/state.vscdb).",
-      "alternative": "Alternativa: usar isolamento por multi-instância (diferente --user-data-dir). Faça login uma vez por instância e depois inicie por instância para alternar rapidamente para o ambiente da conta desejada."
-    }
+      "desc": "A troca de conta exige ler o armazenamento local de autenticação do VS Code e usar o serviço de credenciais do sistema para descriptografar e gravar de volta; os dados são processados apenas localmente.",
+      "reason": "Escopo de permissões: ler o banco de autenticação do VS Code (state.vscdb) e chamar a criptografia do sistema (Windows DPAPI / macOS Keychain / Linux Secret Service) para descriptografar e gravar de volta.",
+      "storage": "Escopo de leitura: apenas dados relacionados à sessão de login do GitHub são processados; segredos do sistema não são alterados e nenhuma chave ou token é enviado.",
+      "alternative": "Alternativa: usar isolamento por multi-instância (diferente --user-data-dir). Faça login uma vez por instância e depois inicie por instância para alternar rapidamente para o ambiente da conta desejada.",
+      "inject": "Troca com um clique: esta ferramenta lê o material de criptografia local do VS Code (DPAPI/Keychain/Secret Service), descriptografa a sessão de autenticação em state.vscdb, substitui o token do GitHub Copilot e criptografa novamente — tudo localmente na sua máquina."
+    },
+    "injectToVSCode": "Alternar para VS Code",
+    "injecting": "Injetando...",
+    "injectSuccess": "O token foi injetado no VS Code com sucesso. O VS Code está sendo iniciado.",
+    "injectRequireClose": "Feche o VS Code antes de injetar."
   },
   "dashboard": {
     "title": "Painel de contas",

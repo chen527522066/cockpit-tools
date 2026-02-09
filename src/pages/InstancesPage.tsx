@@ -49,8 +49,7 @@ export function InstancesPage({ onNavigate }: InstancesPageProps) {
         fetchAccounts={fetchAccounts}
         renderAccountQuotaPreview={renderAccountQuotaPreview}
         getAccountSearchText={(account) => `${account.email} ${account.name ?? ''}`}
-        restartStrategyStorageKey="instancesRestartStrategy"
-        restartStrategyMode="antigravity"
+        appType="antigravity"
       />
     </div>
   );
