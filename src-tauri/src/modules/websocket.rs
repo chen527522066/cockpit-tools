@@ -734,12 +734,15 @@ fn handle_set_language(language: &str, source: Option<&str>) -> Result<String, S
         theme: current.theme,
         auto_refresh_minutes: current.auto_refresh_minutes,
         codex_auto_refresh_minutes: current.codex_auto_refresh_minutes,
+        ghcp_auto_refresh_minutes: current.ghcp_auto_refresh_minutes,
         close_behavior: current.close_behavior,
         opencode_app_path: current.opencode_app_path,
         antigravity_app_path: current.antigravity_app_path,
         codex_app_path: current.codex_app_path,
         vscode_app_path: current.vscode_app_path,
         opencode_sync_on_switch: current.opencode_sync_on_switch,
+        auto_switch_enabled: current.auto_switch_enabled,
+        auto_switch_threshold: current.auto_switch_threshold,
     };
 
     config::save_user_config(&new_config)?;

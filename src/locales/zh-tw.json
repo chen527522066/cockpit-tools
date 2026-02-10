@@ -1126,5 +1126,33 @@
     "injecting": "注入中...",
     "injectSuccess": "已成功將權杖注入 VS Code，VS Code 正在啟動。",
     "injectRequireClose": "注入前請先關閉 VS Code。"
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Antigravity 設定",
+      "appPath": "啟動路徑"
+    },
+    "codex": {
+      "title": "Codex 設定",
+      "appPath": "啟動路徑"
+    },
+    "githubCopilot": {
+      "title": "GitHub Copilot 設定",
+      "appPath": "VS Code 路徑"
+    },
+    "refreshInterval": "配額自動重新整理",
+    "codexRefreshInterval": "配額自動重新整理",
+    "ghcpRefreshInterval": "配額自動重新整理",
+    "autoSwitch": {
+      "title": "自動切換",
+      "enable": "自動切換",
+      "threshold": "切換閾值",
+      "thresholdDesc": "任意模型配額低於此百分比時觸發自動切換",
+      "hint": "當任意模型配額低於閾值時，自動切換到配額最高的帳號。"
+    },
+    "customInput": "自訂",
+    "apply": "確定",
+    "inputMinutes": "輸入分鐘數",
+    "inputPercent": "輸入百分比"
   }
 }

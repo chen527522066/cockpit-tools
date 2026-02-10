@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CodexAccount } from '../types/codex';
+import { CodexAccount, CodexQuota } from '../types/codex';
 import * as codexService from '../services/codexService';
 
 const CODEX_ACCOUNTS_CACHE_KEY = 'agtools.codex.accounts.cache';
@@ -58,8 +58,8 @@ interface CodexAccountState {
   switchAccount: (accountId: string) => Promise<CodexAccount>;
   deleteAccount: (accountId: string) => Promise<void>;
   deleteAccounts: (accountIds: string[]) => Promise<void>;
-  refreshQuota: (accountId: string) => Promise<void>;
-  refreshAllQuotas: () => Promise<void>;
+  refreshQuota: (accountId: string) => Promise<CodexQuota>;
+  refreshAllQuotas: () => Promise<number>;
   importFromLocal: () => Promise<CodexAccount>;
   importFromJson: (jsonContent: string) => Promise<CodexAccount[]>;
   updateAccountTags: (accountId: string, tags: string[]) => Promise<CodexAccount>;
@@ -112,13 +112,15 @@ export const useCodexAccountStore = create<CodexAccountState>((set, get) => ({
   },
   
   refreshQuota: async (accountId: string) => {
-    await codexService.refreshCodexQuota(accountId);
+    const quota = await codexService.refreshCodexQuota(accountId);
     await get().fetchAccounts();
+    return quota;
   },
   
   refreshAllQuotas: async () => {
-    await codexService.refreshAllCodexQuotas();
+    const successCount = await codexService.refreshAllCodexQuotas();
     await get().fetchAccounts();
+    return successCount;
   },
   
   importFromLocal: async () => {

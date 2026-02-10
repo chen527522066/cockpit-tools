@@ -345,7 +345,18 @@ pub async fn github_copilot_open_instance_window(instance_id: String) -> Result<
         let default_settings: DefaultInstanceSettings =
             modules::github_copilot_instance::load_default_settings()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();
-        let _ = modules::process::focus_vscode_instance(default_settings.last_pid, &default_dir_str)?;
+        if let Err(err) =
+            modules::process::focus_vscode_instance(default_settings.last_pid, &default_dir_str)
+        {
+            modules::logger::log_warn(&format!(
+                "定位 VS Code 默认实例窗口失败，回退为启动实例: {}",
+                err
+            ));
+            let extra_args = modules::process::parse_extra_args(&default_settings.extra_args);
+            let pid =
+                modules::process::start_vscode_default_with_args_with_new_window(&extra_args, false)?;
+            let _ = modules::github_copilot_instance::update_default_pid(Some(pid))?;
+        }
         return Ok(());
     }
 
@@ -356,7 +367,19 @@ pub async fn github_copilot_open_instance_window(instance_id: String) -> Result<
         .find(|item| item.id == instance_id)
         .ok_or("实例不存在")?;
 
-    let _ = modules::process::focus_vscode_instance(instance.last_pid, &instance.user_data_dir)?;
+    if let Err(err) = modules::process::focus_vscode_instance(instance.last_pid, &instance.user_data_dir) {
+        modules::logger::log_warn(&format!(
+            "定位 VS Code 实例窗口失败，回退为启动实例: instance_id={}, err={}",
+            instance.id, err
+        ));
+        let extra_args = modules::process::parse_extra_args(&instance.extra_args);
+        let pid = modules::process::start_vscode_with_args_with_new_window(
+            &instance.user_data_dir,
+            &extra_args,
+            false,
+        )?;
+        let _ = modules::github_copilot_instance::update_instance_after_start(&instance.id, pid)?;
+    }
     Ok(())
 }
 

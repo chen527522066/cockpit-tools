@@ -23,6 +23,8 @@ interface DashboardPageProps {
   onNavigate: (page: Page) => void;
 }
 
+const GHCP_CURRENT_ACCOUNT_ID_KEY = 'agtools.github_copilot.current_account_id';
+
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const { t } = useTranslation();
 
@@ -49,6 +51,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const {
     accounts: githubCopilotAccounts,
     fetchAccounts: fetchGitHubCopilotAccounts,
+    switchAccount: switchGitHubCopilotAccount,
   } = useGitHubCopilotAccountStore();
 
   const agCurrentId = agCurrent?.id;
@@ -84,6 +87,14 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
 
   // Refresh States
   const [refreshing, setRefreshing] = React.useState<Set<string>>(new Set());
+  const [switching, setSwitching] = React.useState<Set<string>>(new Set());
+  const [githubCopilotCurrentId, setGitHubCopilotCurrentId] = React.useState<string | null>(() => {
+    try {
+      return localStorage.getItem(GHCP_CURRENT_ACCOUNT_ID_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [cardRefreshing, setCardRefreshing] = React.useState<{ag: boolean, codex: boolean, githubCopilot: boolean}>({
     ag: false,
     codex: false,
@@ -184,6 +195,24 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     }
   };
 
+  const handleSwitchGitHubCopilot = async (accountId: string) => {
+    if (switching.has(accountId)) return;
+    setSwitching((prev) => new Set(prev).add(accountId));
+    try {
+      await switchGitHubCopilotAccount(accountId);
+      setGitHubCopilotCurrentId(accountId);
+      localStorage.setItem(GHCP_CURRENT_ACCOUNT_ID_KEY, accountId);
+    } catch (error) {
+      console.error('Switch failed:', error);
+    } finally {
+      setSwitching((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
+  };
+
   // Antigravity Recommendation Logic
   const agRecommended = useMemo(() => {
     if (agAccounts.length <= 1) return null;
@@ -233,12 +262,24 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
 
   const githubCopilotCurrent = useMemo(() => {
     if (githubCopilotAccounts.length === 0) return null;
+    if (githubCopilotCurrentId) {
+      const current = githubCopilotAccounts.find((account) => account.id === githubCopilotCurrentId);
+      if (current) return current;
+    }
     return githubCopilotAccounts.reduce((prev, curr) => {
       const prevScore = prev.last_used || prev.created_at || 0;
       const currScore = curr.last_used || curr.created_at || 0;
       return currScore > prevScore ? curr : prev;
     });
-  }, [githubCopilotAccounts]);
+  }, [githubCopilotAccounts, githubCopilotCurrentId]);
+
+  React.useEffect(() => {
+    if (!githubCopilotCurrentId) return;
+    const exists = githubCopilotAccounts.some((account) => account.id === githubCopilotCurrentId);
+    if (exists) return;
+    setGitHubCopilotCurrentId(null);
+    localStorage.removeItem(GHCP_CURRENT_ACCOUNT_ID_KEY);
+  }, [githubCopilotAccounts, githubCopilotCurrentId]);
 
   const githubCopilotRecommended = useMemo(() => {
     if (githubCopilotAccounts.length <= 1) return null;
@@ -404,6 +445,8 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     const hourly = account.quota?.hourly_percentage ?? null;
     const weekly = account.quota?.weekly_percentage ?? null;
     const hasQuota = hourly != null || weekly != null;
+    const isRefreshing = refreshing.has(account.id);
+    const isSwitching = switching.has(account.id);
 
     return (
       <div className="account-mini-card">
@@ -468,9 +511,17 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
             className="mini-icon-btn"
             onClick={() => handleRefreshGitHubCopilot(account.id)}
             title={t('common.refresh', '刷新')}
-            disabled={refreshing.has(account.id)}
+            disabled={isRefreshing || isSwitching}
           >
-            <RotateCw size={14} className={refreshing.has(account.id) ? 'loading-spinner' : ''} />
+            <RotateCw size={14} className={isRefreshing ? 'loading-spinner' : ''} />
+          </button>
+          <button
+            className="mini-icon-btn"
+            onClick={() => handleSwitchGitHubCopilot(account.id)}
+            title={t('dashboard.switch', '切换')}
+            disabled={isSwitching}
+          >
+            {isSwitching ? <RotateCw size={14} className="loading-spinner" /> : <Play size={14} />}
           </button>
         </div>
       </div>

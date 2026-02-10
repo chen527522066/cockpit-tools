@@ -1126,5 +1126,33 @@
     "injecting": "Probíhá injektování...",
     "injectSuccess": "Token byl úspěšně vložen do VS Code. VS Code se spouští.",
     "injectRequireClose": "Před injektováním prosím zavřete VS Code."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Nastavení Antigravity",
+      "appPath": "Cesta k aplikaci"
+    },
+    "codex": {
+      "title": "Nastavení Codex",
+      "appPath": "Cesta k aplikaci"
+    },
+    "githubCopilot": {
+      "title": "Nastavení GitHub Copilot",
+      "appPath": "Cesta k VS Code"
+    },
+    "refreshInterval": "Automatická aktualizace kvóty",
+    "codexRefreshInterval": "Automatická aktualizace kvóty",
+    "ghcpRefreshInterval": "Automatická aktualizace kvóty",
+    "autoSwitch": {
+      "title": "Automatické přepnutí",
+      "enable": "Automatické přepnutí",
+      "threshold": "Práh přepnutí",
+      "thresholdDesc": "Automatické přepnutí se spustí, když kvóta libovolného modelu klesne pod toto procento",
+      "hint": "Automaticky přepne na účet s nejvyšší kvótou, když kvóta libovolného modelu klesne pod práh."
+    },
+    "customInput": "Vlastní",
+    "apply": "Použít",
+    "inputMinutes": "Zadejte minuty",
+    "inputPercent": "Zadejte procento"
   }
 }

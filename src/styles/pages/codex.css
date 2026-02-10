@@ -128,6 +128,23 @@
   color: white;
 }
 
+.codex-accounts-page .codex-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.codex-accounts-page .codex-status-pill.quota-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
 /* 配额部分 */
 .codex-quota-section {
   display: flex;
@@ -220,6 +237,23 @@
   padding: 12px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
+}
+
+.codex-accounts-page .quota-error-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.codex-accounts-page .quota-error-inline.table {
+  margin-top: 8px;
 }
 
 /* 卡片底部 */
@@ -967,6 +1001,11 @@
 [data-theme="dark"] .codex-accounts-page .message-bar.error {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
+}
+
+[data-theme="dark"] .codex-accounts-page .codex-status-pill.quota-error,
+[data-theme="dark"] .codex-accounts-page .quota-error-inline {
+  color: #fca5a5;
 }
 
 [data-theme="dark"] .codex-add-modal .add-status.success {

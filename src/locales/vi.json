@@ -1126,5 +1126,33 @@
     "injecting": "Đang chèn...",
     "injectSuccess": "Đã chèn token vào VS Code thành công. VS Code đang được khởi chạy.",
     "injectRequireClose": "Vui lòng đóng VS Code trước khi chèn."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Cài đặt Antigravity",
+      "appPath": "Đường dẫn ứng dụng"
+    },
+    "codex": {
+      "title": "Cài đặt Codex",
+      "appPath": "Đường dẫn ứng dụng"
+    },
+    "githubCopilot": {
+      "title": "Cài đặt GitHub Copilot",
+      "appPath": "Đường dẫn VS Code"
+    },
+    "refreshInterval": "Tự động làm mới hạn ngạch",
+    "codexRefreshInterval": "Tự động làm mới hạn ngạch",
+    "ghcpRefreshInterval": "Tự động làm mới hạn ngạch",
+    "autoSwitch": {
+      "title": "Tự động chuyển đổi",
+      "enable": "Tự động chuyển đổi",
+      "threshold": "Ngưỡng chuyển đổi",
+      "thresholdDesc": "Tự động chuyển đổi được kích hoạt khi hạn ngạch của bất kỳ mô hình nào giảm xuống dưới tỷ lệ phần trăm này",
+      "hint": "Tự động chuyển sang tài khoản có hạn ngạch cao nhất khi hạn ngạch của bất kỳ mô hình nào giảm xuống dưới ngưỡng."
+    },
+    "customInput": "Tùy chỉnh",
+    "apply": "Áp dụng",
+    "inputMinutes": "Nhập số phút",
+    "inputPercent": "Nhập phần trăm"
   }
 }

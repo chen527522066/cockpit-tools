@@ -1126,5 +1126,33 @@
       "desc": "No se pudo encontrar la ruta de la aplicación {{app}}. Establécela ahora para continuar.",
       "action": "Establecer ahora"
     }
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Configuración de Antigravity",
+      "appPath": "Ruta de la aplicación"
+    },
+    "codex": {
+      "title": "Configuración de Codex",
+      "appPath": "Ruta de la aplicación"
+    },
+    "githubCopilot": {
+      "title": "Configuración de GitHub Copilot",
+      "appPath": "Ruta de VS Code"
+    },
+    "refreshInterval": "Actualización automática de cuota",
+    "codexRefreshInterval": "Actualización automática de cuota",
+    "ghcpRefreshInterval": "Actualización automática de cuota",
+    "autoSwitch": {
+      "title": "Cambio automático",
+      "enable": "Cambio automático",
+      "threshold": "Umbral de cambio",
+      "thresholdDesc": "El cambio automático se activa cuando la cuota de cualquier modelo cae por debajo de este porcentaje",
+      "hint": "Cambia automáticamente a la cuenta con la cuota más alta cuando la cuota de cualquier modelo cae por debajo del umbral."
+    },
+    "customInput": "Personalizado",
+    "apply": "Aplicar",
+    "inputMinutes": "Introduzca minutos",
+    "inputPercent": "Introduzca porcentaje"
   }
 }

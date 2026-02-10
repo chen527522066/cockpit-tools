@@ -11,6 +11,8 @@ pub struct CodexAccount {
     pub organization_id: Option<String>,
     pub tokens: CodexTokens,
     pub quota: Option<CodexQuota>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quota_error: Option<CodexQuotaErrorInfo>,
     pub tags: Option<Vec<String>>,
     pub created_at: i64,
     pub last_used: i64,
@@ -39,6 +41,15 @@ pub struct CodexQuota {
     /// 原始响应数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw_data: Option<serde_json::Value>,
+}
+
+/// Codex 配额错误信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexQuotaErrorInfo {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    pub message: String,
+    pub timestamp: i64,
 }
 
 /// ~/.codex/auth.json 文件格式
@@ -131,6 +142,7 @@ impl CodexAccount {
             organization_id: None,
             tokens,
             quota: None,
+            quota_error: None,
             tags: None,
             created_at: now,
             last_used: now,

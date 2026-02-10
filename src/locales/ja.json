@@ -1126,5 +1126,33 @@
     "injecting": "注入中...",
     "injectSuccess": "トークンをVS Codeに正常に注入しました。VS Codeを起動しています。",
     "injectRequireClose": "注入する前にVS Codeを閉じてください。"
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Antigravity 設定",
+      "appPath": "アプリパス"
+    },
+    "codex": {
+      "title": "Codex 設定",
+      "appPath": "アプリパス"
+    },
+    "githubCopilot": {
+      "title": "GitHub Copilot 設定",
+      "appPath": "VS Code パス"
+    },
+    "refreshInterval": "クォータ自動更新",
+    "codexRefreshInterval": "クォータ自動更新",
+    "ghcpRefreshInterval": "クォータ自動更新",
+    "autoSwitch": {
+      "title": "自動切替",
+      "enable": "自動切替",
+      "threshold": "切替閾値",
+      "thresholdDesc": "任意のモデルのクォータがこのパーセンテージを下回ると自動切替がトリガーされます",
+      "hint": "任意のモデルのクォータが閾値を下回ると、最もクォータの多いアカウントに自動的に切り替えます。"
+    },
+    "customInput": "カスタム",
+    "apply": "適用",
+    "inputMinutes": "分数を入力",
+    "inputPercent": "パーセントを入力"
   }
 }

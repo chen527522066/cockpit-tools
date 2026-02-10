@@ -1126,5 +1126,33 @@
     "injecting": "Enjekte ediliyor...",
     "injectSuccess": "Belirteç VS Code'a başarıyla enjekte edildi. VS Code başlatılıyor.",
     "injectRequireClose": "Enjeksiyondan önce lütfen VS Code'u kapatın."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Antigravity Ayarları",
+      "appPath": "Uygulama Yolu"
+    },
+    "codex": {
+      "title": "Codex Ayarları",
+      "appPath": "Uygulama Yolu"
+    },
+    "githubCopilot": {
+      "title": "GitHub Copilot Ayarları",
+      "appPath": "VS Code Yolu"
+    },
+    "refreshInterval": "Kotayı otomatik yenile",
+    "codexRefreshInterval": "Kotayı otomatik yenile",
+    "ghcpRefreshInterval": "Kotayı otomatik yenile",
+    "autoSwitch": {
+      "title": "Otomatik Geçiş",
+      "enable": "Otomatik Geçiş",
+      "threshold": "Geçiş Eşiği",
+      "thresholdDesc": "Herhangi bir modelin kotası bu yüzdenin altına düştüğünde otomatik geçiş tetiklenir",
+      "hint": "Herhangi bir modelin kotası eşiğin altına düştüğünde en yüksek kotaya sahip hesaba otomatik olarak geçiş yapar."
+    },
+    "customInput": "Özel",
+    "apply": "Uygula",
+    "inputMinutes": "Dakika girin",
+    "inputPercent": "Yüzde girin"
   }
 }

@@ -1126,5 +1126,33 @@
     "injecting": "주입 중...",
     "injectSuccess": "토큰을 VS Code에 성공적으로 주입했습니다. VS Code를 실행하는 중입니다.",
     "injectRequireClose": "주입하기 전에 VS Code를 종료해 주세요."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Antigravity 설정",
+      "appPath": "앱 경로"
+    },
+    "codex": {
+      "title": "Codex 설정",
+      "appPath": "앱 경로"
+    },
+    "githubCopilot": {
+      "title": "GitHub Copilot 설정",
+      "appPath": "VS Code 경로"
+    },
+    "refreshInterval": "할당량 자동 새로고침",
+    "codexRefreshInterval": "할당량 자동 새로고침",
+    "ghcpRefreshInterval": "할당량 자동 새로고침",
+    "autoSwitch": {
+      "title": "자동 전환",
+      "enable": "자동 전환",
+      "threshold": "전환 임계값",
+      "thresholdDesc": "모델 할당량이 이 비율 아래로 떨어지면 자동 전환이 트리거됩니다",
+      "hint": "모델 할당량이 임계값 아래로 떨어지면 할당량이 가장 많은 계정으로 자동 전환합니다."
+    },
+    "customInput": "사용자 지정",
+    "apply": "적용",
+    "inputMinutes": "분 입력",
+    "inputPercent": "백분율 입력"
   }
 }

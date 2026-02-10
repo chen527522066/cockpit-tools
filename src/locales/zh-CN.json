@@ -255,7 +255,13 @@
       "vscodePathSelect": "选择",
       "vscodePathReset": "重置默认",
       "antigravityAppPath": "Antigravity 启动路径",
-      "antigravityTitle": "Antigravity 启动"
+      "antigravityTitle": "Antigravity 启动",
+      "commonTitle": "通用",
+      "antigravitySettingsTitle": "Antigravity 设置",
+      "codexSettingsTitle": "Codex 设置",
+      "githubCopilotSettingsTitle": "GitHub Copilot 设置",
+      "ghcpAutoRefresh": "GitHub Copilot 自动刷新配额",
+      "ghcpAutoRefreshDesc": "后台自动更新频率"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -816,6 +822,10 @@
     "addAccount": "添加账号",
     "refreshAll": "刷新全部",
     "refreshQuota": "刷新配额",
+    "refreshSuccess": "刷新配额成功",
+    "refreshFailed": "刷新配额失败: {{error}}",
+    "refreshAllSuccess": "刷新完成，共成功 {{count}} 个账号",
+    "refreshAllPartialFailed": "刷新完成，成功 {{success}} / {{total}}，部分账号失败",
     "switch": "切换",
     "switched": "已切换至 {{email}}",
     "switchFailed": "切换失败: {{error}}",
@@ -871,6 +881,11 @@
       "reset": "重置",
       "noData": "暂无配额数据",
       "resetDone": "已重置"
+    },
+    "quotaError": {
+      "badge": "配额异常",
+      "generic": "配额刷新失败，请稍后重试",
+      "deactivatedWorkspace": "工作区已停用，请切换账号或重新授权"
     },
     "plan": {
       "free": "FREE",

@@ -61,6 +61,7 @@ import {
 import { OverviewTabsHeader } from '../components/OverviewTabsHeader'
 import styles from '../styles/CompactView.module.css'
 import { FileCorruptedModal, parseFileCorruptedError, type FileCorruptedError } from '../components/FileCorruptedModal'
+import { QuickSettingsPopover } from '../components/QuickSettingsPopover'
 
 interface AccountsPageProps {
   onNavigate?: (page: Page) => void
@@ -2309,6 +2310,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                 <Trash2 size={14} />
               </button>
             )}
+            <QuickSettingsPopover type="antigravity" />
           </div>
         </div>
 

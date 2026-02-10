@@ -1126,5 +1126,33 @@
       "desc": "Não foi possível encontrar o caminho do aplicativo {{app}}. Defina agora para continuar.",
       "action": "Definir agora"
     }
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Configurações do Antigravity",
+      "appPath": "Caminho do aplicativo"
+    },
+    "codex": {
+      "title": "Configurações do Codex",
+      "appPath": "Caminho do aplicativo"
+    },
+    "githubCopilot": {
+      "title": "Configurações do GitHub Copilot",
+      "appPath": "Caminho do VS Code"
+    },
+    "refreshInterval": "Atualização automática de cota",
+    "codexRefreshInterval": "Atualização automática de cota",
+    "ghcpRefreshInterval": "Atualização automática de cota",
+    "autoSwitch": {
+      "title": "Troca automática",
+      "enable": "Troca automática",
+      "threshold": "Limiar de troca",
+      "thresholdDesc": "A troca automática é acionada quando a cota de qualquer modelo cai abaixo deste percentual",
+      "hint": "Troca automaticamente para a conta com a maior cota quando a cota de qualquer modelo cai abaixo do limiar."
+    },
+    "customInput": "Personalizado",
+    "apply": "Aplicar",
+    "inputMinutes": "Digite os minutos",
+    "inputPercent": "Digite a porcentagem"
   }
 }

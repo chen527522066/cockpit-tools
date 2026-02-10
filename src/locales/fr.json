@@ -1126,5 +1126,33 @@
     "injecting": "Injection en cours...",
     "injectSuccess": "Le jeton a été injecté dans VS Code avec succès. VS Code est en cours de lancement.",
     "injectRequireClose": "Veuillez fermer VS Code avant l’injection."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Paramètres Antigravity",
+      "appPath": "Chemin de l'application"
+    },
+    "codex": {
+      "title": "Paramètres Codex",
+      "appPath": "Chemin de l'application"
+    },
+    "githubCopilot": {
+      "title": "Paramètres GitHub Copilot",
+      "appPath": "Chemin VS Code"
+    },
+    "refreshInterval": "Actualisation automatique du quota",
+    "codexRefreshInterval": "Actualisation automatique du quota",
+    "ghcpRefreshInterval": "Actualisation automatique du quota",
+    "autoSwitch": {
+      "title": "Changement automatique",
+      "enable": "Changement automatique",
+      "threshold": "Seuil de changement",
+      "thresholdDesc": "Le changement automatique se déclenche lorsque le quota d'un modèle tombe en dessous de ce pourcentage",
+      "hint": "Bascule automatiquement vers le compte avec le quota le plus élevé lorsque le quota d'un modèle descend en dessous du seuil."
+    },
+    "customInput": "Personnalisé",
+    "apply": "Appliquer",
+    "inputMinutes": "Entrer les minutes",
+    "inputPercent": "Entrer le pourcentage"
   }
 }

@@ -38,6 +38,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { GitHubCopilotOverviewTabsHeader, GitHubCopilotTab } from '../components/GitHubCopilotOverviewTabsHeader';
 import { GitHubCopilotInstancesContent } from './GitHubCopilotInstancesPage';
+import { QuickSettingsPopover } from '../components/QuickSettingsPopover';
 
 const GHCP_FLOW_NOTICE_COLLAPSED_KEY = 'agtools.github_copilot.flow_notice_collapsed';
 const GHCP_CURRENT_ACCOUNT_ID_KEY = 'agtools.github_copilot.current_account_id';
@@ -1259,6 +1260,7 @@ export function GitHubCopilotAccountsPage() {
               <Trash2 size={14} />
             </button>
           )}
+            <QuickSettingsPopover type="github_copilot" />
         </div>
       </div>
 

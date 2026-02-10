@@ -1126,5 +1126,33 @@
     "injecting": "Wird injiziert...",
     "injectSuccess": "Das Token wurde erfolgreich in VS Code eingefügt. VS Code wird gestartet.",
     "injectRequireClose": "Bitte schließen Sie VS Code vor dem Injizieren."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Antigravity-Einstellungen",
+      "appPath": "App-Pfad"
+    },
+    "codex": {
+      "title": "Codex-Einstellungen",
+      "appPath": "App-Pfad"
+    },
+    "githubCopilot": {
+      "title": "GitHub Copilot-Einstellungen",
+      "appPath": "VS Code-Pfad"
+    },
+    "refreshInterval": "Kontingent automatisch aktualisieren",
+    "codexRefreshInterval": "Kontingent automatisch aktualisieren",
+    "ghcpRefreshInterval": "Kontingent automatisch aktualisieren",
+    "autoSwitch": {
+      "title": "Automatisch wechseln",
+      "enable": "Automatisch wechseln",
+      "threshold": "Wechselschwelle",
+      "thresholdDesc": "Automatischer Wechsel wird ausgelöst, wenn das Kontingent eines Modells unter diesen Prozentsatz fällt",
+      "hint": "Wechselt automatisch zum Konto mit dem höchsten Kontingent, wenn das Kontingent eines Modells unter den Schwellenwert fällt."
+    },
+    "customInput": "Benutzerdefiniert",
+    "apply": "Anwenden",
+    "inputMinutes": "Minuten eingeben",
+    "inputPercent": "Prozentsatz eingeben"
   }
 }

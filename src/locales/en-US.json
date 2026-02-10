@@ -255,7 +255,13 @@
       "vscodePathSelect": "Select",
       "vscodePathReset": "Reset to default",
       "antigravityAppPath": "Antigravity App Path",
-      "antigravityTitle": "Antigravity Launch"
+      "antigravityTitle": "Antigravity Launch",
+      "commonTitle": "Common",
+      "antigravitySettingsTitle": "Antigravity Settings",
+      "codexSettingsTitle": "Codex Settings",
+      "githubCopilotSettingsTitle": "GitHub Copilot Settings",
+      "ghcpAutoRefresh": "GitHub Copilot Auto Refresh Quota",
+      "ghcpAutoRefreshDesc": "Background update frequency"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -816,6 +822,10 @@
     "addAccount": "Add Account",
     "refreshAll": "Refresh All",
     "refreshQuota": "Refresh Quota",
+    "refreshSuccess": "Quota refreshed",
+    "refreshFailed": "Quota refresh failed: {{error}}",
+    "refreshAllSuccess": "Refresh completed, {{count}} account(s) succeeded",
+    "refreshAllPartialFailed": "Refresh completed, {{success}} / {{total}} account(s) succeeded and some failed",
     "switch": "Switch",
     "switched": "Switched to {{email}}",
     "switchFailed": "Switch failed: {{error}}",
@@ -871,6 +881,11 @@
       "reset": "Reset",
       "noData": "No quota data",
       "resetDone": "Reset"
+    },
+    "quotaError": {
+      "badge": "Quota error",
+      "generic": "Quota refresh failed, please try again later",
+      "deactivatedWorkspace": "Workspace is deactivated, switch account or re-authorize"
     },
     "plan": {
       "free": "FREE",

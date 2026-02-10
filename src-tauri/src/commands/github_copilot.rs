@@ -1,6 +1,7 @@
 use tauri::AppHandle;
 use std::ffi::OsString;
 use std::path::Path;
+use std::process::Command;
 
 use crate::models::github_copilot::{GitHubCopilotAccount, GitHubCopilotOAuthStartResponse};
 use crate::modules::{github_copilot_account, github_copilot_oauth, logger};
@@ -194,15 +195,111 @@ fn collect_default_profile_vscode_main_pids(default_user_data_dir: &Path) -> Vec
         if !is_vscode_main_process(process) {
             continue;
         }
-        let is_default_profile = match extract_user_data_dir(process.cmd()) {
-            Some(user_data_dir) => normalize_path_for_compare(&user_data_dir) == target,
-            None => true,
+        let is_default_profile = match resolve_user_data_dir_for_process(process.cmd(), pid.as_u32()) {
+            Some(Some(user_data_dir)) => normalize_path_for_compare(&user_data_dir) == target,
+            Some(None) => true,
+            None => false,
         };
         if is_default_profile {
             pids.push(pid.as_u32());
         }
     }
     pids
+}
+
+fn resolve_user_data_dir_for_process(cmd: &[OsString], pid: u32) -> Option<Option<String>> {
+    if let Some(user_data_dir) = extract_user_data_dir(cmd) {
+        return Some(Some(user_data_dir));
+    }
+
+    let command_line = get_process_cmdline_by_pid(pid)?;
+    let parts = split_command_line(&command_line);
+    if parts.is_empty() {
+        return None;
+    }
+    let cmd_parts: Vec<OsString> = parts.into_iter().map(OsString::from).collect();
+    Some(extract_user_data_dir(&cmd_parts))
+}
+
+fn split_command_line(command_line: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut in_single = false;
+    let mut in_double = false;
+
+    for ch in command_line.chars() {
+        match ch {
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            ' ' | '\t' if !in_single && !in_double => {
+                if !current.is_empty() {
+                    args.push(std::mem::take(&mut current));
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+    if !current.is_empty() {
+        args.push(current);
+    }
+    args
+}
+
+#[cfg(target_os = "macos")]
+fn get_process_cmdline_by_pid(pid: u32) -> Option<String> {
+    let output = Command::new("ps")
+        .args(["-ww", "-p", &pid.to_string(), "-o", "command="])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn get_process_cmdline_by_pid(pid: u32) -> Option<String> {
+    let command = format!(
+        "Get-CimInstance Win32_Process -Filter \"ProcessId={}\" | Select-Object -ExpandProperty CommandLine",
+        pid
+    );
+    let output = Command::new("powershell")
+        .args(["-NoProfile", "-Command", &command])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn get_process_cmdline_by_pid(pid: u32) -> Option<String> {
+    let cmdline = std::fs::read(format!("/proc/{}/cmdline", pid)).ok()?;
+    if cmdline.is_empty() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&cmdline).replace('\0', " ").trim().to_string();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+fn get_process_cmdline_by_pid(_pid: u32) -> Option<String> {
+    None
 }
 
 fn extract_user_data_dir(cmd: &[OsString]) -> Option<String> {
@@ -282,7 +379,6 @@ fn launch_vscode_default() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
-        use std::process::Command;
 
         // "code" on Windows is a .cmd script, must run via cmd.exe
         Command::new("cmd")
@@ -295,7 +391,6 @@ fn launch_vscode_default() -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     {
-        use std::process::Command;
         let open_result = Command::new("open")
             .args(["-a", "Visual Studio Code"])
             .spawn();
@@ -310,7 +405,6 @@ fn launch_vscode_default() -> Result<(), String> {
 
     #[cfg(target_os = "linux")]
     {
-        use std::process::Command;
         Command::new("code")
             .spawn()
             .map_err(|e| format!("Failed to launch VS Code: {}", e))?;

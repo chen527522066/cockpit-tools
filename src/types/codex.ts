@@ -7,9 +7,16 @@ export interface CodexAccount {
   account_id?: string;
   tokens: CodexTokens;
   quota?: CodexQuota;
+  quota_error?: CodexQuotaErrorInfo;
   tags?: string[];
   created_at: number;
   last_used: number;
+}
+
+export interface CodexQuotaErrorInfo {
+  code?: string;
+  message: string;
+  timestamp: number;
 }
 
 /** Codex Token 数据 */

@@ -85,6 +85,21 @@ pub async fn fetch_account_quota(account_id: String) -> AppResult<models::QuotaD
 pub async fn refresh_all_quotas(app: tauri::AppHandle) -> Result<modules::account::RefreshStats, String> {
     let result = modules::account::refresh_all_quotas_logic().await;
     if result.is_ok() {
+        match modules::account::run_auto_switch_if_needed().await {
+            Ok(Some(account)) => {
+                modules::logger::log_info(&format!(
+                    "[AutoSwitch] 自动切号完成: {}",
+                    account.email
+                ));
+            }
+            Ok(None) => {}
+            Err(e) => {
+                modules::logger::log_warn(&format!(
+                    "[AutoSwitch] 自动切号执行失败: {}",
+                    e
+                ));
+            }
+        }
         let _ = crate::modules::tray::update_tray_menu(&app);
     }
     result
@@ -101,6 +116,14 @@ pub async fn refresh_current_quota(app: tauri::AppHandle) -> Result<(), String> 
         .map_err(|e| e.to_string())?;
     modules::update_account_quota(&account.id, quota)
         .map_err(|e| e.to_string())?;
+
+    if let Err(e) = modules::account::run_auto_switch_if_needed().await {
+        modules::logger::log_warn(&format!(
+            "[AutoSwitch] 当前账号刷新后自动切号失败: {}",
+            e
+        ));
+    }
+
     let _ = crate::modules::tray::update_tray_menu(&app);
     Ok(())
 }

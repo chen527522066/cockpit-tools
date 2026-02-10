@@ -1126,5 +1126,33 @@
     "injecting": "Wstrzykiwanie...",
     "injectSuccess": "Token został pomyślnie wstrzyknięty do VS Code. VS Code jest uruchamiany.",
     "injectRequireClose": "Przed wstrzyknięciem zamknij VS Code."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Ustawienia Antigravity",
+      "appPath": "Ścieżka aplikacji"
+    },
+    "codex": {
+      "title": "Ustawienia Codex",
+      "appPath": "Ścieżka aplikacji"
+    },
+    "githubCopilot": {
+      "title": "Ustawienia GitHub Copilot",
+      "appPath": "Ścieżka VS Code"
+    },
+    "refreshInterval": "Automatyczne odświeżanie limitu",
+    "codexRefreshInterval": "Automatyczne odświeżanie limitu",
+    "ghcpRefreshInterval": "Automatyczne odświeżanie limitu",
+    "autoSwitch": {
+      "title": "Automatyczne przełączanie",
+      "enable": "Automatyczne przełączanie",
+      "threshold": "Próg przełączania",
+      "thresholdDesc": "Automatyczne przełączanie zostanie wyzwolone, gdy limit dowolnego modelu spadnie poniżej tego procentu",
+      "hint": "Automatycznie przełącza na konto z najwyższym limitem, gdy limit dowolnego modelu spadnie poniżej progu."
+    },
+    "customInput": "Niestandardowy",
+    "apply": "Zastosuj",
+    "inputMinutes": "Wpisz minuty",
+    "inputPercent": "Wpisz procent"
   }
 }

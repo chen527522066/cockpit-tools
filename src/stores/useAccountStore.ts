@@ -164,6 +164,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     refreshAllQuotas: async () => {
         const stats = await accountService.refreshAllQuotas();
         await get().fetchAccounts();
+        await get().fetchCurrentAccount();
         return stats;
     },
 

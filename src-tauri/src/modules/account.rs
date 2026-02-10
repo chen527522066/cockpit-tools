@@ -4,11 +4,13 @@ use uuid::Uuid;
 use serde::Serialize;
 use std::sync::Mutex;
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::models::{Account, AccountIndex, AccountSummary, TokenData, QuotaData, DeviceProfile, DeviceProfileVersion, QuotaErrorInfo};
 use crate::modules;
 
 static ACCOUNT_INDEX_LOCK: std::sync::LazyLock<Mutex<()>> = std::sync::LazyLock::new(|| Mutex::new(()));
+static AUTO_SWITCH_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 
 // 使用与 AntigravityCockpit 插件相同的数据目录
 const DATA_DIR: &str = ".antigravity_cockpit";
@@ -525,6 +527,120 @@ pub struct RefreshStats {
     pub success: usize,
     pub failed: usize,
     pub details: Vec<String>,
+}
+
+fn normalize_auto_switch_threshold(raw: i32) -> i32 {
+    raw.clamp(1, 100)
+}
+
+fn should_trigger_auto_switch(account: &Account, threshold: i32) -> bool {
+    if account.disabled {
+        return true;
+    }
+
+    let Some(quota) = account.quota.as_ref() else {
+        return false;
+    };
+
+    if quota.is_forbidden {
+        return true;
+    }
+
+    quota.models.iter().any(|m| m.percentage < threshold)
+}
+
+fn can_be_auto_switch_candidate(account: &Account, current_id: &str, threshold: i32) -> bool {
+    if account.id == current_id || account.disabled {
+        return false;
+    }
+
+    let Some(quota) = account.quota.as_ref() else {
+        return false;
+    };
+
+    if quota.is_forbidden || quota.models.is_empty() {
+        return false;
+    }
+
+    quota.models.iter().all(|m| m.percentage >= threshold)
+}
+
+fn average_quota_percentage(account: &Account) -> f64 {
+    let Some(quota) = account.quota.as_ref() else {
+        return 0.0;
+    };
+    if quota.models.is_empty() {
+        return 0.0;
+    }
+    let sum: i32 = quota.models.iter().map(|m| m.percentage).sum();
+    sum as f64 / quota.models.len() as f64
+}
+
+async fn run_auto_switch_if_needed_inner() -> Result<Option<Account>, String> {
+    let cfg = crate::modules::config::get_user_config();
+    if !cfg.auto_switch_enabled {
+        return Ok(None);
+    }
+
+    let threshold = normalize_auto_switch_threshold(cfg.auto_switch_threshold);
+    let current_id = match get_current_account_id()? {
+        Some(id) => id,
+        None => return Ok(None),
+    };
+
+    let accounts = list_accounts()?;
+    let current = match accounts.iter().find(|a| a.id == current_id) {
+        Some(acc) => acc,
+        None => return Ok(None),
+    };
+
+    if !should_trigger_auto_switch(current, threshold) {
+        return Ok(None);
+    }
+
+    let mut candidates: Vec<Account> = accounts
+        .into_iter()
+        .filter(|a| can_be_auto_switch_candidate(a, &current_id, threshold))
+        .collect();
+
+    if candidates.is_empty() {
+        modules::logger::log_warn(&format!(
+            "[AutoSwitch] 当前账号低于阈值 {}%，但没有可切换候选账号",
+            threshold
+        ));
+        return Ok(None);
+    }
+
+    candidates.sort_by(|a, b| {
+        let avg_a = average_quota_percentage(a);
+        let avg_b = average_quota_percentage(b);
+        avg_b
+            .partial_cmp(&avg_a)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.last_used.cmp(&b.last_used))
+    });
+
+    let target = &candidates[0];
+    modules::logger::log_info(&format!(
+        "[AutoSwitch] 触发自动切号: current_id={}, target_id={}, threshold={}%",
+        current_id, target.id, threshold
+    ));
+
+    let switched = switch_account_internal(&target.id).await?;
+    modules::websocket::broadcast_account_switched(&switched.id, &switched.email);
+    modules::websocket::broadcast_data_changed("auto_switch");
+    Ok(Some(switched))
+}
+
+pub async fn run_auto_switch_if_needed() -> Result<Option<Account>, String> {
+    if AUTO_SWITCH_IN_PROGRESS.swap(true, Ordering::SeqCst) {
+        modules::logger::log_info("[AutoSwitch] 自动切号进行中，跳过本次检查");
+        return Ok(None);
+    }
+
+    let result = run_auto_switch_if_needed_inner().await;
+    AUTO_SWITCH_IN_PROGRESS.store(false, Ordering::SeqCst);
+    result
 }
 
 /// 批量刷新所有账号配额

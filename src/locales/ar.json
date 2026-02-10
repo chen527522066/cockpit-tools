@@ -1126,5 +1126,33 @@
       "desc": "تعذر العثور على مسار تطبيق {{app}}. الرجاء تعيينه الآن للمتابعة.",
       "action": "تعيين الآن"
     }
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "إعدادات Antigravity",
+      "appPath": "مسار التطبيق"
+    },
+    "codex": {
+      "title": "إعدادات Codex",
+      "appPath": "مسار التطبيق"
+    },
+    "githubCopilot": {
+      "title": "إعدادات GitHub Copilot",
+      "appPath": "مسار VS Code"
+    },
+    "refreshInterval": "تحديث الحصة تلقائياً",
+    "codexRefreshInterval": "تحديث الحصة تلقائياً",
+    "ghcpRefreshInterval": "تحديث الحصة تلقائياً",
+    "autoSwitch": {
+      "title": "التبديل التلقائي",
+      "enable": "التبديل التلقائي",
+      "threshold": "عتبة التبديل",
+      "thresholdDesc": "يتم تشغيل التبديل التلقائي عندما تنخفض حصة أي نموذج عن هذه النسبة المئوية",
+      "hint": "يتم التبديل تلقائياً إلى الحساب ذي الحصة الأعلى عندما تنخفض حصة أي نموذج عن العتبة."
+    },
+    "customInput": "مخصص",
+    "apply": "تطبيق",
+    "inputMinutes": "أدخل الدقائق",
+    "inputPercent": "أدخل النسبة المئوية"
   }
 }

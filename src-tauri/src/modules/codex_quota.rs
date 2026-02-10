@@ -1,10 +1,52 @@
-use crate::models::codex::{CodexQuota, CodexAccount};
+use crate::models::codex::{CodexAccount, CodexQuota, CodexQuotaErrorInfo};
 use crate::modules::{codex_account, logger};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, ACCEPT};
 use serde::{Deserialize, Serialize};
 
 // 使用 wham/usage 端点（Quotio 使用的）
 const USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
+
+fn get_header_value(headers: &HeaderMap, name: &str) -> String {
+    headers
+        .get(name)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("-")
+        .to_string()
+}
+
+fn extract_detail_code_from_body(body: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(body).ok()?;
+
+    if let Some(code) = value
+        .get("detail")
+        .and_then(|detail| detail.get("code"))
+        .and_then(|code| code.as_str())
+    {
+        return Some(code.to_string());
+    }
+
+    if let Some(code) = value.get("code").and_then(|code| code.as_str()) {
+        return Some(code.to_string());
+    }
+
+    None
+}
+
+fn extract_error_code_from_message(message: &str) -> Option<String> {
+    let marker = "[error_code:";
+    let start = message.find(marker)?;
+    let code_start = start + marker.len();
+    let end = message[code_start..].find(']')?;
+    Some(message[code_start..code_start + end].to_string())
+}
+
+fn write_quota_error(account: &mut CodexAccount, message: String) {
+    account.quota_error = Some(CodexQuotaErrorInfo {
+        code: extract_error_code_from_message(&message),
+        message,
+        timestamp: chrono::Utc::now().timestamp(),
+    });
+}
 
 /// 使用率窗口（5小时/周）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,17 +122,38 @@ pub async fn fetch_quota(account: &CodexAccount) -> Result<CodexQuota, String> {
         .map_err(|e| format!("请求失败: {}", e))?;
     
     let status = response.status();
-    if !status.is_success() {
-        let body = response.text().await.unwrap_or_default();
-        // 截断响应，避免日志太长
-        let body_preview = if body.len() > 200 { &body[..200] } else { &body };
-        return Err(format!("API 返回错误 {} - {}", status, body_preview));
-    }
-    
+    let headers = response.headers().clone();
     let body = response.text().await
         .map_err(|e| format!("读取响应失败: {}", e))?;
+
+    let request_id = get_header_value(&headers, "request-id");
+    let x_request_id = get_header_value(&headers, "x-request-id");
+    let cf_ray = get_header_value(&headers, "cf-ray");
+    let body_len = body.len();
+
+    logger::log_info(&format!(
+        "Codex 配额响应元信息: url={}, status={}, request-id={}, x-request-id={}, cf-ray={}, body_len={}",
+        USAGE_URL, status, request_id, x_request_id, cf_ray, body_len
+    ));
+
+    if !status.is_success() {
+        let detail_code = extract_detail_code_from_body(&body);
+
+        logger::log_error(&format!(
+            "Codex 配额接口返回非成功状态: url={}, status={}, request-id={}, x-request-id={}, cf-ray={}, detail_code={:?}, body={}",
+            USAGE_URL, status, request_id, x_request_id, cf_ray, detail_code, body
+        ));
+
+        let body_preview = if body.len() > 200 { &body[..200] } else { &body };
+        let mut error_message = format!("API 返回错误 {}", status);
+        if let Some(code) = detail_code {
+            error_message.push_str(&format!(" [error_code:{}]", code));
+        }
+        error_message.push_str(&format!(" - {}", body_preview));
+        return Err(error_message);
+    }
     
-    logger::log_info(&format!("Codex 配额响应: {}", &body[..body.len().min(500)]));
+    logger::log_info(&format!("Codex 配额响应体: {}", &body[..body.len().min(2000)]));
     
     // 解析响应
     let usage: UsageResponse = serde_json::from_str(&body)
@@ -153,17 +216,37 @@ pub async fn refresh_account_quota(account_id: &str) -> Result<CodexQuota, Strin
                 }
                 Err(e) => {
                     logger::log_error(&format!("账号 {} Token 刷新失败: {}", account.email, e));
-                    return Err(format!("Token 已过期且刷新失败: {}", e));
+                    let message = format!("Token 已过期且刷新失败: {}", e);
+                    write_quota_error(&mut account, message.clone());
+                    if let Err(save_err) = codex_account::save_account(&account) {
+                        logger::log_warn(&format!("写入 Codex 配额错误失败: {}", save_err));
+                    }
+                    return Err(message);
                 }
             }
         } else {
-            return Err("Token 已过期且无 refresh_token".to_string());
+            let message = "Token 已过期且无 refresh_token".to_string();
+            write_quota_error(&mut account, message.clone());
+            if let Err(save_err) = codex_account::save_account(&account) {
+                logger::log_warn(&format!("写入 Codex 配额错误失败: {}", save_err));
+            }
+            return Err(message);
         }
     }
-    
-    let quota = fetch_quota(&account).await?;
-    
+
+    let quota = match fetch_quota(&account).await {
+        Ok(quota) => quota,
+        Err(e) => {
+            write_quota_error(&mut account, e.clone());
+            if let Err(save_err) = codex_account::save_account(&account) {
+                logger::log_warn(&format!("写入 Codex 配额错误失败: {}", save_err));
+            }
+            return Err(e);
+        }
+    };
+
     account.quota = Some(quota.clone());
+    account.quota_error = None;
     codex_account::save_account(&account)?;
     
     Ok(quota)

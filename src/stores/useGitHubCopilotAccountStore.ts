@@ -34,6 +34,7 @@ interface GitHubCopilotAccountState {
   error: string | null;
 
   fetchAccounts: () => Promise<void>;
+  switchAccount: (accountId: string) => Promise<void>;
   deleteAccounts: (accountIds: string[]) => Promise<void>;
   refreshToken: (accountId: string) => Promise<void>;
   refreshAllTokens: () => Promise<void>;
@@ -93,6 +94,11 @@ export const useGitHubCopilotAccountStore = create<GitHubCopilotAccountState>((s
     } else {
       await githubCopilotService.deleteGitHubCopilotAccounts(accountIds);
     }
+    await get().fetchAccounts();
+  },
+
+  switchAccount: async (accountId: string) => {
+    await githubCopilotService.injectGitHubCopilotToVSCode(accountId);
     await get().fetchAccounts();
   },
 

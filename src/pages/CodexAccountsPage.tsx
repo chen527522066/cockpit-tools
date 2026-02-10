@@ -30,6 +30,7 @@ import {
   getCodexPlanDisplayName,
   getCodexQuotaClass,
   formatCodexResetTime,
+  type CodexQuotaErrorInfo,
 } from '../types/codex';
 
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
@@ -39,6 +40,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { CodexOverviewTabsHeader, CodexTab } from '../components/CodexOverviewTabsHeader';
 import { CodexInstancesContent } from './CodexInstancesPage';
+import { QuickSettingsPopover } from '../components/QuickSettingsPopover';
 
 export function CodexAccountsPage() {
   const { t, i18n } = useTranslation();
@@ -369,12 +371,41 @@ export function CodexAccountsPage() {
     setOauthTimeoutInfo(null);
   }, [showAddModal, addTab]);
 
+  const resolveQuotaErrorMeta = useCallback((quotaError?: CodexQuotaErrorInfo) => {
+    if (!quotaError?.message) {
+      return {
+        statusCode: '',
+        errorCode: '',
+        displayText: '',
+        rawMessage: '',
+      };
+    }
+
+    const rawMessage = quotaError.message;
+    const statusCode =
+      rawMessage.match(/API 返回错误\s+(\d{3})/i)?.[1] ||
+      rawMessage.match(/status[=: ]+(\d{3})/i)?.[1] ||
+      '';
+    const errorCode =
+      quotaError.code ||
+      rawMessage.match(/\[error_code:([^\]]+)\]/)?.[1] ||
+      '';
+
+    return {
+      statusCode,
+      errorCode,
+      displayText: errorCode || rawMessage,
+      rawMessage,
+    };
+  }, []);
+
   const handleRefresh = async (accountId: string) => {
     setRefreshing(accountId);
     try {
       await refreshQuota(accountId);
     } catch (e) {
       console.error(e);
+      await fetchAccounts();
     }
     setRefreshing(null);
   };
@@ -832,6 +863,8 @@ export function CodexAccountsPage() {
       const planKey = getCodexPlanDisplayName(account.plan_type);
       const planLabel = t(`codex.plan.${planKey.toLowerCase()}`, planKey);
       const isSelected = selected.has(account.id);
+      const quotaErrorMeta = resolveQuotaErrorMeta(account.quota_error);
+      const hasQuotaError = Boolean(quotaErrorMeta.rawMessage);
 
       return (
         <div
@@ -850,10 +883,22 @@ export function CodexAccountsPage() {
               {account.email}
             </span>
             {isCurrent && <span className="current-tag">{t('codex.current', '当前')}</span>}
+            {hasQuotaError && (
+              <span className="codex-status-pill quota-error" title={quotaErrorMeta.rawMessage}>
+                <CircleAlert size={12} />
+                {quotaErrorMeta.statusCode || t('codex.quotaError.badge', '配额异常')}
+              </span>
+            )}
             <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
           </div>
 
           <div className="codex-quota-section">
+            {hasQuotaError && (
+              <div className="quota-error-inline" title={quotaErrorMeta.rawMessage}>
+                <CircleAlert size={14} />
+                <span>{quotaErrorMeta.displayText}</span>
+              </div>
+            )}
             <div className="quota-item">
               <div className="quota-header">
                 <Clock size={14} />
@@ -952,6 +997,8 @@ export function CodexAccountsPage() {
       const isCurrent = currentAccount?.id === account.id;
       const planKey = getCodexPlanDisplayName(account.plan_type);
       const planLabel = t(`codex.plan.${planKey.toLowerCase()}`, planKey);
+      const quotaErrorMeta = resolveQuotaErrorMeta(account.quota_error);
+      const hasQuotaError = Boolean(quotaErrorMeta.rawMessage);
       return (
         <tr key={groupKey ? `${groupKey}-${account.id}` : account.id} className={isCurrent ? 'current' : ''}>
           <td>
@@ -967,6 +1014,14 @@ export function CodexAccountsPage() {
                 <span className="account-email-text" title={account.email}>{account.email}</span>
                 {isCurrent && <span className="mini-tag current">{t('codex.current', '当前')}</span>}
               </div>
+              {hasQuotaError && (
+                <div className="account-sub-line">
+                  <span className="codex-status-pill quota-error" title={quotaErrorMeta.rawMessage}>
+                    <CircleAlert size={12} />
+                    {quotaErrorMeta.statusCode || t('codex.quotaError.badge', '配额异常')}
+                  </span>
+                </div>
+              )}
             </div>
           </td>
           <td>
@@ -1017,6 +1072,12 @@ export function CodexAccountsPage() {
                 </div>
               )}
             </div>
+            {hasQuotaError && (
+              <div className="quota-error-inline table" title={quotaErrorMeta.rawMessage}>
+                <CircleAlert size={12} />
+                <span>{quotaErrorMeta.displayText}</span>
+              </div>
+            )}
           </td>
           <td className="sticky-action-cell table-action-cell">
             <div className="action-buttons">
@@ -1251,6 +1312,7 @@ export function CodexAccountsPage() {
               <Trash2 size={14} />
             </button>
           )}
+            <QuickSettingsPopover type="codex" />
         </div>
       </div>
 

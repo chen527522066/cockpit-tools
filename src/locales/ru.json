@@ -1126,5 +1126,33 @@
     "injecting": "Внедрение...",
     "injectSuccess": "Токен успешно внедрён в VS Code. VS Code запускается.",
     "injectRequireClose": "Перед внедрением закройте VS Code."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Настройки Antigravity",
+      "appPath": "Путь к приложению"
+    },
+    "codex": {
+      "title": "Настройки Codex",
+      "appPath": "Путь к приложению"
+    },
+    "githubCopilot": {
+      "title": "Настройки GitHub Copilot",
+      "appPath": "Путь к VS Code"
+    },
+    "refreshInterval": "Автообновление квоты",
+    "codexRefreshInterval": "Автообновление квоты",
+    "ghcpRefreshInterval": "Автообновление квоты",
+    "autoSwitch": {
+      "title": "Автопереключение",
+      "enable": "Автопереключение",
+      "threshold": "Порог переключения",
+      "thresholdDesc": "Автопереключение срабатывает, когда квота любой модели падает ниже этого процента",
+      "hint": "Автоматически переключается на аккаунт с наибольшей квотой, когда квота любой модели падает ниже порога."
+    },
+    "customInput": "Другое",
+    "apply": "Применить",
+    "inputMinutes": "Введите минуты",
+    "inputPercent": "Введите процент"
   }
 }

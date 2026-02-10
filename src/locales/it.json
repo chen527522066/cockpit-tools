@@ -1126,5 +1126,33 @@
     "injecting": "Iniezione in corso...",
     "injectSuccess": "Il token è stato inserito correttamente in VS Code. VS Code si sta avviando.",
     "injectRequireClose": "Chiudi VS Code prima di eseguire l'iniezione."
+  },
+  "quickSettings": {
+    "antigravity": {
+      "title": "Impostazioni Antigravity",
+      "appPath": "Percorso app"
+    },
+    "codex": {
+      "title": "Impostazioni Codex",
+      "appPath": "Percorso app"
+    },
+    "githubCopilot": {
+      "title": "Impostazioni GitHub Copilot",
+      "appPath": "Percorso VS Code"
+    },
+    "refreshInterval": "Aggiornamento automatico quota",
+    "codexRefreshInterval": "Aggiornamento automatico quota",
+    "ghcpRefreshInterval": "Aggiornamento automatico quota",
+    "autoSwitch": {
+      "title": "Cambio automatico",
+      "enable": "Cambio automatico",
+      "threshold": "Soglia di cambio",
+      "thresholdDesc": "Il cambio automatico si attiva quando la quota di un modello scende sotto questa percentuale",
+      "hint": "Passa automaticamente all'account con la quota più alta quando la quota di un modello scende sotto la soglia."
+    },
+    "customInput": "Personalizzato",
+    "apply": "Applica",
+    "inputMinutes": "Inserire i minuti",
+    "inputPercent": "Inserire la percentuale"
   }
 }

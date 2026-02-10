@@ -329,7 +329,14 @@ pub async fn close_all_instances() -> Result<(), String> {
 pub async fn open_instance_window(instance_id: String) -> Result<(), String> {
     if instance_id == DEFAULT_INSTANCE_ID {
         let default_settings = modules::instance::load_default_settings()?;
-        let _ = modules::process::focus_antigravity_instance(default_settings.last_pid, None)?;
+        if let Err(err) = modules::process::focus_antigravity_instance(default_settings.last_pid, None) {
+            modules::logger::log_warn(&format!(
+                "定位 Antigravity 默认实例窗口失败，回退为启动实例: {}",
+                err
+            ));
+            let pid = modules::process::start_antigravity()?;
+            let _ = modules::instance::update_default_pid(Some(pid))?;
+        }
         return Ok(());
     }
 
@@ -340,9 +347,17 @@ pub async fn open_instance_window(instance_id: String) -> Result<(), String> {
         .find(|item| item.id == instance_id)
         .ok_or("实例不存在")?;
 
-    let _ = modules::process::focus_antigravity_instance(
+    if let Err(err) = modules::process::focus_antigravity_instance(
         instance.last_pid,
         Some(&instance.user_data_dir),
-    )?;
+    ) {
+        modules::logger::log_warn(&format!(
+            "定位 Antigravity 实例窗口失败，回退为启动实例: instance_id={}, err={}",
+            instance.id, err
+        ));
+        let extra_args = modules::process::parse_extra_args(&instance.extra_args);
+        let pid = modules::process::start_antigravity_with_args(&instance.user_data_dir, &extra_args)?;
+        let _ = modules::instance::update_instance_after_start(&instance.id, pid)?;
+    }
     Ok(())
 }

@@ -55,6 +55,9 @@ pub struct UserConfig {
     /// Codex 自动刷新间隔（分钟），-1 表示禁用
     #[serde(default = "default_codex_auto_refresh")]
     pub codex_auto_refresh_minutes: i32,
+    /// GitHub Copilot 自动刷新间隔（分钟），-1 表示禁用
+    #[serde(default = "default_ghcp_auto_refresh")]
+    pub ghcp_auto_refresh_minutes: i32,
     /// 窗口关闭行为
     #[serde(default = "default_close_behavior")]
     pub close_behavior: CloseWindowBehavior,
@@ -73,6 +76,12 @@ pub struct UserConfig {
     /// 切换 Codex 时是否自动重启 OpenCode
     #[serde(default = "default_opencode_sync_on_switch")]
     pub opencode_sync_on_switch: bool,
+    /// 是否启用自动切号
+    #[serde(default = "default_auto_switch_enabled")]
+    pub auto_switch_enabled: bool,
+    /// 自动切号阈值（百分比），任意模型配额低于此值触发
+    #[serde(default = "default_auto_switch_threshold")]
+    pub auto_switch_threshold: i32,
 }
 
 /// 窗口关闭行为
@@ -99,12 +108,15 @@ fn default_language() -> String { "zh-cn".to_string() }
 fn default_theme() -> String { "system".to_string() }
 fn default_auto_refresh() -> i32 { 10 } // 默认 10 分钟
 fn default_codex_auto_refresh() -> i32 { 10 } // 默认 10 分钟
+fn default_ghcp_auto_refresh() -> i32 { 10 } // 默认 10 分钟
 fn default_close_behavior() -> CloseWindowBehavior { CloseWindowBehavior::Ask }
 fn default_opencode_app_path() -> String { String::new() }
 fn default_antigravity_app_path() -> String { String::new() }
 fn default_codex_app_path() -> String { String::new() }
 fn default_vscode_app_path() -> String { String::new() }
 fn default_opencode_sync_on_switch() -> bool { true }
+fn default_auto_switch_enabled() -> bool { false }
+fn default_auto_switch_threshold() -> i32 { 5 }
 
 impl Default for UserConfig {
     fn default() -> Self {
@@ -115,12 +127,15 @@ impl Default for UserConfig {
             theme: default_theme(),
             auto_refresh_minutes: default_auto_refresh(),
             codex_auto_refresh_minutes: default_codex_auto_refresh(),
+            ghcp_auto_refresh_minutes: default_ghcp_auto_refresh(),
             close_behavior: default_close_behavior(),
             opencode_app_path: default_opencode_app_path(),
             antigravity_app_path: default_antigravity_app_path(),
             codex_app_path: default_codex_app_path(),
             vscode_app_path: default_vscode_app_path(),
             opencode_sync_on_switch: default_opencode_sync_on_switch(),
+            auto_switch_enabled: default_auto_switch_enabled(),
+            auto_switch_threshold: default_auto_switch_threshold(),
         }
     }
 }
