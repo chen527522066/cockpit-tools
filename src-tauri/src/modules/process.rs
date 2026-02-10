@@ -2467,9 +2467,35 @@ pub fn close_antigravity(timeout_secs: u64) -> Result<(), String> {
     Ok(())
 }
 
-/// 关闭受管 Antigravity 实例（按 user-data-dir 匹配，包含默认实例目录）
-pub fn close_antigravity_instances(user_data_dirs: &[String], timeout_secs: u64) -> Result<(), String> {
-    crate::modules::logger::log_info("正在关闭受管 Antigravity 实例...");
+fn collect_remaining_pids(entries: &[(u32, Option<String>)]) -> Vec<u32> {
+    let mut pids: Vec<u32> = entries.iter().map(|(pid, _)| *pid).collect();
+    pids.sort();
+    pids.dedup();
+    pids
+}
+
+fn close_managed_instances_common<CollectEntries, SelectMainPids, CollectRemainingEntries>(
+    log_prefix: &str,
+    start_message: &str,
+    empty_targets_message: &str,
+    not_running_message: &str,
+    process_display_name: &str,
+    failure_message: &str,
+    user_data_dirs: &[String],
+    timeout_secs: u64,
+    collect_entries: CollectEntries,
+    select_main_pids: SelectMainPids,
+    collect_remaining_entries: CollectRemainingEntries,
+    graceful_close: Option<fn(u32)>,
+    graceful_wait_secs: Option<u64>,
+    detail_logger: Option<fn(&[u32])>,
+) -> Result<(), String>
+where
+    CollectEntries: Fn() -> Vec<(u32, Option<String>)>,
+    SelectMainPids: Fn(&[(u32, Option<String>)], &HashSet<String>) -> Vec<u32>,
+    CollectRemainingEntries: Fn(&HashSet<String>) -> Vec<(u32, Option<String>)>,
+{
+    crate::modules::logger::log_info(start_message);
 
     let target_dirs: HashSet<String> = user_data_dirs
         .iter()
@@ -2477,14 +2503,105 @@ pub fn close_antigravity_instances(user_data_dirs: &[String], timeout_secs: u64)
         .filter(|value| !value.is_empty())
         .collect();
     if target_dirs.is_empty() {
-        crate::modules::logger::log_info("未提供可关闭的 Antigravity 实例目录");
+        crate::modules::logger::log_info(empty_targets_message);
         return Ok(());
     }
     crate::modules::logger::log_info(&format!(
-        "[AG Close] target_dirs={:?}, timeout_secs={}",
-        target_dirs, timeout_secs
+        "[{}] target_dirs={:?}, timeout_secs={}",
+        log_prefix, target_dirs, timeout_secs
     ));
 
+    let entries = collect_entries();
+    crate::modules::logger::log_info(&format!(
+        "[{}] collected_entries={:?}",
+        log_prefix, entries
+    ));
+
+    let mut pids = select_main_pids(&entries, &target_dirs);
+    pids.sort();
+    pids.dedup();
+    if pids.is_empty() {
+        crate::modules::logger::log_info(not_running_message);
+        return Ok(());
+    }
+    crate::modules::logger::log_info(&format!(
+        "[{}] matched_main_pids={:?}",
+        log_prefix, pids
+    ));
+
+    crate::modules::logger::log_info(&format!(
+        "准备关闭 {} 个{}主进程...",
+        pids.len(),
+        process_display_name
+    ));
+
+    if let Some(graceful_close_fn) = graceful_close {
+        for pid in &pids {
+            graceful_close_fn(*pid);
+        }
+        if let Some(wait_secs) = graceful_wait_secs {
+            if wait_pids_exit(&pids, wait_secs) {
+                crate::modules::logger::log_info(&format!(
+                    "[{}] graceful close finished, targets={:?}",
+                    log_prefix, pids
+                ));
+                return Ok(());
+            }
+        }
+    }
+
+    if let Err(err) = close_pids(&pids, timeout_secs) {
+        crate::modules::logger::log_warn(&format!(
+            "[{}] close_pids returned error: {}",
+            log_prefix, err
+        ));
+    }
+
+    let mut remaining_entries = collect_remaining_entries(&target_dirs);
+    if !remaining_entries.is_empty() {
+        let remaining_pids = collect_remaining_pids(&remaining_entries);
+        crate::modules::logger::log_warn(&format!(
+            "[{}] first remaining pids after close={:?}",
+            log_prefix, remaining_pids
+        ));
+        if let Some(detail_logger_fn) = detail_logger {
+            detail_logger_fn(&remaining_pids);
+        }
+        if !remaining_pids.is_empty() {
+            crate::modules::logger::log_warn(&format!(
+                "[{}] retry force close for remaining pids={:?}",
+                log_prefix, remaining_pids
+            ));
+            if let Err(err) = close_pids(&remaining_pids, 6) {
+                crate::modules::logger::log_warn(&format!(
+                    "[{}] retry close_pids returned error: {}",
+                    log_prefix, err
+                ));
+            }
+            remaining_entries = collect_remaining_entries(&target_dirs);
+        }
+    }
+
+    if !remaining_entries.is_empty() {
+        let remaining_pids = collect_remaining_pids(&remaining_entries);
+        if let Some(detail_logger_fn) = detail_logger {
+            detail_logger_fn(&remaining_pids);
+        }
+        crate::modules::logger::log_error(&format!(
+            "[{}] still_running_entries={:?}",
+            log_prefix, remaining_entries
+        ));
+        return Err(format!(
+            "{} (remaining_pids={:?})",
+            failure_message, remaining_pids
+        ));
+    }
+
+    Ok(())
+}
+
+/// 关闭受管 Antigravity 实例（按 user-data-dir 匹配，包含默认实例目录）
+pub fn close_antigravity_instances(user_data_dirs: &[String], timeout_secs: u64) -> Result<(), String> {
     let default_dir = crate::modules::instance::get_default_user_data_dir()
         .ok()
         .map(|value| normalize_path_for_compare(&value.to_string_lossy()))
@@ -2493,91 +2610,35 @@ pub fn close_antigravity_instances(user_data_dirs: &[String], timeout_secs: u64)
         "[AG Close] default_dir={:?}",
         default_dir
     ));
-    let entries = collect_antigravity_process_entries();
-    crate::modules::logger::log_info(&format!(
-        "[AG Close] collected_entries={:?}",
-        entries
-    ));
-    let mut pids: Vec<u32> = entries
-        .iter()
-        .filter_map(|(pid, dir)| {
-            let resolved_dir = dir
-                .as_ref()
-                .map(|value| normalize_path_for_compare(value))
-                .filter(|value| !value.is_empty())
-                .or_else(|| default_dir.clone());
-            if resolved_dir
-                .as_ref()
-                .map(|value| target_dirs.contains(value))
-                .unwrap_or(false)
-            {
-                Some(*pid)
-            } else {
-                None
-            }
-        })
-        .collect();
-    pids.sort();
-    pids.dedup();
-    if pids.is_empty() {
-        crate::modules::logger::log_info("受管 Antigravity 实例未在运行，无需关闭");
-        return Ok(());
-    }
-    crate::modules::logger::log_info(&format!(
-        "[AG Close] matched_main_pids={:?}",
-        pids
-    ));
-
-    crate::modules::logger::log_info(&format!(
-        "准备关闭 {} 个受管 Antigravity 主进程...",
-        pids.len()
-    ));
-    if let Err(err) = close_pids(&pids, timeout_secs) {
-        crate::modules::logger::log_warn(&format!(
-            "[AG Close] close_pids returned error: {}",
-            err
-        ));
-    }
-
-    let mut remaining_entries: Vec<(u32, Option<String>)> = collect_antigravity_process_entries()
-        .into_iter()
-        .filter(|(_, dir)| {
-            let resolved_dir = dir
-                .as_ref()
-                .map(|value| normalize_path_for_compare(value))
-                .filter(|value| !value.is_empty())
-                .or_else(|| default_dir.clone());
-            resolved_dir
-                .as_ref()
-                .map(|value| target_dirs.contains(value))
-                .unwrap_or(false)
-        })
-        .collect();
-    if !remaining_entries.is_empty() {
-        let mut remaining_pids: Vec<u32> = remaining_entries.iter().map(|(pid, _)| *pid).collect();
-        remaining_pids.sort();
-        remaining_pids.dedup();
-        crate::modules::logger::log_warn(&format!(
-            "[AG Close] first remaining pids after close={:?}",
-            remaining_pids
-        ));
-        #[cfg(target_os = "windows")]
-        {
-            log_antigravity_process_details_for_pids(&remaining_pids);
-        }
-
-        if !remaining_pids.is_empty() {
-            crate::modules::logger::log_warn(&format!(
-                "[AG Close] retry force close for remaining pids={:?}",
-                remaining_pids
-            ));
-            if let Err(err) = close_pids(&remaining_pids, 6) {
-                crate::modules::logger::log_warn(&format!(
-                    "[AG Close] retry close_pids returned error: {}",
-                    err
-                ));
-            }
-            remaining_entries = collect_antigravity_process_entries()
+    close_managed_instances_common(
+        "AG Close",
+        "正在关闭受管 Antigravity 实例...",
+        "未提供可关闭的 Antigravity 实例目录",
+        "受管 Antigravity 实例未在运行，无需关闭",
+        "受管 Antigravity ",
+        "无法关闭受管 Antigravity 实例进程，请手动关闭后重试",
+        user_data_dirs,
+        timeout_secs,
+        collect_antigravity_process_entries,
+        |entries, target_dirs| {
+            entries
+                .iter()
+                .filter_map(|(pid, dir)| {
+                    let resolved_dir = dir
+                        .as_ref()
+                        .map(|value| normalize_path_for_compare(value))
+                        .filter(|value| !value.is_empty())
+                        .or_else(|| default_dir.clone());
+                    resolved_dir
+                        .as_ref()
+                        .map(|value| target_dirs.contains(value))
+                        .unwrap_or(false)
+                        .then_some(*pid)
+                })
+                .collect()
+        },
+        |target_dirs| {
+            collect_antigravity_process_entries()
                 .into_iter()
                 .filter(|(_, dir)| {
                     let resolved_dir = dir
@@ -2590,28 +2651,15 @@ pub fn close_antigravity_instances(user_data_dirs: &[String], timeout_secs: u64)
                         .map(|value| target_dirs.contains(value))
                         .unwrap_or(false)
                 })
-                .collect();
-        }
-    }
-    if !remaining_entries.is_empty() {
-        let mut remaining_pids: Vec<u32> = remaining_entries.iter().map(|(pid, _)| *pid).collect();
-        remaining_pids.sort();
-        remaining_pids.dedup();
+                .collect()
+        },
+        None,
+        None,
         #[cfg(target_os = "windows")]
-        {
-            log_antigravity_process_details_for_pids(&remaining_pids);
-        }
-        crate::modules::logger::log_error(&format!(
-            "[AG Close] still_running_entries={:?}",
-            remaining_entries
-        ));
-        return Err(format!(
-            "无法关闭受管 Antigravity 实例进程，请手动关闭后重试 (remaining_pids={:?})",
-            remaining_pids
-        ));
-    }
-
-    Ok(())
+        Some(log_antigravity_process_details_for_pids as fn(&[u32])),
+        #[cfg(not(target_os = "windows"))]
+        None,
+    )
 }
 
 /// 关闭指定实例（按 user-data-dir 匹配）
@@ -2742,6 +2790,49 @@ fn log_antigravity_process_details_for_pids(pids: &[u32]) {
         Err(err) => {
             crate::modules::logger::log_warn(&format!(
                 "[AG Close] read remaining pid details failed: {}",
+                err
+            ));
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn log_vscode_process_details_for_pids(pids: &[u32]) {
+    if pids.is_empty() {
+        return;
+    }
+    let mut unique = pids.to_vec();
+    unique.sort();
+    unique.dedup();
+    let pid_list = unique
+        .iter()
+        .map(|pid| pid.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let script = format!(
+        "$ids=@({}); Get-CimInstance Win32_Process -Filter \"Name='Code.exe'\" | Where-Object {{$ids -contains $_.ProcessId}} | ForEach-Object {{ \"$($_.ProcessId)|$($_.ParentProcessId)|$($_.CommandLine)\" }}",
+        pid_list
+    );
+    match powershell_output(&["-Command", &script]) {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.trim().is_empty() {
+                crate::modules::logger::log_warn(&format!(
+                    "[VSCode Close] remaining pid details not found for {:?}",
+                    unique
+                ));
+            } else {
+                for line in stdout.lines().filter(|line| !line.trim().is_empty()) {
+                    crate::modules::logger::log_warn(&format!(
+                        "[VSCode Close] remaining_pid_detail {}",
+                        line.trim()
+                    ));
+                }
+            }
+        }
+        Err(err) => {
+            crate::modules::logger::log_warn(&format!(
+                "[VSCode Close] read remaining pid details failed: {}",
                 err
             ));
         }
@@ -4077,74 +4168,61 @@ pub fn start_vscode_default_with_args_with_new_window(
 pub fn close_vscode(user_data_dirs: &[String], timeout_secs: u64) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let _ = timeout_secs;
-    crate::modules::logger::log_info("正在关闭 VS Code...");
-
-    let target_dirs: HashSet<String> = user_data_dirs
-        .iter()
-        .map(|value| normalize_path_for_compare(value))
-        .filter(|value| !value.is_empty())
-        .collect();
-    if target_dirs.is_empty() {
-        crate::modules::logger::log_info("未提供可关闭的实例目录");
-        return Ok(());
-    }
-
-    let entries = collect_vscode_process_entries();
-    let mut grouped: HashMap<String, Vec<u32>> = HashMap::new();
-    for (pid, dir) in &entries {
-        if let Some(dir) = dir {
-            if target_dirs.contains(dir) {
-                grouped.entry(dir.clone()).or_default().push(*pid);
+    close_managed_instances_common(
+        "VSCode Close",
+        "正在关闭 VS Code...",
+        "未提供可关闭的实例目录",
+        "受管 VS Code 实例未在运行，无需关闭",
+        "VS Code ",
+        "无法关闭受管 VS Code 实例进程，请手动关闭后重试",
+        user_data_dirs,
+        timeout_secs,
+        collect_vscode_process_entries,
+        |entries, target_dirs| {
+            let mut grouped: HashMap<String, Vec<u32>> = HashMap::new();
+            for (pid, dir) in entries {
+                if let Some(dir) = dir {
+                    if target_dirs.contains(dir) {
+                        grouped.entry(dir.clone()).or_default().push(*pid);
+                    }
+                    continue;
+                }
+                for target in target_dirs {
+                    if is_vscode_pid_for_user_data_dir(*pid, target) {
+                        grouped.entry(target.clone()).or_default().push(*pid);
+                        break;
+                    }
+                }
             }
-            continue;
-        }
-        for target in &target_dirs {
-            if is_vscode_pid_for_user_data_dir(*pid, target) {
-                grouped.entry(target.clone()).or_default().push(*pid);
-                break;
+            let mut pids: Vec<u32> = Vec::new();
+            for (_, group) in grouped {
+                if let Some(pid) = pick_preferred_pid(group) {
+                    pids.push(pid);
+                }
             }
-        }
-    }
-    let mut pids: Vec<u32> = Vec::new();
-    for (_, group) in grouped {
-        if let Some(pid) = pick_preferred_pid(group) {
-            pids.push(pid);
-        }
-    }
-    pids.sort();
-    pids.dedup();
-    if pids.is_empty() {
-        crate::modules::logger::log_info("受管 VS Code 实例未在运行，无需关闭");
-        return Ok(());
-    }
-
-    crate::modules::logger::log_info(&format!(
-        "准备关闭 {} 个 VS Code 主进程...",
-        pids.len()
-    ));
-
-    for pid in &pids {
-        request_vscode_graceful_close(*pid);
-    }
-    if wait_pids_exit(&pids, 2) {
-        return Ok(());
-    }
-
-    let _ = close_pids(&pids, timeout_secs);
-
-    let still_running = collect_vscode_process_entries().into_iter().any(|(pid, dir)| {
-        if let Some(dir) = dir {
-            target_dirs.contains(&dir)
-        } else {
-            target_dirs
-                .iter()
-                .any(|target| is_vscode_pid_for_user_data_dir(pid, target))
-        }
-    });
-    if still_running {
-        return Err("无法关闭受管 VS Code 实例进程，请手动关闭后重试".to_string());
-    }
-    Ok(())
+            pids
+        },
+        |target_dirs| {
+            collect_vscode_process_entries()
+                .into_iter()
+                .filter(|(pid, dir)| {
+                    if let Some(dir) = dir {
+                        target_dirs.contains(dir)
+                    } else {
+                        target_dirs
+                            .iter()
+                            .any(|target| is_vscode_pid_for_user_data_dir(*pid, target))
+                    }
+                })
+                .collect()
+        },
+        Some(request_vscode_graceful_close as fn(u32)),
+        Some(2),
+        #[cfg(target_os = "windows")]
+        Some(log_vscode_process_details_for_pids as fn(&[u32])),
+        #[cfg(not(target_os = "windows"))]
+        None,
+    )
 }
 
 fn request_vscode_graceful_close(pid: u32) {

@@ -153,8 +153,6 @@ pub async fn fetch_quota(account: &CodexAccount) -> Result<CodexQuota, String> {
         return Err(error_message);
     }
     
-    logger::log_info(&format!("Codex 配额响应体: {}", &body[..body.len().min(2000)]));
-    
     // 解析响应
     let usage: UsageResponse = serde_json::from_str(&body)
         .map_err(|e| format!("解析 JSON 失败: {}", e))?;
