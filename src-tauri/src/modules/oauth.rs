@@ -18,6 +18,8 @@ pub struct TokenResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserInfo {
+    #[serde(default)]
+    pub id: Option<String>,
     pub email: String,
     pub name: Option<String>,
     pub given_name: Option<String>,
@@ -43,7 +45,7 @@ impl UserInfo {
 }
 
 /// 生成 OAuth 授权 URL
-pub fn get_auth_url(redirect_uri: &str) -> String {
+pub fn get_auth_url(redirect_uri: &str, state: Option<&str>) -> String {
     let scopes = vec![
         "https://www.googleapis.com/auth/cloud-platform",
         "https://www.googleapis.com/auth/userinfo.email",
@@ -53,7 +55,7 @@ pub fn get_auth_url(redirect_uri: &str) -> String {
     ]
     .join(" ");
 
-    let params = vec![
+    let mut params = vec![
         ("client_id", CLIENT_ID),
         ("redirect_uri", redirect_uri),
         ("response_type", "code"),
@@ -62,6 +64,10 @@ pub fn get_auth_url(redirect_uri: &str) -> String {
         ("prompt", "consent"),
         ("include_granted_scopes", "true"),
     ];
+
+    if let Some(state) = state.filter(|value| !value.trim().is_empty()) {
+        params.push(("state", state));
+    }
 
     let url = url::Url::parse_with_params(AUTH_URL, &params).expect("无效的 Auth URL");
     url.to_string()

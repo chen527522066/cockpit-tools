@@ -169,6 +169,74 @@ pub fn list_accounts() -> Result<Vec<Account>, String> {
     Ok(accounts)
 }
 
+fn non_empty(value: Option<&str>) -> Option<&str> {
+    value.map(str::trim).filter(|v| !v.is_empty())
+}
+
+fn is_strict_account_identity_match(existing: &Account, email: &str, token: &TokenData) -> bool {
+    if let Some(session_id) = non_empty(token.session_id.as_deref()) {
+        if non_empty(existing.token.session_id.as_deref()) == Some(session_id) {
+            return true;
+        }
+    }
+
+    if let Some(refresh_token) = non_empty(Some(token.refresh_token.as_str())) {
+        if non_empty(Some(existing.token.refresh_token.as_str())) == Some(refresh_token) {
+            return true;
+        }
+    }
+
+    if existing.email == email {
+        if let Some(project_id) = non_empty(token.project_id.as_deref()) {
+            if non_empty(existing.token.project_id.as_deref()) == Some(project_id) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn find_matching_account_id(
+    index: &AccountIndex,
+    email: &str,
+    token: &TokenData,
+    allow_legacy_email_fallback: bool,
+) -> Result<Option<String>, String> {
+    let mut email_matches: Vec<String> = Vec::new();
+
+    for summary in &index.accounts {
+        let existing = match load_account(&summary.id) {
+            Ok(account) => account,
+            Err(err) => {
+                modules::logger::log_warn(&format!(
+                    "账号匹配时跳过损坏账号文件: id={}, error={}",
+                    summary.id, err
+                ));
+                continue;
+            }
+        };
+
+        if is_strict_account_identity_match(&existing, email, token) {
+            return Ok(Some(existing.id));
+        }
+
+        if existing.email == email {
+            email_matches.push(existing.id);
+        }
+    }
+
+    if allow_legacy_email_fallback && email_matches.len() == 1 {
+        modules::logger::log_warn(&format!(
+            "账号匹配走兼容路径（单 email 回退）: email={}",
+            email
+        ));
+        return Ok(email_matches.into_iter().next());
+    }
+
+    Ok(None)
+}
+
 /// 添加账号
 pub fn add_account(
     email: String,
@@ -180,7 +248,7 @@ pub fn add_account(
         .map_err(|e| format!("获取锁失败: {}", e))?;
     let mut index = load_account_index()?;
 
-    if index.accounts.iter().any(|s| s.email == email) {
+    if find_matching_account_id(&index, &email, &token, false)?.is_some() {
         return Err(format!("账号已存在: {}", email));
     }
 
@@ -221,11 +289,7 @@ pub fn upsert_account(
         .map_err(|e| format!("获取锁失败: {}", e))?;
     let mut index = load_account_index()?;
 
-    let existing_account_id = index
-        .accounts
-        .iter()
-        .find(|s| s.email == email)
-        .map(|s| s.id.clone());
+    let existing_account_id = find_matching_account_id(&index, &email, &token, true)?;
 
     if let Some(account_id) = existing_account_id {
         match load_account(&account_id) {

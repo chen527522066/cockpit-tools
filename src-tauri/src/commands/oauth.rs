@@ -47,7 +47,7 @@ pub async fn start_oauth_login(app_handle: AppHandle) -> Result<models::Account,
         token_res.expires_in,
         Some(user_info.email.clone()),
         None,
-        None,
+        user_info.id.clone(),
     );
 
     let account = modules::upsert_account(
@@ -113,7 +113,7 @@ pub async fn complete_oauth_login(app_handle: AppHandle) -> Result<models::Accou
         token_res.expires_in,
         Some(user_info.email.clone()),
         None,
-        None,
+        user_info.id.clone(),
     );
 
     let account = modules::upsert_account(

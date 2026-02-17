@@ -7,6 +7,17 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [0.8.2] - 2026-02-18
+
+### 变更
+- **OAuth 回调服务加固**：重写本地 OAuth 回调服务器，改为循环处理请求模式，自动忽略非回调请求（如 favicon），仅对 `/oauth-callback` 路径做处理；新增 CORS 预检（OPTIONS）支持及未匹配路由的 404 响应。
+- **OAuth CSRF 防护**：授权 URL 新增每次流程唯一的 `state` 参数，回调服务器在接收时校验 state 一致性，防止跨站请求伪造。
+- **OAuth 流程超时与清理**：新增 OAuth 回调等待超时机制；超时或失败后自动清理流程状态并返回用户可读的重试提示。
+- **OAuth 回调地址归一化**：OAuth 重定向地址由 `127.0.0.1` 统一为 `localhost`，提升跨浏览器/系统的重定向兼容性。
+- **账号身份匹配逻辑重构**：将原先的纯 email 匹配替换为多因子精确匹配（`session_id` → `refresh_token` → `email + project_id`），upsert 场景额外保留单 email 兼容回退。
+- **Google 用户 ID 持久化**：OAuth `UserInfo` 新增解析并存储 Google `id` 字段，登录完成时写入账号数据。
+
+---
 ## [0.8.1] - 2026-02-17
 
 ### 变更
