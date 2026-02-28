@@ -382,7 +382,12 @@ fn build_antigravity_display_info(lang: &str) -> AccountDisplayInfo {
     match crate::modules::account::get_current_account() {
         Ok(Some(account)) => {
             let quota_lines = if let Some(quota) = &account.quota {
-                build_model_quota_lines(lang, &quota.models)
+                let grouped_lines = build_antigravity_group_quota_lines(lang, &quota.models);
+                if grouped_lines.is_empty() {
+                    build_model_quota_lines(lang, &quota.models)
+                } else {
+                    grouped_lines
+                }
             } else {
                 vec![get_text("loading", lang)]
             };
@@ -396,6 +401,116 @@ fn build_antigravity_display_info(lang: &str) -> AccountDisplayInfo {
             quota_lines: vec!["—".to_string()],
         },
     }
+}
+
+fn normalize_antigravity_model_for_match(value: &str) -> String {
+    let normalized = value.trim().to_lowercase();
+    if normalized.is_empty() {
+        return normalized;
+    }
+    if normalized.starts_with("gemini-3.1-flash")
+        || normalized.starts_with("gemini-2.5-flash")
+        || normalized.starts_with("gemini-3-flash")
+    {
+        return "gemini-3-flash".to_string();
+    }
+    if normalized.starts_with("gemini-3.1-pro-high") || normalized.starts_with("gemini-3-pro-high")
+    {
+        return "gemini-3.1-pro-high".to_string();
+    }
+    if normalized.starts_with("gemini-3.1-pro-low") || normalized.starts_with("gemini-3-pro-low") {
+        return "gemini-3.1-pro-low".to_string();
+    }
+    if normalized.starts_with("claude-sonnet-4-6") || normalized.starts_with("claude-sonnet-4-5")
+    {
+        return "claude-sonnet-4-6".to_string();
+    }
+    if normalized.starts_with("claude-opus-4-6-thinking")
+        || normalized.starts_with("claude-opus-4-5-thinking")
+    {
+        return "claude-opus-4-6-thinking".to_string();
+    }
+    match normalized.as_str() {
+        "gemini-3-pro-high" => "gemini-3.1-pro-high".to_string(),
+        "gemini-3-pro-low" => "gemini-3.1-pro-low".to_string(),
+        "claude-sonnet-4-5" => "claude-sonnet-4-6".to_string(),
+        "claude-sonnet-4-5-thinking" => "claude-sonnet-4-6".to_string(),
+        "claude-opus-4-5-thinking" => "claude-opus-4-6-thinking".to_string(),
+        _ => normalized,
+    }
+}
+
+fn antigravity_model_matches(model_name: &str, target: &str) -> bool {
+    let left = normalize_antigravity_model_for_match(model_name);
+    let right = normalize_antigravity_model_for_match(target);
+    if left.is_empty() || right.is_empty() {
+        return false;
+    }
+    left == right
+        || left.starts_with(&(right.clone() + "-"))
+        || right.starts_with(&(left + "-"))
+}
+
+fn parse_model_reset_ts(reset_time: &str) -> Option<i64> {
+    chrono::DateTime::parse_from_rfc3339(reset_time)
+        .ok()
+        .map(|value| value.timestamp())
+}
+
+fn build_antigravity_group_quota_lines(
+    lang: &str,
+    models: &[crate::models::quota::ModelQuota],
+) -> Vec<String> {
+    let settings = crate::modules::group_settings::load_group_settings();
+    let ordered_groups = settings.get_ordered_groups(Some(3));
+    if ordered_groups.is_empty() {
+        return Vec::new();
+    }
+
+    let mut lines = Vec::new();
+    for group_id in ordered_groups {
+        let group_models = settings.get_models_in_group(&group_id);
+        if group_models.is_empty() {
+            continue;
+        }
+
+        let mut total_percentage: i64 = 0;
+        let mut count: i64 = 0;
+        let mut earliest_reset_ts: Option<i64> = None;
+
+        for model in models {
+            let belongs = group_models
+                .iter()
+                .any(|group_model| antigravity_model_matches(&model.name, group_model));
+            if !belongs {
+                continue;
+            }
+
+            total_percentage += i64::from(model.percentage.clamp(0, 100));
+            count += 1;
+            if let Some(reset_ts) = parse_model_reset_ts(&model.reset_time) {
+                earliest_reset_ts = Some(match earliest_reset_ts {
+                    Some(current) => current.min(reset_ts),
+                    None => reset_ts,
+                });
+            }
+        }
+
+        if count <= 0 {
+            continue;
+        }
+
+        let avg_percentage = (total_percentage as f64 / count as f64).round() as i32;
+        let reset_text = earliest_reset_ts.map(|ts| format_reset_time_from_ts(lang, Some(ts)));
+        lines.push(format_quota_line(
+            lang,
+            &settings.get_group_name(&group_id),
+            &format_percent_text(avg_percentage),
+            reset_text.as_deref(),
+        ));
+    }
+
+    lines
 }
 
 fn format_codex_window_label(window_minutes: Option<i64>, fallback: &str) -> String {
@@ -437,32 +552,29 @@ fn build_codex_display_info(lang: &str) -> AccountDisplayInfo {
             let mut lines = Vec::new();
 
             if !has_presence || quota.hourly_window_present.unwrap_or(false) {
-                lines.push(format!(
-                    "{}: {}% · {} {}",
-                    format_codex_window_label(quota.hourly_window_minutes, "5h"),
-                    quota.hourly_percentage.clamp(0, 100),
-                    get_text("reset", lang),
-                    format_reset_time_from_ts(lang, quota.hourly_reset_time)
+                lines.push(format_quota_line(
+                    lang,
+                    &format_codex_window_label(quota.hourly_window_minutes, "5h"),
+                    &format_percent_text(quota.hourly_percentage),
+                    Some(&format_reset_time_from_ts(lang, quota.hourly_reset_time)),
                 ));
             }
 
             if !has_presence || quota.weekly_window_present.unwrap_or(false) {
-                lines.push(format!(
-                    "{}: {}% · {} {}",
-                    format_codex_window_label(quota.weekly_window_minutes, "Weekly"),
-                    quota.weekly_percentage.clamp(0, 100),
-                    get_text("reset", lang),
-                    format_reset_time_from_ts(lang, quota.weekly_reset_time)
+                lines.push(format_quota_line(
+                    lang,
+                    &format_codex_window_label(quota.weekly_window_minutes, "Weekly"),
+                    &format_percent_text(quota.weekly_percentage),
+                    Some(&format_reset_time_from_ts(lang, quota.weekly_reset_time)),
                 ));
             }
 
             if lines.is_empty() {
-                lines.push(format!(
-                    "{}: {}% · {} {}",
-                    format_codex_window_label(quota.hourly_window_minutes, "5h"),
-                    quota.hourly_percentage.clamp(0, 100),
-                    get_text("reset", lang),
-                    format_reset_time_from_ts(lang, quota.hourly_reset_time)
+                lines.push(format_quota_line(
+                    lang,
+                    &format_codex_window_label(quota.hourly_window_minutes, "5h"),
+                    &format_percent_text(quota.hourly_percentage),
+                    Some(&format_reset_time_from_ts(lang, quota.hourly_reset_time)),
                 ));
             }
 
@@ -564,20 +676,20 @@ fn build_kiro_display_info(lang: &str) -> AccountDisplayInfo {
 
     if let Some(remaining_pct) = calc_remaining_percent(account.credits_total, account.credits_used)
     {
-        quota_lines.push(format!(
-            "Prompt: {}% · {} {}",
-            remaining_pct,
-            get_text("reset", lang),
-            reset_text
+        quota_lines.push(format_quota_line(
+            lang,
+            "Prompt",
+            &format_percent_text(remaining_pct),
+            Some(&reset_text),
         ));
     }
 
     if let Some(remaining_pct) = calc_remaining_percent(account.bonus_total, account.bonus_used) {
-        quota_lines.push(format!(
-            "Add-on: {}% · {} {}",
-            remaining_pct,
-            get_text("reset", lang),
-            reset_text
+        quota_lines.push(format_quota_line(
+            lang,
+            "Add-on",
+            &format_percent_text(remaining_pct),
+            Some(&reset_text),
         ));
     }
 
@@ -686,6 +798,28 @@ fn display_login_email(email: Option<&str>, login: &str) -> String {
         .to_string()
 }
 
+fn format_percent_text(percentage: i32) -> String {
+    format!("{}%", percentage.clamp(0, 100))
+}
+
+fn format_quota_line(lang: &str, label: &str, value_text: &str, reset_text: Option<&str>) -> String {
+    let normalized_reset = reset_text
+        .map(|text| text.trim())
+        .filter(|text| !text.is_empty() && *text != "—");
+
+    if let Some(reset) = normalized_reset {
+        format!(
+            "{}: {} · {} {}",
+            label,
+            value_text,
+            get_text("reset", lang),
+            reset
+        )
+    } else {
+        format!("{}: {}", label, value_text)
+    }
+}
+
 fn format_copilot_metric_value(lang: &str, metric: CopilotMetric) -> Option<String> {
     if metric.included {
         return Some(get_text("included", lang));
@@ -700,28 +834,27 @@ fn build_copilot_quota_lines(lang: &str, usage: CopilotUsage) -> Vec<String> {
     let reset_text = format_reset_time_from_ts(lang, usage.reset_ts);
 
     if let Some(value_text) = format_copilot_metric_value(lang, usage.inline) {
-        lines.push(format!(
-            "{}: {} · {} {}",
-            get_text("ghcp_inline", lang),
-            value_text,
-            get_text("reset", lang),
-            reset_text
+        lines.push(format_quota_line(
+            lang,
+            &get_text("ghcp_inline", lang),
+            &value_text,
+            Some(&reset_text),
         ));
     }
     if let Some(value_text) = format_copilot_metric_value(lang, usage.chat) {
-        lines.push(format!(
-            "{}: {} · {} {}",
-            get_text("ghcp_chat", lang),
-            value_text,
-            get_text("reset", lang),
-            reset_text
+        lines.push(format_quota_line(
+            lang,
+            &get_text("ghcp_chat", lang),
+            &value_text,
+            Some(&reset_text),
         ));
     }
     let premium_value = format_copilot_metric_value(lang, usage.premium).unwrap_or_else(|| "-".to_string());
-    lines.push(format!(
-        "{}: {}",
-        get_text("ghcp_premium", lang),
-        premium_value,
+    lines.push(format_quota_line(
+        lang,
+        &get_text("ghcp_premium", lang),
+        &premium_value,
+        None,
     ));
 
     if lines.is_empty() {
@@ -736,19 +869,19 @@ fn build_windsurf_quota_lines(lang: &str, usage: CopilotUsage) -> Vec<String> {
     let reset_text = format_reset_time_from_ts(lang, usage.reset_ts);
 
     if let Some(percentage) = usage.inline.used_percent {
-        lines.push(format!(
-            "Prompt: {}% · {} {}",
-            percentage,
-            get_text("reset", lang),
-            reset_text
+        lines.push(format_quota_line(
+            lang,
+            "Prompt",
+            &format_percent_text(percentage),
+            Some(&reset_text),
         ));
     }
     if let Some(percentage) = usage.chat.used_percent {
-        lines.push(format!(
-            "Flow: {}% · {} {}",
-            percentage,
-            get_text("reset", lang),
-            reset_text
+        lines.push(format_quota_line(
+            lang,
+            "Flow",
+            &format_percent_text(percentage),
+            Some(&reset_text),
         ));
     }
 
@@ -1085,17 +1218,12 @@ fn build_model_quota_lines(lang: &str, models: &[crate::models::quota::ModelQuot
     let mut lines = Vec::new();
     for model in models.iter().take(4) {
         let reset_text = format_reset_time(lang, &model.reset_time);
-        if reset_text.is_empty() {
-            lines.push(format!("{}: {}%", model.name, model.percentage));
-        } else {
-            lines.push(format!(
-                "{}: {}% · {} {}",
-                model.name,
-                model.percentage,
-                get_text("reset", lang),
-                reset_text
-            ));
-        }
+        lines.push(format_quota_line(
+            lang,
+            &model.name,
+            &format_percent_text(model.percentage),
+            Some(&reset_text),
+        ));
     }
     if lines.is_empty() {
         lines.push("—".to_string());

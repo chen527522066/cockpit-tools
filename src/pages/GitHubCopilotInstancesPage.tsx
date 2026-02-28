@@ -4,8 +4,12 @@ import { PlatformInstancesContent } from '../components/platform/PlatformInstanc
 import { useGitHubCopilotInstanceStore } from '../stores/useGitHubCopilotInstanceStore';
 import { useGitHubCopilotAccountStore } from '../stores/useGitHubCopilotAccountStore';
 import type { GitHubCopilotAccount } from '../types/githubCopilot';
-import { getGitHubCopilotAccountDisplayEmail, getGitHubCopilotQuotaClass, getGitHubCopilotUsage } from '../types/githubCopilot';
+import { getGitHubCopilotAccountDisplayEmail } from '../types/githubCopilot';
 import { usePlatformRuntimeSupport } from '../hooks/usePlatformRuntimeSupport';
+import {
+  buildGitHubCopilotAccountPresentation,
+  buildQuotaPreviewLines,
+} from '../presentation/platformAccountPresentation';
 
 /**
  * GitHub Copilot 多开实例内容组件（不包含 header）
@@ -26,36 +30,20 @@ export function GitHubCopilotInstancesContent() {
   );
   const isSupportedPlatform = usePlatformRuntimeSupport('desktop');
 
-  const resolveQuotaClass = (percentage: number) => getGitHubCopilotQuotaClass(percentage);
-
   const renderGitHubCopilotQuotaPreview = (account: AccountForSelect) => {
-    const usage = getGitHubCopilotUsage(account);
-    const inlinePct = usage.inlineSuggestionsUsedPercent;
-    const chatPct = usage.chatMessagesUsedPercent;
-    const premiumPct = usage.premiumRequestsUsedPercent;
-    if (inlinePct == null && chatPct == null && premiumPct == null) {
+    const presentation = buildGitHubCopilotAccountPresentation(account, t);
+    const lines = buildQuotaPreviewLines(presentation.quotaItems, 3);
+    if (lines.length === 0) {
       return <span className="account-quota-empty">{t('instances.quota.empty', '暂无配额缓存')}</span>;
     }
     return (
       <div className="account-quota-preview">
-        <span className="account-quota-item">
-          <span className={`quota-dot ${resolveQuotaClass(inlinePct ?? 0)}`} />
-          <span className={`quota-text ${resolveQuotaClass(inlinePct ?? 0)}`}>
-            Inline Suggestions {inlinePct ?? '-'}%
+        {lines.map((line) => (
+          <span className="account-quota-item" key={line.key}>
+            <span className={`quota-dot ${line.quotaClass}`} />
+            <span className={`quota-text ${line.quotaClass}`}>{line.text}</span>
           </span>
-        </span>
-        <span className="account-quota-item">
-          <span className={`quota-dot ${resolveQuotaClass(chatPct ?? 0)}`} />
-          <span className={`quota-text ${resolveQuotaClass(chatPct ?? 0)}`}>
-            Chat messages {chatPct ?? '-'}%
-          </span>
-        </span>
-        <span className="account-quota-item">
-          <span className={`quota-dot ${resolveQuotaClass(premiumPct ?? 0)}`} />
-          <span className={`quota-text ${resolveQuotaClass(premiumPct ?? 0)}`}>
-            Premium requests {premiumPct ?? '-'}%
-          </span>
-        </span>
+        ))}
       </div>
     );
   };
@@ -66,7 +54,14 @@ export function GitHubCopilotInstancesContent() {
       accounts={accountsForSelect}
       fetchAccounts={fetchAccounts}
       renderAccountQuotaPreview={renderGitHubCopilotQuotaPreview}
-      getAccountSearchText={(account) => account.email}
+      renderAccountBadge={(account) => {
+        const presentation = buildGitHubCopilotAccountPresentation(account, t);
+        return <span className={`instance-plan-badge ${presentation.planClass}`}>{presentation.planLabel}</span>;
+      }}
+      getAccountSearchText={(account) => {
+        const presentation = buildGitHubCopilotAccountPresentation(account, t);
+        return `${presentation.displayName} ${presentation.planLabel}`;
+      }}
       appType="vscode"
       isSupported={isSupportedPlatform}
       unsupportedTitleKey="common.shared.instances.unsupported.title"

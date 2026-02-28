@@ -95,7 +95,7 @@
         "importFailedMsg": "Importazione fallita: {{error}}",
         "importing": "Importazione...",
         "importSuccessMsg": "Importati {{count}} account",
-        "placeholder": "Incolla contenuto JSON..."
+        "placeholder": "Esempio: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "Vista schede",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "Incolla il contenuto di auth.json o i dati JSON dell'account",
-      "placeholder": "Incolla contenuto JSON..."
+      "placeholder": "Esempio: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "Importa l'account attuale da ~/.codex/auth.json",

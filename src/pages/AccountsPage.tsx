@@ -41,9 +41,6 @@ import {
   getQuotaClass,
   formatResetTimeDisplay,
   getSubscriptionTier,
-  getDisplayModels,
-  getModelShortName,
-  matchModelName
 } from '../utils/account'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { save } from '@tauri-apps/plugin-dialog'
@@ -58,6 +55,10 @@ import {
   calculateGroupQuota,
   updateGroupOrder
 } from '../services/groupService'
+import {
+  getAntigravityGroupResetTimestamp,
+  getAntigravityQuotaDisplayItems,
+} from '../presentation/platformAccountPresentation'
 import { OverviewTabsHeader } from '../components/OverviewTabsHeader'
 import styles from '../styles/CompactView.module.css'
 import { FileCorruptedModal, parseFileCorruptedError, type FileCorruptedError } from '../components/FileCorruptedModal'
@@ -74,6 +75,12 @@ interface AccountsPageProps {
 
 type ViewMode = 'grid' | 'list' | 'compact'
 type FilterType = 'all' | 'PRO' | 'ULTRA' | 'FREE' | 'UNKNOWN'
+
+const ANTIGRAVITY_TOKEN_SINGLE_EXAMPLE = `{"refresh_token":"1//0gAbCdEf..."}`
+const ANTIGRAVITY_TOKEN_BATCH_EXAMPLE = `[
+  {"refresh_token":"1//0gTokenA..."},
+  {"refreshToken":"1//0gTokenB..."}
+]`
 
 export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const { t, i18n } = useTranslation()
@@ -270,122 +277,11 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     }))
   }, [accounts])
 
-  const getGroupResetTimestamp = (
-    account: Account,
-    group: DisplayGroup
-  ): number | null => {
-    if (!account.quota?.models?.length) {
-      return null
-    }
-    const groupModelIds = group.models.map((id) => id.toLowerCase())
-    let earliest: number | null = null
-    for (const model of account.quota.models) {
-      const modelName = model.name.toLowerCase()
-      const belongsToGroup = groupModelIds.some((id) =>
-        matchModelName(modelName, id)
-      )
-      if (!belongsToGroup) {
-        continue
-      }
-      const parsed = new Date(model.reset_time)
-      if (Number.isNaN(parsed.getTime())) {
-        continue
-      }
-      const timestamp = parsed.getTime()
-      if (earliest === null || timestamp < earliest) {
-        earliest = timestamp
-      }
-    }
-    return earliest
-  }
+  const getGroupResetTimestamp = (account: Account, group: DisplayGroup): number | null =>
+    getAntigravityGroupResetTimestamp(account, group)
 
-  // 根据分组配置获取模型所属分组的名称
-  const getGroupNameForModel = (modelId: string): string | null => {
-    for (const group of displayGroups) {
-      if (group.models.some((groupModelId) => matchModelName(modelId.toLowerCase(), groupModelId.toLowerCase()))) {
-        return group.name
-      }
-    }
-    return null
-  }
-
-  // 获取模型显示名称（优先使用分组名，否则使用默认短名）
-  const getModelDisplayLabel = (modelId: string): string => {
-    const groupName = getGroupNameForModel(modelId)
-    return groupName || getModelShortName(modelId)
-  }
-
-  const buildDisplayGroupSettings = (groups: DisplayGroup[]): GroupSettings => {
-    const settings: GroupSettings = {
-      groupMappings: {},
-      groupNames: {},
-      groupOrder: groups.map((group) => group.id),
-      updatedAt: 0,
-      updatedBy: 'desktop',
-    }
-
-    for (const group of groups) {
-      settings.groupNames[group.id] = group.name
-      for (const modelId of group.models) {
-        settings.groupMappings[modelId] = group.id
-      }
-    }
-
-    return settings
-  }
-
-  type QuotaDisplayItem = {
-    key: string
-    label: string
-    percentage: number
-    resetTime: string
-  }
-
-  const getQuotaDisplayItems = (account: Account): QuotaDisplayItem[] => {
-    const rawDisplayModels = getDisplayModels(account.quota)
-    if (rawDisplayModels.length === 0) {
-      return []
-    }
-
-    if (displayGroups.length === 0) {
-      return rawDisplayModels.map((model) => ({
-        key: model.name,
-        label: getModelDisplayLabel(model.name),
-        percentage: model.percentage,
-        resetTime: model.reset_time,
-      }))
-    }
-
-    const quotas = getAccountQuotas(account)
-    const settings = buildDisplayGroupSettings(displayGroups)
-    const groupedItems: QuotaDisplayItem[] = []
-
-    for (const group of displayGroups) {
-      const percentage = calculateGroupQuota(group.id, quotas, settings)
-      if (percentage === null) {
-        continue
-      }
-
-      const resetTimestamp = getGroupResetTimestamp(account, group)
-      groupedItems.push({
-        key: `group:${group.id}`,
-        label: group.name,
-        percentage,
-        resetTime: resetTimestamp ? new Date(resetTimestamp).toISOString() : '',
-      })
-    }
-
-    if (groupedItems.length > 0) {
-      return groupedItems
-    }
-
-    return rawDisplayModels.map((model) => ({
-      key: model.name,
-      label: getModelDisplayLabel(model.name),
-      percentage: model.percentage,
-      resetTime: model.reset_time,
-    }))
-  }
+  const getQuotaDisplayItems = (account: Account) =>
+    getAntigravityQuotaDisplayItems(account, displayGroups)
 
   const normalizeTag = (tag: string) => tag.trim().toLowerCase()
 
@@ -2539,7 +2435,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                     resetAddModalState()
                   }}
                 >
-                  <KeyRound size={14} /> {t('accounts.tabs.token')}
+                  <KeyRound size={14} /> {t('common.shared.addModal.token', 'Token / JSON')}
                 </button>
                 <button
                   className={`add-tab ${addTab === 'import' ? 'active' : ''}`}
@@ -2602,6 +2498,22 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               {addTab === 'token' && (
                 <div className="add-panel">
                   <p className="add-panel-desc">{t('accounts.token.desc')}</p>
+                  <details className="token-format-collapse">
+                    <summary className="token-format-collapse-summary">
+                      {t('messages.example', 'Example')}
+                    </summary>
+                    <div className="token-format">
+                      <p className="token-format-required">{t('accounts.token.desc')}</p>
+                      <div className="token-format-group">
+                        <div className="token-format-label">{`${t('messages.example', 'Example')} 1`}</div>
+                        <pre className="token-format-code">{ANTIGRAVITY_TOKEN_SINGLE_EXAMPLE}</pre>
+                      </div>
+                      <div className="token-format-group">
+                        <div className="token-format-label">{`${t('messages.example', 'Example')} 2`}</div>
+                        <pre className="token-format-code">{ANTIGRAVITY_TOKEN_BATCH_EXAMPLE}</pre>
+                      </div>
+                    </div>
+                  </details>
                   <textarea
                     className="token-input"
                     placeholder={t('accounts.token.placeholder')}

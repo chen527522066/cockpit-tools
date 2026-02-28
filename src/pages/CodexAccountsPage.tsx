@@ -29,12 +29,9 @@ import { useCodexAccountStore } from '../stores/useCodexAccountStore';
 import * as codexService from '../services/codexService';
 import { TagEditModal } from '../components/TagEditModal';
 import {
-  getCodexPlanDisplayName,
-  getCodexQuotaClass,
-  getCodexQuotaWindows,
-  formatCodexResetTime,
   type CodexQuotaErrorInfo,
 } from '../types/codex';
+import { buildCodexAccountPresentation } from '../presentation/platformAccountPresentation';
 
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { confirm as confirmDialog } from '@tauri-apps/plugin-dialog';
@@ -49,6 +46,27 @@ import {
   maskSensitiveValue,
   persistPrivacyModeEnabled,
 } from '../utils/privacy';
+
+const CODEX_TOKEN_SINGLE_EXAMPLE = `{
+  "tokens": {
+    "id_token": "eyJ...",
+    "access_token": "eyJ...",
+    "refresh_token": "rt_..."
+  }
+}`;
+const CODEX_TOKEN_BATCH_EXAMPLE = `[
+  {
+    "id": "codex_demo_1",
+    "email": "user@example.com",
+    "tokens": {
+      "id_token": "eyJ...",
+      "access_token": "eyJ...",
+      "refresh_token": "rt_..."
+    },
+    "created_at": 1730000000,
+    "last_used": 1730000000
+  }
+]`;
 
 export function CodexAccountsPage() {
   const { t, i18n } = useTranslation();
@@ -711,9 +729,26 @@ export function CodexAccountsPage() {
     setSelected(allSelected ? new Set() : new Set(allIds));
   };
 
-  const normalizePlan = (planType?: string) => getCodexPlanDisplayName(planType);
-
   const normalizeTag = (tag: string) => tag.trim().toLowerCase();
+
+  const accountPresentations = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildCodexAccountPresentation>>();
+    accounts.forEach((account) => {
+      map.set(account.id, buildCodexAccountPresentation(account, t));
+    });
+    return map;
+  }, [accounts, t]);
+
+  const resolvePresentation = useCallback(
+    (account: (typeof accounts)[number]) =>
+      accountPresentations.get(account.id) ?? buildCodexAccountPresentation(account, t),
+    [accountPresentations, t],
+  );
+
+  const resolvePlanKey = useCallback(
+    (account: (typeof accounts)[number]) => resolvePresentation(account).planClass.toUpperCase(),
+    [resolvePresentation],
+  );
 
   const availableTags = useMemo(() => {
     const set = new Set<string>();
@@ -736,24 +771,26 @@ export function CodexAccountsPage() {
       ENTERPRISE: 0,
     };
     accounts.forEach((account) => {
-      const tier = normalizePlan(account.plan_type);
+      const tier = resolvePlanKey(account);
       if (tier in counts) {
         counts[tier as keyof typeof counts] += 1;
       }
     });
     return counts;
-  }, [accounts]);
+  }, [accounts, resolvePlanKey]);
 
   const filteredAccounts = useMemo(() => {
     let result = [...accounts];
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter((account) => account.email.toLowerCase().includes(query));
+      result = result.filter((account) =>
+        resolvePresentation(account).displayName.toLowerCase().includes(query)
+      );
     }
 
     if (filterType !== 'all') {
-      result = result.filter((account) => normalizePlan(account.plan_type) === filterType);
+      result = result.filter((account) => resolvePlanKey(account) === filterType);
     }
 
     if (tagFilter.length > 0) {
@@ -793,7 +830,7 @@ export function CodexAccountsPage() {
     });
 
     return result;
-  }, [accounts, filterType, searchQuery, sortBy, sortDirection, tagFilter]);
+  }, [accounts, filterType, resolvePlanKey, resolvePresentation, searchQuery, sortBy, sortDirection, tagFilter]);
 
   const groupedAccounts = useMemo(() => {
     if (!groupByTag) return [] as Array<[string, typeof filteredAccounts]>;
@@ -827,15 +864,15 @@ export function CodexAccountsPage() {
 
   const quotaColumnLabels = useMemo(() => {
     const source = filteredAccounts.length > 0 ? filteredAccounts : accounts;
-    const allWindows = source.map((account) => getCodexQuotaWindows(account.quota));
-    const firstWithWindows = allWindows.find((windows) => windows.length > 0) ?? [];
-    const firstWithSecondary = allWindows.find((windows) => windows.length > 1) ?? [];
+    const allItems = source.map((account) => resolvePresentation(account).quotaItems);
+    const firstWithWindows = allItems.find((items) => items.length > 0) ?? [];
+    const firstWithSecondary = allItems.find((items) => items.length > 1) ?? [];
 
     return {
       primary: firstWithWindows[0]?.label ?? '5h',
       secondary: firstWithSecondary[1]?.label ?? (firstWithWindows.length > 0 ? '—' : 'Weekly'),
     };
-  }, [accounts, filteredAccounts]);
+  }, [accounts, filteredAccounts, resolvePresentation]);
 
   const toggleTagFilterValue = (tag: string) => {
     setTagFilter((prev) => {
@@ -898,11 +935,11 @@ export function CodexAccountsPage() {
 
   const renderGridCards = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
+      const presentation = resolvePresentation(account);
       const isCurrent = currentAccount?.id === account.id;
-      const planKey = getCodexPlanDisplayName(account.plan_type);
-      const planLabel = planKey;
+      const planClass = presentation.planClass || 'unknown';
       const isSelected = selected.has(account.id);
-      const quotaWindows = getCodexQuotaWindows(account.quota);
+      const quotaItems = presentation.quotaItems;
       const quotaErrorMeta = resolveQuotaErrorMeta(account.quota_error);
       const hasQuotaError = Boolean(quotaErrorMeta.rawMessage);
       const accountTags = (account.tags || []).map((tag) => tag.trim()).filter(Boolean);
@@ -922,8 +959,8 @@ export function CodexAccountsPage() {
                 onChange={() => toggleSelect(account.id)}
               />
             </div>
-            <span className="account-email" title={maskAccountText(account.email)}>
-              {maskAccountText(account.email)}
+            <span className="account-email" title={maskAccountText(presentation.displayName)}>
+              {maskAccountText(presentation.displayName)}
             </span>
             {isCurrent && <span className="current-tag">{t('codex.current', '当前')}</span>}
             {hasQuotaError && (
@@ -932,7 +969,7 @@ export function CodexAccountsPage() {
                 {quotaErrorMeta.statusCode || t('codex.quotaError.badge', '配额异常')}
               </span>
             )}
-            <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-badge ${planClass}`}>{presentation.planLabel}</span>
           </div>
 
           {accountTags.length > 0 && (
@@ -953,33 +990,33 @@ export function CodexAccountsPage() {
                 <span>{quotaErrorMeta.displayText}</span>
               </div>
             )}
-            {quotaWindows.map((window) => {
-              const QuotaIcon = window.id === 'secondary' ? Calendar : Clock;
+            {quotaItems.map((item, index) => {
+              const QuotaIcon = index === 1 ? Calendar : Clock;
               return (
-                <div key={window.id} className="quota-item">
+                <div key={item.key} className="quota-item">
                   <div className="quota-header">
                     <QuotaIcon size={14} />
-                    <span className="quota-label">{window.label}</span>
-                    <span className={`quota-pct ${getCodexQuotaClass(window.percentage)}`}>
-                      {window.percentage}%
+                    <span className="quota-label">{item.label}</span>
+                    <span className={`quota-pct ${item.quotaClass}`}>
+                      {item.valueText}
                     </span>
                   </div>
                   <div className="quota-bar-track">
                     <div
-                      className={`quota-bar ${getCodexQuotaClass(window.percentage)}`}
-                      style={{ width: `${window.percentage}%` }}
+                      className={`quota-bar ${item.quotaClass}`}
+                      style={{ width: `${item.percentage}%` }}
                     />
                   </div>
-                  {window.resetTime && (
+                  {item.resetText && (
                     <span className="quota-reset">
-                      {formatCodexResetTime(window.resetTime, t)}
+                      {item.resetText}
                     </span>
                   )}
                 </div>
               );
             })}
 
-            {!account.quota && (
+            {quotaItems.length === 0 && (
               <div className="quota-empty">{t('common.shared.quota.noData', '暂无配额数据')}</div>
             )}
           </div>
@@ -1032,12 +1069,11 @@ export function CodexAccountsPage() {
 
   const renderTableRows = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
+      const presentation = resolvePresentation(account);
       const isCurrent = currentAccount?.id === account.id;
-      const planKey = getCodexPlanDisplayName(account.plan_type);
-      const planLabel = planKey;
-      const quotaWindows = getCodexQuotaWindows(account.quota);
-      const primaryWindow = quotaWindows[0];
-      const secondaryWindow = quotaWindows[1];
+      const planClass = presentation.planClass || 'unknown';
+      const primaryWindow = presentation.quotaItems[0];
+      const secondaryWindow = presentation.quotaItems[1];
       const quotaErrorMeta = resolveQuotaErrorMeta(account.quota_error);
       const hasQuotaError = Boolean(quotaErrorMeta.rawMessage);
       return (
@@ -1052,8 +1088,8 @@ export function CodexAccountsPage() {
           <td>
             <div className="account-cell">
               <div className="account-main-line">
-                <span className="account-email-text" title={maskAccountText(account.email)}>
-                  {maskAccountText(account.email)}
+                <span className="account-email-text" title={maskAccountText(presentation.displayName)}>
+                  {maskAccountText(presentation.displayName)}
                 </span>
                 {isCurrent && <span className="mini-tag current">{t('codex.current', '当前')}</span>}
               </div>
@@ -1068,27 +1104,27 @@ export function CodexAccountsPage() {
             </div>
           </td>
           <td>
-            <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-badge ${planClass}`}>{presentation.planLabel}</span>
           </td>
           <td>
             {primaryWindow ? (
               <div className="quota-item">
                 <div className="quota-header">
                   <span className="quota-name">{primaryWindow.label}</span>
-                  <span className={`quota-value ${getCodexQuotaClass(primaryWindow.percentage)}`}>
-                    {primaryWindow.percentage}%
+                  <span className={`quota-value ${primaryWindow.quotaClass}`}>
+                    {primaryWindow.valueText}
                   </span>
                 </div>
                 <div className="quota-progress-track">
                   <div
-                    className={`quota-progress-bar ${getCodexQuotaClass(primaryWindow.percentage)}`}
+                    className={`quota-progress-bar ${primaryWindow.quotaClass}`}
                     style={{ width: `${primaryWindow.percentage}%` }}
                   />
                 </div>
-                {primaryWindow.resetTime && (
+                {primaryWindow.resetText && (
                   <div className="quota-footer">
                     <span className="quota-reset">
-                      {formatCodexResetTime(primaryWindow.resetTime, t)}
+                      {primaryWindow.resetText}
                     </span>
                   </div>
                 )}
@@ -1102,20 +1138,20 @@ export function CodexAccountsPage() {
               <div className="quota-item">
                 <div className="quota-header">
                   <span className="quota-name">{secondaryWindow.label}</span>
-                  <span className={`quota-value ${getCodexQuotaClass(secondaryWindow.percentage)}`}>
-                    {secondaryWindow.percentage}%
+                  <span className={`quota-value ${secondaryWindow.quotaClass}`}>
+                    {secondaryWindow.valueText}
                   </span>
                 </div>
                 <div className="quota-progress-track">
                   <div
-                    className={`quota-progress-bar ${getCodexQuotaClass(secondaryWindow.percentage)}`}
+                    className={`quota-progress-bar ${secondaryWindow.quotaClass}`}
                     style={{ width: `${secondaryWindow.percentage}%` }}
                   />
                 </div>
-                {secondaryWindow.resetTime && (
+                {secondaryWindow.resetText && (
                   <div className="quota-footer">
                     <span className="quota-reset">
-                      {formatCodexResetTime(secondaryWindow.resetTime, t)}
+                      {secondaryWindow.resetText}
                     </span>
                   </div>
                 )}
@@ -1582,6 +1618,22 @@ export function CodexAccountsPage() {
                   <p className="section-desc">
                     {t('codex.token.desc', '粘贴您的 Codex Access Token 或导出的 JSON 数据。')}
                   </p>
+                  <details className="token-format-collapse">
+                    <summary className="token-format-collapse-summary">必填字段与示例（点击展开）</summary>
+                    <div className="token-format">
+                      <p className="token-format-required">
+                        必填字段：auth.json 需包含 tokens.id_token 与 tokens.access_token；账号数组需包含 id、email、tokens、created_at、last_used
+                      </p>
+                      <div className="token-format-group">
+                        <div className="token-format-label">单条示例（auth.json）</div>
+                        <pre className="token-format-code">{CODEX_TOKEN_SINGLE_EXAMPLE}</pre>
+                      </div>
+                      <div className="token-format-group">
+                        <div className="token-format-label">批量示例（账号数组）</div>
+                        <pre className="token-format-code">{CODEX_TOKEN_BATCH_EXAMPLE}</pre>
+                      </div>
+                    </div>
+                  </details>
                   <textarea
                     className="token-input"
                     value={tokenInput}

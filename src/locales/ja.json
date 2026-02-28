@@ -95,7 +95,7 @@
         "importFailedMsg": "インポート失敗: {{error}}",
         "importing": "インポート中...",
         "importSuccessMsg": "{{count}} 件のアカウントをインポートしました",
-        "placeholder": "JSON を貼り付け..."
+        "placeholder": "例: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "カード表示",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "auth.json の内容またはアカウント JSON を貼り付けてください",
-      "placeholder": "JSON を貼り付け..."
+      "placeholder": "例: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "~/.codex/auth.json から現在ログイン中のアカウントをインポート",

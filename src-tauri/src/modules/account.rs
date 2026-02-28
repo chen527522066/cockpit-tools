@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
@@ -24,6 +24,110 @@ const QUOTA_ALERT_COOLDOWN_SECONDS: i64 = 300;
 const DATA_DIR: &str = ".antigravity_cockpit";
 const ACCOUNTS_INDEX: &str = "accounts.json";
 const ACCOUNTS_DIR: &str = "accounts";
+const DELETED_ACCOUNT_FP_BINDINGS: &str = "deleted_account_fingerprint_bindings.json";
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct DeletedAccountFingerprintBindings {
+    #[serde(default)]
+    by_email: HashMap<String, String>,
+}
+
+fn normalize_account_email_key(email: &str) -> String {
+    email.trim().to_lowercase()
+}
+
+fn get_deleted_account_fp_bindings_path() -> Result<PathBuf, String> {
+    Ok(get_data_dir()?.join(DELETED_ACCOUNT_FP_BINDINGS))
+}
+
+fn load_deleted_account_fp_bindings() -> Result<DeletedAccountFingerprintBindings, String> {
+    let path = get_deleted_account_fp_bindings_path()?;
+    if !path.exists() {
+        return Ok(DeletedAccountFingerprintBindings::default());
+    }
+
+    let content = fs::read_to_string(&path).map_err(|e| format!("读取指纹映射失败: {}", e))?;
+    if content.trim().is_empty() {
+        return Ok(DeletedAccountFingerprintBindings::default());
+    }
+
+    match serde_json::from_str::<DeletedAccountFingerprintBindings>(&content) {
+        Ok(bindings) => Ok(bindings),
+        Err(e) => {
+            modules::logger::log_warn(&format!("指纹映射文件损坏，已重置为空: {}", e));
+            Ok(DeletedAccountFingerprintBindings::default())
+        }
+    }
+}
+
+fn save_deleted_account_fp_bindings(
+    bindings: &DeletedAccountFingerprintBindings,
+) -> Result<(), String> {
+    let path = get_deleted_account_fp_bindings_path()?;
+    let content =
+        serde_json::to_string_pretty(bindings).map_err(|e| format!("序列化指纹映射失败: {}", e))?;
+    fs::write(path, content).map_err(|e| format!("保存指纹映射失败: {}", e))
+}
+
+fn remember_deleted_account_fingerprint(account: &Account) -> Result<(), String> {
+    let key = normalize_account_email_key(&account.email);
+    if key.is_empty() {
+        return Ok(());
+    }
+
+    let Some(fp_id) = account.fingerprint_id.as_ref() else {
+        return Ok(());
+    };
+
+    if crate::modules::fingerprint::get_fingerprint(fp_id).is_err() {
+        modules::logger::log_warn(&format!(
+            "删除账号时发现指纹不存在，跳过映射记录: email={}, fingerprint_id={}",
+            account.email, fp_id
+        ));
+        return Ok(());
+    }
+
+    let mut bindings = load_deleted_account_fp_bindings()?;
+    bindings.by_email.insert(key, fp_id.clone());
+    save_deleted_account_fp_bindings(&bindings)?;
+    Ok(())
+}
+
+fn lookup_deleted_account_fingerprint(email: &str) -> Result<Option<String>, String> {
+    let key = normalize_account_email_key(email);
+    if key.is_empty() {
+        return Ok(None);
+    }
+
+    let bindings = load_deleted_account_fp_bindings()?;
+    let Some(fp_id) = bindings.by_email.get(&key).cloned() else {
+        return Ok(None);
+    };
+
+    if crate::modules::fingerprint::get_fingerprint(&fp_id).is_ok() {
+        Ok(Some(fp_id))
+    } else {
+        modules::logger::log_warn(&format!(
+            "账号重建时命中过期指纹映射，已忽略: email={}, fingerprint_id={}",
+            email, fp_id
+        ));
+        let _ = clear_deleted_account_fingerprint(email);
+        Ok(None)
+    }
+}
+
+fn clear_deleted_account_fingerprint(email: &str) -> Result<(), String> {
+    let key = normalize_account_email_key(email);
+    if key.is_empty() {
+        return Ok(());
+    }
+
+    let mut bindings = load_deleted_account_fp_bindings()?;
+    if bindings.by_email.remove(&key).is_some() {
+        save_deleted_account_fp_bindings(&bindings)?;
+    }
+    Ok(())
+}
 
 /// 获取数据目录路径
 pub fn get_data_dir() -> Result<PathBuf, String> {
@@ -256,8 +360,27 @@ pub fn add_account(
     let mut account = Account::new(account_id.clone(), email.clone(), token);
     account.name = name.clone();
 
-    let fingerprint = crate::modules::fingerprint::generate_fingerprint(email.clone())?;
-    account.fingerprint_id = Some(fingerprint.id.clone());
+    let reused_fp_id = match lookup_deleted_account_fingerprint(&email) {
+        Ok(fp_id) => fp_id,
+        Err(e) => {
+            modules::logger::log_warn(&format!(
+                "读取已删除账号指纹映射失败，回退为新建指纹: email={}, error={}",
+                email, e
+            ));
+            None
+        }
+    };
+
+    if let Some(ref fp_id) = reused_fp_id {
+        account.fingerprint_id = Some(fp_id.clone());
+        modules::logger::log_info(&format!(
+            "账号复用已删除映射指纹: email={}, fingerprint_id={}",
+            email, fp_id
+        ));
+    } else {
+        let fingerprint = crate::modules::fingerprint::generate_fingerprint(email.clone())?;
+        account.fingerprint_id = Some(fingerprint.id.clone());
+    }
 
     save_account(&account)?;
 
@@ -274,6 +397,15 @@ pub fn add_account(
     }
 
     save_account_index(&index)?;
+
+    if reused_fp_id.is_some() {
+        if let Err(e) = clear_deleted_account_fingerprint(&email) {
+            modules::logger::log_warn(&format!(
+                "清理已删除账号指纹映射失败: email={}, error={}",
+                email, e
+            ));
+        }
+    }
 
     Ok(account)
 }
@@ -340,6 +472,15 @@ pub fn delete_account(account_id: &str) -> Result<(), String> {
         .map_err(|e| format!("获取锁失败: {}", e))?;
     let mut index = load_account_index()?;
 
+    if let Ok(account) = load_account(account_id) {
+        if let Err(e) = remember_deleted_account_fingerprint(&account) {
+            modules::logger::log_warn(&format!(
+                "记录删除账号指纹映射失败: account_id={}, email={}, error={}",
+                account_id, account.email, e
+            ));
+        }
+    }
+
     let original_len = index.accounts.len();
     index.accounts.retain(|s| s.id != account_id);
 
@@ -373,6 +514,15 @@ pub fn delete_accounts(account_ids: &[String]) -> Result<(), String> {
     let accounts_dir = get_accounts_dir()?;
 
     for account_id in account_ids {
+        if let Ok(account) = load_account(account_id) {
+            if let Err(e) = remember_deleted_account_fingerprint(&account) {
+                modules::logger::log_warn(&format!(
+                    "批量删除时记录账号指纹映射失败: account_id={}, email={}, error={}",
+                    account_id, account.email, e
+                ));
+            }
+        }
+
         index.accounts.retain(|s| &s.id != account_id);
 
         if index.current_account_id.as_deref() == Some(account_id) {
@@ -1117,8 +1267,8 @@ pub async fn fetch_quota_with_retry(
         let _ = upsert_account(account.email.clone(), account.name.clone(), token.clone());
     }
 
-    let result = modules::quota::fetch_quota_for_token(&account.token, &account.email, skip_cache)
-        .await;
+    let result =
+        modules::quota::fetch_quota_for_token(&account.token, &account.email, skip_cache).await;
     match result {
         Ok(payload) => {
             account.quota_error = payload.error.map(|err| QuotaErrorInfo {

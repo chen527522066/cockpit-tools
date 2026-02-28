@@ -1,11 +1,16 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InstancesManager } from '../components/InstancesManager';
 import { OverviewTabsHeader } from '../components/OverviewTabsHeader';
 import { useAccountStore } from '../stores/useAccountStore';
 import { useInstanceStore } from '../stores/useInstanceStore';
-import { getDisplayModels, getModelShortName, getQuotaClass } from '../utils/account';
 import type { Account } from '../types/account';
 import { Page } from '../types/navigation';
+import { DisplayGroup, getDisplayGroups } from '../services/groupService';
+import {
+  buildAntigravityAccountPresentation,
+  buildQuotaPreviewLines,
+} from '../presentation/platformAccountPresentation';
 
 interface InstancesPageProps {
   onNavigate?: (page: Page) => void;
@@ -15,20 +20,31 @@ export function InstancesPage({ onNavigate }: InstancesPageProps) {
   const { t } = useTranslation();
   const instanceStore = useInstanceStore();
   const { accounts, fetchAccounts } = useAccountStore();
+  const [displayGroups, setDisplayGroups] = useState<DisplayGroup[]>([]);
+
+  useEffect(() => {
+    getDisplayGroups()
+      .then((groups) => {
+        setDisplayGroups(groups);
+      })
+      .catch((error) => {
+        console.error('Failed to load display groups:', error);
+      });
+  }, []);
 
   const renderAccountQuotaPreview = (account: Account) => {
-    if (!account.quota || !account.quota.models?.length) {
+    const presentation = buildAntigravityAccountPresentation(account, displayGroups, t);
+    const lines = buildQuotaPreviewLines(presentation.quotaItems, 3);
+    if (lines.length === 0) {
       return <span className="account-quota-empty">{t('instances.quota.empty', '暂无配额缓存')}</span>;
     }
-    const models = getDisplayModels(account.quota);
-    const visible = (models.length ? models : account.quota.models).slice(0, 3);
     return (
       <div className="account-quota-preview">
-        {visible.map((model) => (
-          <span className="account-quota-item" key={`${account.id}-${model.name}`}>
-            <span className={`quota-dot ${getQuotaClass(model.percentage)}`} />
-            <span className={`quota-text ${getQuotaClass(model.percentage)}`}>
-              {getModelShortName(model.name)} {model.percentage}%
+        {lines.map((line) => (
+          <span className="account-quota-item" key={`${account.id}-${line.key}`}>
+            <span className={`quota-dot ${line.quotaClass}`} />
+            <span className={`quota-text ${line.quotaClass}`}>
+              {line.text}
             </span>
           </span>
         ))}
@@ -48,7 +64,16 @@ export function InstancesPage({ onNavigate }: InstancesPageProps) {
         accounts={accounts}
         fetchAccounts={fetchAccounts}
         renderAccountQuotaPreview={renderAccountQuotaPreview}
-        getAccountSearchText={(account) => `${account.email} ${account.name ?? ''}`}
+        renderAccountBadge={(account) => {
+          const presentation = buildAntigravityAccountPresentation(account, displayGroups, t);
+          return (
+            <span className={`instance-plan-badge ${presentation.planClass}`}>{presentation.planLabel}</span>
+          );
+        }}
+        getAccountSearchText={(account) => {
+          const presentation = buildAntigravityAccountPresentation(account, displayGroups, t);
+          return `${presentation.displayName} ${presentation.planLabel} ${account.name ?? ''}`;
+        }}
         appType="antigravity"
       />
     </div>

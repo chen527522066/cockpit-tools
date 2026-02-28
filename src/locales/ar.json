@@ -95,7 +95,7 @@
         "importFailedMsg": "فشل الاستيراد: {{error}}",
         "importing": "جارٍ الاستيراد...",
         "importSuccessMsg": "تم استيراد {{count}} حسابًا",
-        "placeholder": "الصق Token أو JSON..."
+        "placeholder": "مثال: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "عرض البطاقات",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "الصق محتوى auth.json أو بيانات JSON للحساب",
-      "placeholder": "الصق محتوى JSON..."
+      "placeholder": "مثال: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "استيراد الحساب الحالي من ~/.codex/auth.json",

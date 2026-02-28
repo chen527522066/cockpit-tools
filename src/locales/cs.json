@@ -95,7 +95,7 @@
         "importFailedMsg": "Import selhal: {{error}}",
         "importing": "Importování...",
         "importSuccessMsg": "Importováno {{count}} účtů",
-        "placeholder": "Vložte JSON..."
+        "placeholder": "Příklad: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "Karty",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "Vložte obsah auth.json nebo JSON dat účtu",
-      "placeholder": "Vložte JSON..."
+      "placeholder": "Příklad: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "Importovat aktuální účet z ~/.codex/auth.json",

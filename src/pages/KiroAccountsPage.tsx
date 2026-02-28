@@ -29,17 +29,9 @@ import { useKiroAccountStore } from '../stores/useKiroAccountStore';
 import * as kiroService from '../services/kiroService';
 import { TagEditModal } from '../components/TagEditModal';
 import {
-  getKiroPlanDisplayName,
-  getKiroPlanBadgeClass,
   getKiroCreditsSummary,
-  getKiroQuotaClass,
-  getKiroAccountDisplayEmail,
-  getKiroAccountDisplayUserId,
-  getKiroAccountLoginProvider,
-  getKiroAccountStatus,
-  getKiroAccountStatusReason,
-  isKiroAccountBanned,
 } from '../types/kiro';
+import { buildKiroAccountPresentation } from '../presentation/platformAccountPresentation';
 
 import { save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -56,6 +48,11 @@ import {
 const WINDSURF_FLOW_NOTICE_COLLAPSED_KEY = 'agtools.kiro.flow_notice_collapsed';
 const WINDSURF_CURRENT_ACCOUNT_ID_KEY = 'agtools.kiro.current_account_id';
 const KIRO_KNOWN_PLAN_FILTERS = ['FREE', 'INDIVIDUAL', 'PRO', 'BUSINESS', 'ENTERPRISE'] as const;
+const KIRO_TOKEN_SINGLE_EXAMPLE = `{"access_token":"eyJ...","refresh_token":"rt_..."}`;
+const KIRO_TOKEN_BATCH_EXAMPLE = `[
+  {"access_token":"eyJ...","refresh_token":"rt_a..."},
+  {"access_token":"eyJ...","refresh_token":"rt_b..."}
+]`;
 
 export function KiroAccountsPage() {
   const { t, i18n } = useTranslation();
@@ -344,12 +341,15 @@ export function KiroAccountsPage() {
   const handleInjectToVSCode = async (accountId: string) => {
     setMessage(null);
     const account = accounts.find((item) => item.id === accountId);
-    if (account && isKiroAccountBanned(account)) {
+    const accountPresentation = account
+      ? buildKiroAccountPresentation(account, t)
+      : null;
+    if (accountPresentation?.isBanned) {
       setMessage({ text: t('accounts.status.forbidden_msg'), tone: 'error' });
       return;
     }
     setInjecting(accountId);
-    const displayEmail = account?.email || account?.github_email || account?.github_login || accountId;
+    const displayEmail = accountPresentation?.displayName || accountId;
     try {
       await kiroService.injectKiroToVSCode(accountId);
       setCurrentAccountId(accountId);
@@ -699,41 +699,44 @@ export function KiroAccountsPage() {
     [creditsSummaryById],
   );
 
+  const accountPresentations = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildKiroAccountPresentation>>();
+    accounts.forEach((account) => {
+      map.set(account.id, buildKiroAccountPresentation(account, t));
+    });
+    return map;
+  }, [accounts, t]);
+
+  const resolvePresentation = useCallback(
+    (account: (typeof accounts)[number]) =>
+      accountPresentations.get(account.id) ?? buildKiroAccountPresentation(account, t),
+    [accountPresentations, t],
+  );
+
   const resolvePlanKey = useCallback(
     (account: (typeof accounts)[number]) => {
-      const credits = resolveCreditsSummary(account);
-      const rawAccountPlan = account.plan_type?.trim();
-      const accountPlan =
-        rawAccountPlan && rawAccountPlan.toUpperCase() !== 'UNKNOWN' ? rawAccountPlan : null;
-      return getKiroPlanDisplayName(
-        accountPlan ?? credits.planName ?? account.copilot_plan ?? account.plan_type ?? null,
-      );
+      const presentation = resolvePresentation(account);
+      if (presentation.planClass && presentation.planClass !== 'unknown') {
+        return presentation.planClass.toUpperCase();
+      }
+      const label = presentation.planLabel?.trim();
+      return label ? label.toUpperCase() : 'UNKNOWN';
     },
-    [resolveCreditsSummary],
+    [resolvePresentation],
   );
 
   const resolvePlanLabel = useCallback(
     (account: (typeof accounts)[number], planKey: string) => {
-      const credits = resolveCreditsSummary(account);
-      const candidates = [
-        account.plan_name,
-        account.plan_tier,
-        credits.planName,
-        account.copilot_plan,
-        account.plan_type,
-      ];
-      for (const candidate of candidates) {
-        const raw = candidate?.trim();
-        if (raw && raw.toUpperCase() !== 'UNKNOWN') return raw;
-      }
-      return planKey;
+      const label = resolvePresentation(account).planLabel?.trim();
+      return label || planKey;
     },
-    [resolveCreditsSummary],
+    [resolvePresentation],
   );
 
-  const resolvePlanBadgeClass = useCallback((planKey: string) => {
-    return getKiroPlanBadgeClass(planKey);
-  }, []);
+  const resolvePlanBadgeClass = useCallback(
+    (account: (typeof accounts)[number]) => resolvePresentation(account).planClass,
+    [resolvePresentation],
+  );
 
   const formatCreditsNumber = useCallback(
     (value: number | null | undefined) => {
@@ -747,55 +750,29 @@ export function KiroAccountsPage() {
     [locale],
   );
 
-  const buildCreditMetrics = useCallback(
-    (leftInput: number | null | undefined, usedInput: number | null | undefined, totalInput: number | null | undefined) => {
-      const left = leftInput ?? null;
-      let total = totalInput ?? null;
-      let used = usedInput ?? null;
-
-      if (total == null && left != null) total = left;
-      if (total != null && left != null && total < left) total = left;
-      if (used == null && total != null && left != null) used = Math.max(0, total - left);
-      if (used == null && left != null) used = 0;
-
-      const usedPercent = total != null && total > 0 && used != null
-        ? Math.max(0, Math.min(100, Math.round((used / total) * 100)))
-        : 0;
-
-      return { left, used, total, usedPercent };
-    },
-    [],
-  );
-
   const resolvePromptMetrics = useCallback(
-    (credits: ReturnType<typeof getKiroCreditsSummary>) =>
-      buildCreditMetrics(credits.promptCreditsLeft, credits.promptCreditsUsed, credits.promptCreditsTotal),
-    [buildCreditMetrics],
+    (account: (typeof accounts)[number]) =>
+      resolvePresentation(account).quotaItems.find((item) => item.key === 'prompt') ?? null,
+    [resolvePresentation],
   );
 
   const resolveAddOnMetrics = useCallback(
-    (credits: ReturnType<typeof getKiroCreditsSummary>) =>
-      buildCreditMetrics(credits.addOnCredits, credits.addOnCreditsUsed, credits.addOnCreditsTotal),
-    [buildCreditMetrics],
+    (account: (typeof accounts)[number]) =>
+      resolvePresentation(account).quotaItems.find((item) => item.key === 'addon') ?? null,
+    [resolvePresentation],
   );
 
   const resolveDisplayEmail = useCallback((account: (typeof accounts)[number]) => {
-    return getKiroAccountDisplayEmail(account).trim();
-  }, []);
+    return resolvePresentation(account).displayName.trim();
+  }, [resolvePresentation]);
 
   const resolveDisplayUserId = useCallback((account: (typeof accounts)[number]) => {
-    return getKiroAccountDisplayUserId(account).trim();
-  }, []);
+    return resolvePresentation(account).userIdText.trim();
+  }, [resolvePresentation]);
 
   const resolveSignedInWithText = useCallback(
-    (account: (typeof accounts)[number]) => {
-      const provider = (getKiroAccountLoginProvider(account) || t('kiro.account.providerUnknown', 'Unknown')).trim();
-      return t('kiro.account.signedInWith', {
-        provider,
-        defaultValue: 'Signed in with {{provider}}',
-      });
-    },
-    [t],
+    (account: (typeof accounts)[number]) => resolvePresentation(account).signedInWithText,
+    [resolvePresentation],
   );
 
   const resolveCycleDisplay = useCallback(
@@ -866,35 +843,13 @@ export function KiroAccountsPage() {
   );
 
   const resolveBonusExpiryValue = useCallback(
-    (credits: ReturnType<typeof getKiroCreditsSummary>) => {
-      const rawDays = credits.bonusExpireDays;
-      if (typeof rawDays !== 'number' || !Number.isFinite(rawDays)) {
-        return t('kiro.credits.expiryUnknown', '—');
-      }
-      return t('kiro.credits.expiryDays', {
-        days: Math.max(0, Math.round(rawDays)),
-        defaultValue: '{{days}} days',
-      });
-    },
-    [t],
+    (account: (typeof accounts)[number]) => resolvePresentation(account).addOnExpiryText,
+    [resolvePresentation],
   );
 
   const shouldShowAddOnCredits = useCallback(
-    (
-      credits: ReturnType<typeof getKiroCreditsSummary>,
-      metrics: { left: number | null; used: number | null; total: number | null },
-    ) => {
-      const hasUsage =
-        (typeof metrics.left === 'number' && metrics.left > 0) ||
-        (typeof metrics.used === 'number' && metrics.used > 0) ||
-        (typeof metrics.total === 'number' && metrics.total > 0);
-      const hasExpiry =
-        typeof credits.bonusExpireDays === 'number' &&
-        Number.isFinite(credits.bonusExpireDays) &&
-        credits.bonusExpireDays > 0;
-      return hasUsage || hasExpiry;
-    },
-    [],
+    (account: (typeof accounts)[number]) => resolveAddOnMetrics(account) != null,
+    [resolveAddOnMetrics],
   );
 
   const tierSummary = useMemo(() => {
@@ -952,10 +907,11 @@ export function KiroAccountsPage() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter((account) => {
+        const presentation = resolvePresentation(account);
         const haystacks = [
-          getKiroAccountDisplayEmail(account),
-          getKiroAccountDisplayUserId(account),
-          getKiroAccountLoginProvider(account) || '',
+          presentation.displayName,
+          presentation.userIdText,
+          presentation.signedInWithText,
           account.id,
         ];
         return haystacks.some((item) => item.toLowerCase().includes(query));
@@ -997,7 +953,7 @@ export function KiroAccountsPage() {
     });
 
     return result;
-  }, [accounts, filterType, resolveCreditsSummary, resolvePlanKey, searchQuery, sortBy, sortDirection, tagFilter]);
+  }, [accounts, filterType, resolveCreditsSummary, resolvePlanKey, resolvePresentation, searchQuery, sortBy, sortDirection, tagFilter]);
 
   const groupedAccounts = useMemo(() => {
     if (!groupByTag) return [] as Array<[string, typeof filteredAccounts]>;
@@ -1090,6 +1046,7 @@ export function KiroAccountsPage() {
 
   const renderGridCards = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
+      const presentation = resolvePresentation(account);
       const displayEmail = resolveDisplayEmail(account);
       const displayUserId = resolveDisplayUserId(account);
       const emailText = displayEmail || displayUserId || account.id;
@@ -1097,21 +1054,20 @@ export function KiroAccountsPage() {
       const userIdText = displayUserId || account.id;
       const credits = resolveCreditsSummary(account);
       const cycleDisplay = resolveCycleDisplay(credits);
-      const promptMetrics = resolvePromptMetrics(credits);
-      const addOnMetrics = resolveAddOnMetrics(credits);
+      const promptMetrics = resolvePromptMetrics(account);
+      const addOnMetrics = resolveAddOnMetrics(account);
       const planKey = resolvePlanKey(account);
       const planLabel = resolvePlanLabel(account, planKey);
-      const bonusExpiryValue = resolveBonusExpiryValue(credits);
-      const showAddOnCredits = shouldShowAddOnCredits(credits, addOnMetrics);
+      const bonusExpiryValue = resolveBonusExpiryValue(account);
+      const showAddOnCredits = shouldShowAddOnCredits(account);
       const accountTags = (account.tags || []).map((tag) => tag.trim()).filter(Boolean);
       const visibleTags = accountTags.slice(0, 2);
       const moreTagCount = Math.max(0, accountTags.length - visibleTags.length);
       const isSelected = selected.has(account.id);
       const isCurrent = currentAccountId === account.id;
-      const accountStatus = getKiroAccountStatus(account);
-      const statusReason = getKiroAccountStatusReason(account);
-      const isBanned = accountStatus === 'banned';
-      const hasStatusError = accountStatus === 'error';
+      const statusReason = presentation.accountStatusReason;
+      const isBanned = presentation.isBanned;
+      const hasStatusError = presentation.hasStatusError;
       const bannedTitle = statusReason || t('accounts.status.forbidden_tooltip');
       const errorTitle = statusReason || t('accounts.status.refreshFailed');
 
@@ -1148,7 +1104,7 @@ export function KiroAccountsPage() {
                 {t('accounts.status.forbidden')}
               </span>
             )}
-            <span className={`tier-badge ${resolvePlanBadgeClass(planKey)}`}>{planLabel}</span>
+            <span className={`tier-badge ${resolvePlanBadgeClass(account)}`}>{planLabel}</span>
           </div>
 
           <div className="account-sub-line">
@@ -1171,19 +1127,19 @@ export function KiroAccountsPage() {
           <div className="ghcp-quota-section">
             <div className="quota-item windsurf-credit-item">
               <div className="quota-header">
-                <span className="quota-label">{t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
-                <span className={`quota-pct ${getKiroQuotaClass(promptMetrics.usedPercent)}`}>
-                  {promptMetrics.usedPercent}%
+                <span className="quota-label">{promptMetrics?.label ?? t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
+                <span className={`quota-pct ${promptMetrics?.quotaClass ?? 'high'}`}>
+                  {promptMetrics?.valueText ?? '0%'}
                 </span>
               </div>
               <div className="windsurf-credit-meta-row">
-                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics.used, promptMetrics.total)}</span>
-                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics.left)}</span>
+                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics?.used, promptMetrics?.total)}</span>
+                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics?.left)}</span>
               </div>
               <div className="quota-bar-track">
                 <div
-                  className={`quota-bar ${getKiroQuotaClass(promptMetrics.usedPercent)}`}
-                  style={{ width: `${promptMetrics.usedPercent}%` }}
+                  className={`quota-bar ${promptMetrics?.quotaClass ?? 'high'}`}
+                  style={{ width: `${promptMetrics?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -1191,14 +1147,14 @@ export function KiroAccountsPage() {
             {showAddOnCredits && (
               <div className="quota-item windsurf-credit-item">
                 <div className="quota-header">
-                  <span className="quota-label">{t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
-                  <span className={`quota-pct ${getKiroQuotaClass(addOnMetrics.usedPercent)}`}>
-                    {addOnMetrics.usedPercent}%
+                  <span className="quota-label">{addOnMetrics?.label ?? t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
+                  <span className={`quota-pct ${addOnMetrics?.quotaClass ?? 'high'}`}>
+                    {addOnMetrics?.valueText ?? '0%'}
                   </span>
                 </div>
                 <div className="windsurf-credit-meta-row">
-                  <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics.used, addOnMetrics.total)}</span>
-                  <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics.left)}</span>
+                  <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics?.used, addOnMetrics?.total)}</span>
+                  <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics?.left)}</span>
                 </div>
                 <div className="windsurf-credit-meta-row expiry">
                   <span className="windsurf-credit-expiry">
@@ -1207,8 +1163,8 @@ export function KiroAccountsPage() {
                 </div>
                 <div className="quota-bar-track">
                   <div
-                    className={`quota-bar ${getKiroQuotaClass(addOnMetrics.usedPercent)}`}
-                    style={{ width: `${addOnMetrics.usedPercent}%` }}
+                    className={`quota-bar ${addOnMetrics?.quotaClass ?? 'high'}`}
+                    style={{ width: `${addOnMetrics?.percentage ?? 0}%` }}
                   />
                 </div>
               </div>
@@ -1274,6 +1230,7 @@ export function KiroAccountsPage() {
 
   const renderTableRows = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
+      const presentation = resolvePresentation(account);
       const displayEmail = resolveDisplayEmail(account);
       const displayUserId = resolveDisplayUserId(account);
       const emailText = displayEmail || displayUserId || account.id;
@@ -1281,20 +1238,19 @@ export function KiroAccountsPage() {
       const userIdText = displayUserId || account.id;
       const credits = resolveCreditsSummary(account);
       const cycleDisplay = resolveCycleDisplay(credits);
-      const promptMetrics = resolvePromptMetrics(credits);
-      const addOnMetrics = resolveAddOnMetrics(credits);
+      const promptMetrics = resolvePromptMetrics(account);
+      const addOnMetrics = resolveAddOnMetrics(account);
       const planKey = resolvePlanKey(account);
       const planLabel = resolvePlanLabel(account, planKey);
-      const bonusExpiryValue = resolveBonusExpiryValue(credits);
-      const showAddOnCredits = shouldShowAddOnCredits(credits, addOnMetrics);
+      const bonusExpiryValue = resolveBonusExpiryValue(account);
+      const showAddOnCredits = shouldShowAddOnCredits(account);
       const accountTags = (account.tags || []).map((tag) => tag.trim()).filter(Boolean);
       const visibleTags = accountTags.slice(0, 3);
       const moreTagCount = Math.max(0, accountTags.length - visibleTags.length);
       const isCurrent = currentAccountId === account.id;
-      const accountStatus = getKiroAccountStatus(account);
-      const statusReason = getKiroAccountStatusReason(account);
-      const isBanned = accountStatus === 'banned';
-      const hasStatusError = accountStatus === 'error';
+      const statusReason = presentation.accountStatusReason;
+      const isBanned = presentation.isBanned;
+      const hasStatusError = presentation.hasStatusError;
       const bannedTitle = statusReason || t('accounts.status.forbidden_tooltip');
       const errorTitle = statusReason || t('accounts.status.refreshFailed');
       return (
@@ -1354,24 +1310,24 @@ export function KiroAccountsPage() {
             </div>
           </td>
           <td>
-            <span className={`tier-badge ${resolvePlanBadgeClass(planKey)}`}>{planLabel}</span>
+            <span className={`tier-badge ${resolvePlanBadgeClass(account)}`}>{planLabel}</span>
           </td>
           <td>
             <div className="quota-item windsurf-table-credit-item">
               <div className="quota-header">
-                <span className="quota-name">{t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
-                <span className={`quota-value ${getKiroQuotaClass(promptMetrics.usedPercent)}`}>
-                  {promptMetrics.usedPercent}%
+                <span className="quota-name">{promptMetrics?.label ?? t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
+                <span className={`quota-value ${promptMetrics?.quotaClass ?? 'high'}`}>
+                  {promptMetrics?.valueText ?? '0%'}
                 </span>
               </div>
               <div className="windsurf-credit-meta-row table">
-                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics.used, promptMetrics.total)}</span>
-                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics.left)}</span>
+                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics?.used, promptMetrics?.total)}</span>
+                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics?.left)}</span>
               </div>
               <div className="quota-progress-track">
                 <div
-                  className={`quota-progress-bar ${getKiroQuotaClass(promptMetrics.usedPercent)}`}
-                  style={{ width: `${promptMetrics.usedPercent}%` }}
+                  className={`quota-progress-bar ${promptMetrics?.quotaClass ?? 'high'}`}
+                  style={{ width: `${promptMetrics?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -1380,14 +1336,14 @@ export function KiroAccountsPage() {
             {showAddOnCredits ? (
               <div className="quota-item windsurf-table-credit-item">
                 <div className="quota-header">
-                  <span className="quota-name">{t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
-                  <span className={`quota-value ${getKiroQuotaClass(addOnMetrics.usedPercent)}`}>
-                    {addOnMetrics.usedPercent}%
+                  <span className="quota-name">{addOnMetrics?.label ?? t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
+                  <span className={`quota-value ${addOnMetrics?.quotaClass ?? 'high'}`}>
+                    {addOnMetrics?.valueText ?? '0%'}
                   </span>
                 </div>
                 <div className="windsurf-credit-meta-row table">
-                  <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics.used, addOnMetrics.total)}</span>
-                  <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics.left)}</span>
+                  <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics?.used, addOnMetrics?.total)}</span>
+                  <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics?.left)}</span>
                 </div>
                 <div className="windsurf-credit-meta-row table expiry">
                   <span className="windsurf-credit-expiry">
@@ -1396,8 +1352,8 @@ export function KiroAccountsPage() {
                 </div>
                 <div className="quota-progress-track">
                   <div
-                    className={`quota-progress-bar ${getKiroQuotaClass(addOnMetrics.usedPercent)}`}
-                    style={{ width: `${addOnMetrics.usedPercent}%` }}
+                    className={`quota-progress-bar ${addOnMetrics?.quotaClass ?? 'high'}`}
+                    style={{ width: `${addOnMetrics?.percentage ?? 0}%` }}
                   />
                 </div>
               </div>
@@ -1838,7 +1794,7 @@ export function KiroAccountsPage() {
                 onClick={() => openAddModal('token')}
               >
                 <KeyRound size={14} />
-                {t('common.shared.addModal.token', 'Token / JSON')}
+                Token / JSON
               </button>
               <button
                 className={`modal-tab ${addTab === 'import' ? 'active' : ''}`}
@@ -1930,6 +1886,22 @@ export function KiroAccountsPage() {
                   <p className="section-desc">
                     {t('kiro.token.desc', '粘贴您的 Kiro Access Token 或导出的 JSON 数据。')}
                   </p>
+                  <details className="token-format-collapse">
+                    <summary className="token-format-collapse-summary">必填字段与示例（点击展开）</summary>
+                    <div className="token-format">
+                      <p className="token-format-required">
+                        必填字段：JSON 建议使用 access_token + refresh_token（accessToken/refreshToken 仅兼容）
+                      </p>
+                      <div className="token-format-group">
+                        <div className="token-format-label">单条示例（JSON）</div>
+                        <pre className="token-format-code">{KIRO_TOKEN_SINGLE_EXAMPLE}</pre>
+                      </div>
+                      <div className="token-format-group">
+                        <div className="token-format-label">批量示例（JSON）</div>
+                        <pre className="token-format-code">{KIRO_TOKEN_BATCH_EXAMPLE}</pre>
+                      </div>
+                    </div>
+                  </details>
                   <textarea
                     className="token-input"
                     value={tokenInput}

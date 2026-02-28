@@ -8,38 +8,17 @@ import { useKiroAccountStore } from '../stores/useKiroAccountStore';
 import { usePlatformLayoutStore } from '../stores/usePlatformLayoutStore';
 import { Page } from '../types/navigation';
 import { Users, CheckCircle2, Sparkles, RotateCw, Play, Github } from 'lucide-react';
-import { getSubscriptionTier, getDisplayModels, getModelShortName, formatResetTimeDisplay } from '../utils/account';
-import {
-  getCodexPlanDisplayName,
-  getCodexQuotaClass,
-  getCodexQuotaWindows,
-  formatCodexResetTime,
-} from '../types/codex';
 import { Account } from '../types/account';
 import { CodexAccount } from '../types/codex';
-import {
-  GitHubCopilotAccount,
-  getGitHubCopilotPlanDisplayName,
-  getGitHubCopilotQuotaClass,
-  getGitHubCopilotUsage,
-  formatGitHubCopilotResetTime,
-} from '../types/githubCopilot';
+import { GitHubCopilotAccount } from '../types/githubCopilot';
 import {
   WindsurfAccount,
   getWindsurfCreditsSummary,
-  getWindsurfPlanDisplayName,
-  getWindsurfQuotaClass,
-  formatWindsurfResetTime,
 } from '../types/windsurf';
 import {
   KiroAccount,
-  getKiroAccountDisplayEmail,
   getKiroCreditsSummary,
-  getKiroPlanBadgeClass,
-  getKiroPlanDisplayName,
-  getKiroQuotaClass,
   isKiroAccountBanned,
-  formatKiroResetTime,
 } from '../types/kiro';
 import './DashboardPage.css';
 import { AnnouncementCenter } from '../components/AnnouncementCenter';
@@ -50,6 +29,14 @@ import { KiroIcon } from '../components/icons/KiroIcon';
 import { PlatformId, PLATFORM_PAGE_MAP } from '../types/platform';
 import { getPlatformLabel, renderPlatformIcon } from '../utils/platformMeta';
 import { isPrivacyModeEnabledByDefault, maskSensitiveValue } from '../utils/privacy';
+import { DisplayGroup, getDisplayGroups } from '../services/groupService';
+import {
+  buildAntigravityAccountPresentation,
+  buildCodexAccountPresentation,
+  buildGitHubCopilotAccountPresentation,
+  buildKiroAccountPresentation,
+  buildWindsurfAccountPresentation,
+} from '../presentation/platformAccountPresentation';
 
 interface DashboardPageProps {
   onNavigate: (page: Page) => void;
@@ -70,39 +57,6 @@ function formatDecimal(value: number | null | undefined): string {
   return (safe ?? 0).toFixed(2);
 }
 
-function clampPercent(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  if (value <= 0) return 0;
-  if (value >= 100) return 100;
-  return Math.round(value);
-}
-
-function buildCreditMetrics(
-  used: number | null | undefined,
-  total: number | null | undefined,
-  left: number | null | undefined,
-) {
-  const safeUsed = toFiniteNumber(used);
-  const safeTotal = toFiniteNumber(total);
-  const safeLeft = toFiniteNumber(left);
-
-  let usedPercent = 0;
-  if (safeTotal != null && safeTotal > 0) {
-    if (safeUsed != null) {
-      usedPercent = clampPercent((safeUsed / safeTotal) * 100);
-    } else if (safeLeft != null) {
-      usedPercent = clampPercent(((safeTotal - safeLeft) / safeTotal) * 100);
-    }
-  }
-
-  return {
-    usedPercent,
-    used: safeUsed ?? 0,
-    total: safeTotal ?? 0,
-    left: safeLeft ?? 0,
-  };
-}
-
 export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTriggerClick }: DashboardPageProps) {
   const { t } = useTranslation();
   const { orderedPlatformIds, hiddenPlatformIds } = usePlatformLayoutStore();
@@ -117,6 +71,7 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
     (value?: string | null) => maskSensitiveValue(value, privacyModeEnabled),
     [privacyModeEnabled],
   );
+  const [agDisplayGroups, setAgDisplayGroups] = React.useState<DisplayGroup[]>([]);
 
   React.useEffect(() => {
     const syncPrivacyMode = () => {
@@ -195,6 +150,13 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
   React.useEffect(() => {
     fetchAgAccounts();
     fetchAgCurrent();
+    getDisplayGroups()
+      .then((groups) => {
+        setAgDisplayGroups(groups);
+      })
+      .catch((error) => {
+        console.error('Failed to load display groups:', error);
+      });
     fetchCodexAccounts();
     fetchCodexCurrent();
     fetchGitHubCopilotAccounts();
@@ -658,42 +620,41 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
   const renderAgAccountContent = (account: Account | null) => {
     if (!account) return <div className="empty-slot">{t('dashboard.noAccount', '无账号')}</div>;
 
-    const tier = getSubscriptionTier(account.quota);
-    const tierLabel = tier;
-    const displayModels = getDisplayModels(account.quota).slice(0, 4); // Show top 4 models
+    const presentation = buildAntigravityAccountPresentation(account, agDisplayGroups, t);
+    const quotaDisplayItems = presentation.quotaItems.slice(0, 4);
 
     return (
       <div className="account-mini-card">
         <div className="account-mini-header">
            <div className="account-info-row">
-             <span className="account-email" title={maskAccountText(account.email)}>
-               {maskAccountText(account.email)}
+             <span className="account-email" title={maskAccountText(presentation.displayName)}>
+               {maskAccountText(presentation.displayName)}
              </span>
-             <span className={`tier-tag ${tier.toLowerCase()}`}>{tierLabel}</span>
+             <span className={`tier-tag ${presentation.planClass}`}>{presentation.planLabel}</span>
            </div>
         </div>
         
         <div className="account-mini-quotas">
-          {displayModels.map(model => (
-            <div key={model.name} className="mini-quota-row-stacked">
+          {quotaDisplayItems.map((item) => (
+            <div key={item.key} className="mini-quota-row-stacked">
               <div className="mini-quota-header">
-                <span className="model-name">{getModelShortName(model.name)}</span>
-                <span className={`model-pct ${getQuotaClass(model.percentage)}`}>{model.percentage}%</span>
+                <span className="model-name">{item.label}</span>
+                <span className={`model-pct ${item.quotaClass}`}>{item.valueText}</span>
               </div>
               <div className="mini-progress-track">
                 <div 
-                  className={`mini-progress-bar ${getQuotaClass(model.percentage)}`}
-                  style={{ width: `${model.percentage}%` }}
+                  className={`mini-progress-bar ${item.quotaClass}`}
+                  style={{ width: `${item.percentage}%` }}
                 />
               </div>
-              {model.reset_time && (
+              {item.resetText && (
                 <div className="mini-reset-time">
-                  {formatResetTimeDisplay(model.reset_time, t)}
+                  {item.resetText}
                 </div>
               )}
             </div>
           ))}
-          {displayModels.length === 0 && <span className="no-data-text">{t('dashboard.noData', '暂无数据')}</span>}
+          {quotaDisplayItems.length === 0 && <span className="no-data-text">{t('dashboard.noData', '暂无数据')}</span>}
         </div>
 
         <div className="account-mini-actions icon-only-row">
@@ -720,18 +681,17 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
   const renderCodexAccountContent = (account: CodexAccount | null) => {
     if (!account) return <div className="empty-slot">{t('dashboard.noAccount', '无账号')}</div>;
 
-    const planName = getCodexPlanDisplayName(account.plan_type);
-    const planLabel = planName;
-    const quotaWindows = getCodexQuotaWindows(account.quota);
+    const presentation = buildCodexAccountPresentation(account, t);
+    const quotaWindows = presentation.quotaItems;
     
     return (
       <div className="account-mini-card">
         <div className="account-mini-header">
            <div className="account-info-row">
-             <span className="account-email" title={maskAccountText(account.email)}>
-               {maskAccountText(account.email)}
+             <span className="account-email" title={maskAccountText(presentation.displayName)}>
+               {maskAccountText(presentation.displayName)}
              </span>
-             <span className={`tier-tag ${planName.toLowerCase()}`}>{planLabel}</span>
+             <span className={`tier-tag ${presentation.planClass}`}>{presentation.planLabel}</span>
            </div>
         </div>
         
@@ -740,22 +700,22 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
             <span className="no-data-text">{t('dashboard.noData', '暂无数据')}</span>
           )}
           {quotaWindows.map((window) => (
-            <div key={window.id} className="mini-quota-row-stacked">
+            <div key={window.key} className="mini-quota-row-stacked">
               <div className="mini-quota-header">
                 <span className="model-name">{window.label}</span>
-                <span className={`model-pct ${getCodexQuotaClass(window.percentage)}`}>
-                  {window.percentage}%
+                <span className={`model-pct ${window.quotaClass}`}>
+                  {window.valueText}
                 </span>
               </div>
               <div className="mini-progress-track">
                 <div
-                  className={`mini-progress-bar ${getCodexQuotaClass(window.percentage)}`}
+                  className={`mini-progress-bar ${window.quotaClass}`}
                   style={{ width: `${window.percentage}%` }}
                 />
               </div>
-              {window.resetTime && (
+              {window.resetText && (
                 <div className="mini-reset-time">
-                  {formatCodexResetTime(window.resetTime, t)}
+                  {window.resetText}
                 </div>
               )}
             </div>
@@ -786,105 +746,76 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
   const renderGitHubCopilotAccountContent = (account: GitHubCopilotAccount | null) => {
     if (!account) return <div className="empty-slot">{t('dashboard.noAccount', '无账号')}</div>;
 
-    const planName = getGitHubCopilotPlanDisplayName(account.plan_type);
-    const planLabel = planName;
-    const usage = getGitHubCopilotUsage(account);
-    const toMetricView = (percent: number | null | undefined, included: boolean) => {
-      if (included) {
-        return {
-          hasData: true,
-          label: t('githubCopilot.usage.included', 'Included'),
-          barPercent: 100,
-          quotaClass: getGitHubCopilotQuotaClass(0),
-        };
-      }
-      if (typeof percent !== 'number' || !Number.isFinite(percent)) {
-        return {
-          hasData: false,
-          label: '-',
-          barPercent: 0,
-          quotaClass: getGitHubCopilotQuotaClass(0),
-        };
-      }
-      const normalized = Math.max(0, Math.min(100, Math.round(percent)));
-      return {
-        hasData: true,
-        label: `${normalized}%`,
-        barPercent: normalized,
-        quotaClass: getGitHubCopilotQuotaClass(normalized),
-      };
-    };
-
-    const inlineMetric = toMetricView(usage.inlineSuggestionsUsedPercent, usage.inlineIncluded === true);
-    const chatMetric = toMetricView(usage.chatMessagesUsedPercent, usage.chatIncluded === true);
-    const premiumMetric = toMetricView(usage.premiumRequestsUsedPercent, usage.premiumIncluded === true);
+    const presentation = buildGitHubCopilotAccountPresentation(account, t);
+    const inlineMetric = presentation.quotaItems.find((item) => item.key === 'inline') || null;
+    const chatMetric = presentation.quotaItems.find((item) => item.key === 'chat') || null;
+    const premiumMetric = presentation.quotaItems.find((item) => item.key === 'premium') || null;
     const isRefreshing = refreshing.has(account.id);
     const isSwitching = switching.has(account.id);
-    const displayEmail = account.email ?? account.github_email ?? account.github_login;
 
     return (
       <div className="account-mini-card">
         <div className="account-mini-header">
           <div className="account-info-row">
-            <span className="account-email" title={maskAccountText(displayEmail)}>
-              {maskAccountText(displayEmail)}
+            <span className="account-email" title={maskAccountText(presentation.displayName)}>
+              {maskAccountText(presentation.displayName)}
             </span>
-            <span className={`tier-tag ${planName.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-tag ${presentation.planClass}`}>{presentation.planLabel}</span>
           </div>
         </div>
 
         <div className="account-mini-quotas">
           <div className="mini-quota-row-stacked">
             <div className="mini-quota-header">
-              <span className="model-name">{t('common.shared.quota.hourly', 'Inline Suggestions')}</span>
-              <span className={`model-pct ${inlineMetric.quotaClass}`}>
-                {inlineMetric.label}
+              <span className="model-name">{inlineMetric?.label || t('common.shared.quota.hourly', 'Inline Suggestions')}</span>
+              <span className={`model-pct ${inlineMetric?.quotaClass || ''}`}>
+                {inlineMetric?.valueText || '-'}
               </span>
             </div>
             <div className="mini-progress-track">
               <div
-                className={`mini-progress-bar ${inlineMetric.quotaClass}`}
-                style={{ width: `${inlineMetric.barPercent}%` }}
+                className={`mini-progress-bar ${inlineMetric?.quotaClass || ''}`}
+                style={{ width: `${inlineMetric?.percentage ?? 0}%` }}
               />
             </div>
-            {account.quota?.hourly_reset_time && (
+            {inlineMetric?.resetText && (
               <div className="mini-reset-time">
-                {formatGitHubCopilotResetTime(account.quota.hourly_reset_time, t)}
+                {inlineMetric.resetText}
               </div>
             )}
           </div>
 
           <div className="mini-quota-row-stacked">
             <div className="mini-quota-header">
-              <span className="model-name">{t('common.shared.quota.weekly', 'Chat messages')}</span>
-              <span className={`model-pct ${chatMetric.quotaClass}`}>
-                {chatMetric.label}
+              <span className="model-name">{chatMetric?.label || t('common.shared.quota.weekly', 'Chat messages')}</span>
+              <span className={`model-pct ${chatMetric?.quotaClass || ''}`}>
+                {chatMetric?.valueText || '-'}
               </span>
             </div>
             <div className="mini-progress-track">
               <div
-                className={`mini-progress-bar ${chatMetric.quotaClass}`}
-                style={{ width: `${chatMetric.barPercent}%` }}
+                className={`mini-progress-bar ${chatMetric?.quotaClass || ''}`}
+                style={{ width: `${chatMetric?.percentage ?? 0}%` }}
               />
             </div>
-            {account.quota?.weekly_reset_time && (
+            {chatMetric?.resetText && (
               <div className="mini-reset-time">
-                {formatGitHubCopilotResetTime(account.quota.weekly_reset_time, t)}
+                {chatMetric.resetText}
               </div>
             )}
           </div>
 
           <div className="mini-quota-row-stacked">
             <div className="mini-quota-header">
-              <span className="model-name">{t('githubCopilot.columns.premium', 'Premium requests')}</span>
-              <span className={`model-pct ${premiumMetric.quotaClass}`}>
-                {premiumMetric.label}
+              <span className="model-name">{premiumMetric?.label || t('githubCopilot.columns.premium', 'Premium requests')}</span>
+              <span className={`model-pct ${premiumMetric?.quotaClass || ''}`}>
+                {premiumMetric?.valueText || '-'}
               </span>
             </div>
             <div className="mini-progress-track">
               <div
-                className={`mini-progress-bar ${premiumMetric.quotaClass}`}
-                style={{ width: `${premiumMetric.barPercent}%` }}
+                className={`mini-progress-bar ${premiumMetric?.quotaClass || ''}`}
+                style={{ width: `${premiumMetric?.percentage ?? 0}%` }}
               />
             </div>
           </div>
@@ -915,57 +846,49 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
   const renderWindsurfAccountContent = (account: WindsurfAccount | null) => {
     if (!account) return <div className="empty-slot">{t('dashboard.noAccount', '无账号')}</div>;
 
-    const planName = getWindsurfPlanDisplayName(account.plan_type ?? account.copilot_plan);
-    const planLabel = planName;
-    const credits = getWindsurfCreditsSummary(account);
-    const promptMetrics = buildCreditMetrics(
-      credits.promptCreditsUsed,
-      credits.promptCreditsTotal,
-      credits.promptCreditsLeft,
-    );
-    const addOnMetrics = buildCreditMetrics(credits.addOnCreditsUsed, credits.addOnCreditsTotal, credits.addOnCredits);
+    const presentation = buildWindsurfAccountPresentation(account, t);
+    const promptMetric = presentation.quotaItems.find((item) => item.key === 'prompt') || null;
+    const addOnMetric = presentation.quotaItems.find((item) => item.key === 'addon') || null;
     const isRefreshing = refreshing.has(account.id);
     const isSwitching = switching.has(account.id);
-    const cycleText = credits.planEndsAt
-      ? formatWindsurfResetTime(credits.planEndsAt, t)
-      : t('common.shared.credits.planEndsUnknown', '配额周期时间未知');
-    const displayEmail = account.email ?? account.github_email ?? account.github_login;
 
     return (
       <div className="account-mini-card">
         <div className="account-mini-header">
           <div className="account-info-row">
-            <span className="account-email" title={maskAccountText(displayEmail)}>
-              {maskAccountText(displayEmail)}
+            <span className="account-email" title={maskAccountText(presentation.displayName)}>
+              {maskAccountText(presentation.displayName)}
             </span>
-            <span className={`tier-tag ${planName.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-tag ${presentation.planClass}`}>{presentation.planLabel}</span>
           </div>
         </div>
 
         <div className="account-mini-quotas">
           <div className="mini-quota-row-stacked">
             <div className="mini-quota-header">
-              <span className="model-name">{t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
-              <span className={`model-pct ${getWindsurfQuotaClass(promptMetrics.usedPercent)}`}>
-                {promptMetrics.usedPercent}%
+              <span className="model-name">
+                {promptMetric?.label || t('common.shared.columns.promptCredits', 'User Prompt credits')}
+              </span>
+              <span className={`model-pct ${promptMetric?.quotaClass || ''}`}>
+                {promptMetric?.valueText || '-'}
               </span>
             </div>
             <div className="mini-progress-track">
               <div
-                className={`mini-progress-bar ${getWindsurfQuotaClass(promptMetrics.usedPercent)}`}
-                style={{ width: `${promptMetrics.usedPercent}%` }}
+                className={`mini-progress-bar ${promptMetric?.quotaClass || ''}`}
+                style={{ width: `${promptMetric?.percentage ?? 0}%` }}
               />
             </div>
             <div className="mini-reset-time">
               {t('common.shared.credits.usedLine', {
-                used: formatDecimal(promptMetrics.used),
-                total: formatDecimal(promptMetrics.total),
+                used: formatDecimal(promptMetric?.used),
+                total: formatDecimal(promptMetric?.total),
                 defaultValue: '{{used}} / {{total}} used',
               })}
             </div>
             <div className="mini-reset-time">
               {t('common.shared.credits.leftInline', {
-                left: formatDecimal(promptMetrics.left),
+                left: formatDecimal(promptMetric?.left),
                 defaultValue: '{{left}} left',
               })}
             </div>
@@ -973,33 +896,37 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
 
           <div className="mini-quota-row-stacked">
             <div className="mini-quota-header">
-              <span className="model-name">{t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
-              <span className={`model-pct ${getWindsurfQuotaClass(addOnMetrics.usedPercent)}`}>
-                {addOnMetrics.usedPercent}%
+              <span className="model-name">
+                {addOnMetric?.label || t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}
+              </span>
+              <span className={`model-pct ${addOnMetric?.quotaClass || ''}`}>
+                {addOnMetric?.valueText || '-'}
               </span>
             </div>
             <div className="mini-progress-track">
               <div
-                className={`mini-progress-bar ${getWindsurfQuotaClass(addOnMetrics.usedPercent)}`}
-                style={{ width: `${addOnMetrics.usedPercent}%` }}
+                className={`mini-progress-bar ${addOnMetric?.quotaClass || ''}`}
+                style={{ width: `${addOnMetric?.percentage ?? 0}%` }}
               />
             </div>
             <div className="mini-reset-time">
               {t('common.shared.credits.usedLine', {
-                used: formatDecimal(addOnMetrics.used),
-                total: formatDecimal(addOnMetrics.total),
+                used: formatDecimal(addOnMetric?.used),
+                total: formatDecimal(addOnMetric?.total),
                 defaultValue: '{{used}} / {{total}} used',
               })}
             </div>
             <div className="mini-reset-time">
               {t('common.shared.credits.leftInline', {
-                left: formatDecimal(addOnMetrics.left),
+                left: formatDecimal(addOnMetric?.left),
                 defaultValue: '{{left}} left',
               })}
             </div>
           </div>
 
-          <div className="mini-cycle-time">{cycleText}</div>
+          <div className="mini-cycle-time">
+            {presentation.cycleText || t('common.shared.credits.planEndsUnknown', '配额周期时间未知')}
+          </div>
         </div>
 
         <div className="account-mini-actions icon-only-row">
@@ -1027,76 +954,50 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
   const renderKiroAccountContent = (account: KiroAccount | null) => {
     if (!account) return <div className="empty-slot">{t('dashboard.noAccount', '无账号')}</div>;
 
-    const rawAccountPlan = account.plan_type?.trim();
-    const accountPlan =
-      rawAccountPlan && rawAccountPlan.toUpperCase() !== 'UNKNOWN' ? rawAccountPlan : null;
-    const planName = getKiroPlanDisplayName(accountPlan ?? account.plan_name ?? account.plan_tier ?? null);
-    const planLabel = planName;
-    const planBadgeClass = getKiroPlanBadgeClass(planName);
-    const credits = getKiroCreditsSummary(account);
-    const promptMetrics = buildCreditMetrics(
-      credits.promptCreditsUsed,
-      credits.promptCreditsTotal,
-      credits.promptCreditsLeft,
-    );
-    const addOnMetrics = buildCreditMetrics(credits.addOnCreditsUsed, credits.addOnCreditsTotal, credits.addOnCredits);
-    const addOnExpiryValue =
-      typeof credits.bonusExpireDays === 'number' && Number.isFinite(credits.bonusExpireDays)
-        ? t('kiro.credits.expiryDays', {
-            days: Math.max(0, Math.round(credits.bonusExpireDays)),
-            defaultValue: '{{days}} days',
-          })
-        : t('kiro.credits.expiryUnknown', '—');
-    const hasAddOnCredits =
-      addOnMetrics.left > 0 ||
-      addOnMetrics.used > 0 ||
-      addOnMetrics.total > 0 ||
-      (typeof credits.bonusExpireDays === 'number' &&
-        Number.isFinite(credits.bonusExpireDays) &&
-        credits.bonusExpireDays > 0);
-    const isBanned = isKiroAccountBanned(account);
+    const presentation = buildKiroAccountPresentation(account, t);
+    const promptMetric = presentation.quotaItems.find((item) => item.key === 'prompt') || null;
+    const addOnMetric = presentation.quotaItems.find((item) => item.key === 'addon') || null;
     const isRefreshing = refreshing.has(account.id);
     const isSwitching = switching.has(account.id);
-    const cycleText = credits.planEndsAt
-      ? formatKiroResetTime(credits.planEndsAt, t)
-      : t('common.shared.credits.planEndsUnknown', '配额周期时间未知');
-    const displayEmail = getKiroAccountDisplayEmail(account);
+    const hasAddOnCredits = Boolean(addOnMetric);
 
     return (
       <div className="account-mini-card">
         <div className="account-mini-header">
           <div className="account-info-row">
-            <span className="account-email" title={maskAccountText(displayEmail)}>
-              {maskAccountText(displayEmail)}
+            <span className="account-email" title={maskAccountText(presentation.displayName)}>
+              {maskAccountText(presentation.displayName)}
             </span>
-            <span className={`tier-tag ${planBadgeClass}`}>{planLabel}</span>
+            <span className={`tier-tag ${presentation.planClass}`}>{presentation.planLabel}</span>
           </div>
         </div>
 
         <div className="account-mini-quotas">
           <div className="mini-quota-row-stacked">
             <div className="mini-quota-header">
-              <span className="model-name">{t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
-              <span className={`model-pct ${getKiroQuotaClass(promptMetrics.usedPercent)}`}>
-                {promptMetrics.usedPercent}%
+              <span className="model-name">
+                {promptMetric?.label || t('common.shared.columns.promptCredits', 'User Prompt credits')}
+              </span>
+              <span className={`model-pct ${promptMetric?.quotaClass || ''}`}>
+                {promptMetric?.valueText || '-'}
               </span>
             </div>
             <div className="mini-progress-track">
               <div
-                className={`mini-progress-bar ${getKiroQuotaClass(promptMetrics.usedPercent)}`}
-                style={{ width: `${promptMetrics.usedPercent}%` }}
+                className={`mini-progress-bar ${promptMetric?.quotaClass || ''}`}
+                style={{ width: `${promptMetric?.percentage ?? 0}%` }}
               />
             </div>
             <div className="mini-reset-time">
               {t('common.shared.credits.usedLine', {
-                used: formatDecimal(promptMetrics.used),
-                total: formatDecimal(promptMetrics.total),
+                used: formatDecimal(promptMetric?.used),
+                total: formatDecimal(promptMetric?.total),
                 defaultValue: '{{used}} / {{total}} used',
               })}
             </div>
             <div className="mini-reset-time">
               {t('common.shared.credits.leftInline', {
-                left: formatDecimal(promptMetrics.left),
+                left: formatDecimal(promptMetric?.left),
                 defaultValue: '{{left}} left',
               })}
             </div>
@@ -1105,37 +1006,41 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
           {hasAddOnCredits && (
             <div className="mini-quota-row-stacked">
               <div className="mini-quota-header">
-                <span className="model-name">{t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
-                <span className={`model-pct ${getKiroQuotaClass(addOnMetrics.usedPercent)}`}>
-                  {addOnMetrics.usedPercent}%
+                <span className="model-name">
+                  {addOnMetric?.label || t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}
+                </span>
+                <span className={`model-pct ${addOnMetric?.quotaClass || ''}`}>
+                  {addOnMetric?.valueText || '-'}
                 </span>
               </div>
               <div className="mini-progress-track">
                 <div
-                  className={`mini-progress-bar ${getKiroQuotaClass(addOnMetrics.usedPercent)}`}
-                  style={{ width: `${addOnMetrics.usedPercent}%` }}
+                  className={`mini-progress-bar ${addOnMetric?.quotaClass || ''}`}
+                  style={{ width: `${addOnMetric?.percentage ?? 0}%` }}
                 />
               </div>
               <div className="mini-reset-time">
                 {t('common.shared.credits.usedLine', {
-                  used: formatDecimal(addOnMetrics.used),
-                  total: formatDecimal(addOnMetrics.total),
+                  used: formatDecimal(addOnMetric?.used),
+                  total: formatDecimal(addOnMetric?.total),
                   defaultValue: '{{used}} / {{total}} used',
                 })}
               </div>
               <div className="mini-reset-time">
                 {t('common.shared.credits.leftInline', {
-                  left: formatDecimal(addOnMetrics.left),
+                  left: formatDecimal(addOnMetric?.left),
                   defaultValue: '{{left}} left',
                 })}
               </div>
               <div className="mini-reset-time">
-                {t('kiro.columns.expiry', 'Expiry')}: {addOnExpiryValue}
+                {t('kiro.columns.expiry', 'Expiry')}: {presentation.addOnExpiryText}
               </div>
             </div>
           )}
 
-          <div className="mini-cycle-time">{cycleText}</div>
+          <div className="mini-cycle-time">
+            {presentation.cycleText || t('common.shared.credits.planEndsUnknown', '配额周期时间未知')}
+          </div>
         </div>
 
         <div className="account-mini-actions icon-only-row">
@@ -1151,7 +1056,7 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
             className="mini-icon-btn"
             onClick={() => handleSwitchKiro(account.id)}
             title={t('dashboard.switch', '切换')}
-            disabled={isSwitching || isBanned}
+            disabled={isSwitching || presentation.isBanned}
           >
             {isSwitching ? <RotateCw size={14} className="loading-spinner" /> : <Play size={14} />}
           </button>
@@ -1159,13 +1064,6 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
       </div>
     );
   };
-
-  // Helper for Quota Class (duplicated from Account utils roughly)
-  function getQuotaClass(percentage: number): string {
-    if (percentage > 80) return 'high';
-    if (percentage > 20) return 'medium';
-    return 'low';
-  }
 
   const platformCounts: Record<PlatformId, number> = {
     antigravity: stats.antigravity,

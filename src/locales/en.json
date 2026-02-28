@@ -95,7 +95,7 @@
         "importFailedMsg": "Import failed: {{error}}",
         "importing": "Importing...",
         "importSuccessMsg": "Imported {{count}} account(s) successfully",
-        "placeholder": "Paste token or JSON..."
+        "placeholder": "Example: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "Card view",
@@ -1083,7 +1083,7 @@
     },
     "token": {
       "desc": "Paste auth.json content or account JSON data",
-      "placeholder": "Paste JSON content..."
+      "placeholder": "Example: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "Import the currently logged-in account from ~/.codex/auth.json",

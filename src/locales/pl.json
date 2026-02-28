@@ -95,7 +95,7 @@
         "importFailedMsg": "Import nieudany: {{error}}",
         "importing": "Importowanie...",
         "importSuccessMsg": "Zaimportowano {{count}} kont",
-        "placeholder": "Wklej JSON..."
+        "placeholder": "Przykład: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "Widok kart",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "Wklej zawartość auth.json lub dane JSON konta",
-      "placeholder": "Wklej JSON..."
+      "placeholder": "Przykład: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "Importuj bieżące konto z ~/.codex/auth.json",

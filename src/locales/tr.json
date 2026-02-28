@@ -95,7 +95,7 @@
         "importFailedMsg": "İçe aktarma başarısız: {{error}}",
         "importing": "İçe aktarılıyor...",
         "importSuccessMsg": "{{count}} hesap içe aktarıldı",
-        "placeholder": "JSON içeriğini yapıştırın..."
+        "placeholder": "Örnek: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "Kart görünümü",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "auth.json içeriğini veya hesap JSON verisini yapıştırın",
-      "placeholder": "JSON içeriğini yapıştırın..."
+      "placeholder": "Örnek: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "~/.codex/auth.json'dan mevcut hesabı içe aktar",

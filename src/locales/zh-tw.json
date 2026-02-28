@@ -95,7 +95,7 @@
         "importFailedMsg": "匯入失敗: {{error}}",
         "importing": "匯入中...",
         "importSuccessMsg": "成功匯入 {{count}} 個帳號",
-        "placeholder": "貼上 JSON 內容..."
+        "placeholder": "範例：ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "卡片檢視",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "貼上 auth.json 內容或帳號 JSON 資料",
-      "placeholder": "貼上 JSON 內容..."
+      "placeholder": "範例：{\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "從 ~/.codex/auth.json 匯入目前已登入的帳號",

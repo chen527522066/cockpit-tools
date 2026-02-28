@@ -95,7 +95,7 @@
         "importFailedMsg": "Error al importar: {{error}}",
         "importing": "Importando...",
         "importSuccessMsg": "Se importaron {{count}} cuentas",
-        "placeholder": "Pega el token o JSON..."
+        "placeholder": "Ejemplo: ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "Vista de tarjetas",
@@ -837,7 +837,7 @@
     },
     "token": {
       "desc": "Pega el contenido de auth.json o datos JSON de cuentas",
-      "placeholder": "Pegar contenido JSON..."
+      "placeholder": "Ejemplo: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "Importa la cuenta actual desde ~/.codex/auth.json",

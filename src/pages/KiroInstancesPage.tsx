@@ -4,8 +4,12 @@ import { PlatformInstancesContent } from '../components/platform/PlatformInstanc
 import { useKiroInstanceStore } from '../stores/useKiroInstanceStore';
 import { useKiroAccountStore } from '../stores/useKiroAccountStore';
 import type { KiroAccount } from '../types/kiro';
-import { getKiroAccountDisplayEmail, getKiroQuotaClass, getKiroUsage } from '../types/kiro';
+import { getKiroAccountDisplayEmail } from '../types/kiro';
 import { usePlatformRuntimeSupport } from '../hooks/usePlatformRuntimeSupport';
+import {
+  buildKiroAccountPresentation,
+  buildQuotaPreviewLines,
+} from '../presentation/platformAccountPresentation';
 
 /**
  * Kiro 多开实例内容组件（不包含 header）
@@ -26,29 +30,20 @@ export function KiroInstancesContent() {
   );
   const isSupportedPlatform = usePlatformRuntimeSupport('desktop');
 
-  const resolveQuotaClass = (percentage: number) => getKiroQuotaClass(percentage);
-
   const renderKiroQuotaPreview = (account: AccountForSelect) => {
-    const usage = getKiroUsage(account);
-    const inlinePct = usage.inlineSuggestionsUsedPercent;
-    const chatPct = usage.chatMessagesUsedPercent;
-    if (inlinePct == null && chatPct == null) {
+    const presentation = buildKiroAccountPresentation(account, t);
+    const lines = buildQuotaPreviewLines(presentation.quotaItems, 3);
+    if (lines.length === 0) {
       return <span className="account-quota-empty">{t('instances.quota.empty', '暂无配额缓存')}</span>;
     }
     return (
       <div className="account-quota-preview">
-        <span className="account-quota-item">
-          <span className={`quota-dot ${resolveQuotaClass(inlinePct ?? 0)}`} />
-          <span className={`quota-text ${resolveQuotaClass(inlinePct ?? 0)}`}>
-            {t('common.shared.instances.quota.inline', 'Inline Suggestions')} {inlinePct ?? '-'}%
+        {lines.map((line) => (
+          <span className="account-quota-item" key={line.key}>
+            <span className={`quota-dot ${line.quotaClass}`} />
+            <span className={`quota-text ${line.quotaClass}`}>{line.text}</span>
           </span>
-        </span>
-        <span className="account-quota-item">
-          <span className={`quota-dot ${resolveQuotaClass(chatPct ?? 0)}`} />
-          <span className={`quota-text ${resolveQuotaClass(chatPct ?? 0)}`}>
-            {t('common.shared.instances.quota.chat', 'Chat messages')} {chatPct ?? '-'}%
-          </span>
-        </span>
+        ))}
       </div>
     );
   };
@@ -59,7 +54,14 @@ export function KiroInstancesContent() {
       accounts={accountsForSelect}
       fetchAccounts={fetchAccounts}
       renderAccountQuotaPreview={renderKiroQuotaPreview}
-      getAccountSearchText={(account) => account.email}
+      renderAccountBadge={(account) => {
+        const presentation = buildKiroAccountPresentation(account, t);
+        return <span className={`instance-plan-badge ${presentation.planClass}`}>{presentation.planLabel}</span>;
+      }}
+      getAccountSearchText={(account) => {
+        const presentation = buildKiroAccountPresentation(account, t);
+        return `${presentation.displayName} ${presentation.planLabel}`;
+      }}
       appType="kiro"
       isSupported={isSupportedPlatform}
       unsupportedTitleKey="common.shared.instances.unsupported.title"

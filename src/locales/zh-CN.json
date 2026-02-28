@@ -95,7 +95,7 @@
         "importFailedMsg": "导入失败: {{error}}",
         "importing": "正在导入...",
         "importSuccessMsg": "成功导入 {{count}} 个账号",
-        "placeholder": "粘贴 Token 或 JSON..."
+        "placeholder": "示例：ghu_xxx / sk-ws-xxx / {\"access_token\":\"eyJ...\",\"refresh_token\":\"rt_...\"} / [{...}]"
       },
       "view": {
         "grid": "卡片视图",
@@ -1083,7 +1083,7 @@
     },
     "token": {
       "desc": "粘贴 auth.json 内容或账号 JSON 数据",
-      "placeholder": "粘贴 JSON 内容..."
+      "placeholder": "示例：{\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
     },
     "local": {
       "desc": "从 ~/.codex/auth.json 导入当前已登录的账号",

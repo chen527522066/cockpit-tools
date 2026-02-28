@@ -29,10 +29,9 @@ import { useWindsurfAccountStore } from '../stores/useWindsurfAccountStore';
 import * as windsurfService from '../services/windsurfService';
 import { TagEditModal } from '../components/TagEditModal';
 import {
-  getWindsurfPlanDisplayName,
   getWindsurfCreditsSummary,
-  getWindsurfQuotaClass,
 } from '../types/windsurf';
+import { buildWindsurfAccountPresentation } from '../presentation/platformAccountPresentation';
 
 import { save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -48,6 +47,18 @@ import {
 
 const WINDSURF_FLOW_NOTICE_COLLAPSED_KEY = 'agtools.windsurf.flow_notice_collapsed';
 const WINDSURF_CURRENT_ACCOUNT_ID_KEY = 'agtools.windsurf.current_account_id';
+const WINDSURF_TOKEN_SINGLE_EXAMPLE = `sk-ws-xxxxx 或 eyJxxxxx`;
+const WINDSURF_TOKEN_BATCH_EXAMPLE = `[
+  {
+    "id": "ws_demo_1",
+    "github_login": "octocat",
+    "github_id": 12345,
+    "github_access_token": "sk-ws-xxxxx",
+    "copilot_token": "copilot_token_xxx",
+    "created_at": 1730000000,
+    "last_used": 1730000000
+  }
+]`;
 
 export function WindsurfAccountsPage() {
   const { t, i18n } = useTranslation();
@@ -773,17 +784,23 @@ export function WindsurfAccountsPage() {
     [creditsSummaryById],
   );
 
+  const accountPresentations = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildWindsurfAccountPresentation>>();
+    accounts.forEach((account) => {
+      map.set(account.id, buildWindsurfAccountPresentation(account, t));
+    });
+    return map;
+  }, [accounts, t]);
+
+  const resolvePresentation = useCallback(
+    (account: (typeof accounts)[number]) =>
+      accountPresentations.get(account.id) ?? buildWindsurfAccountPresentation(account, t),
+    [accountPresentations, t],
+  );
+
   const resolvePlanKey = useCallback(
-    (account: (typeof accounts)[number]) => {
-      const credits = resolveCreditsSummary(account);
-      const rawAccountPlan = account.plan_type?.trim();
-      const accountPlan =
-        rawAccountPlan && rawAccountPlan.toUpperCase() !== 'UNKNOWN' ? rawAccountPlan : null;
-      return getWindsurfPlanDisplayName(
-        accountPlan ?? credits.planName ?? account.copilot_plan ?? account.plan_type ?? null,
-      );
-    },
-    [resolveCreditsSummary],
+    (account: (typeof accounts)[number]) => resolvePresentation(account).planClass.toUpperCase(),
+    [resolvePresentation],
   );
 
   const formatCreditsNumber = useCallback((value: number | null | undefined) => {
@@ -791,36 +808,16 @@ export function WindsurfAccountsPage() {
     return n.toFixed(2);
   }, []);
 
-  const buildCreditMetrics = useCallback(
-    (leftInput: number | null | undefined, usedInput: number | null | undefined, totalInput: number | null | undefined) => {
-      const left = leftInput ?? null;
-      let total = totalInput ?? null;
-      let used = usedInput ?? null;
-
-      if (total == null && left != null) total = left;
-      if (total != null && left != null && total < left) total = left;
-      if (used == null && total != null && left != null) used = Math.max(0, total - left);
-      if (used == null && left != null) used = 0;
-
-      const usedPercent = total != null && total > 0 && used != null
-        ? Math.max(0, Math.min(100, Math.round((used / total) * 100)))
-        : 0;
-
-      return { left, used, total, usedPercent };
-    },
-    [],
-  );
-
   const resolvePromptMetrics = useCallback(
-    (credits: ReturnType<typeof getWindsurfCreditsSummary>) =>
-      buildCreditMetrics(credits.promptCreditsLeft, credits.promptCreditsUsed, credits.promptCreditsTotal),
-    [buildCreditMetrics],
+    (account: (typeof accounts)[number]) =>
+      resolvePresentation(account).quotaItems.find((item) => item.key === 'prompt') ?? null,
+    [resolvePresentation],
   );
 
   const resolveAddOnMetrics = useCallback(
-    (credits: ReturnType<typeof getWindsurfCreditsSummary>) =>
-      buildCreditMetrics(credits.addOnCredits, credits.addOnCreditsUsed, credits.addOnCreditsTotal),
-    [buildCreditMetrics],
+    (account: (typeof accounts)[number]) =>
+      resolvePresentation(account).quotaItems.find((item) => item.key === 'addon') ?? null,
+    [resolvePresentation],
   );
 
   const formatUsedLine = useCallback(
@@ -865,10 +862,9 @@ export function WindsurfAccountsPage() {
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter((account) => {
-        const email = account.email || account.github_email || account.github_login;
-        return email.toLowerCase().includes(query);
-      });
+      result = result.filter((account) =>
+        resolvePresentation(account).displayName.toLowerCase().includes(query)
+      );
     }
 
     if (filterType !== 'all') {
@@ -906,7 +902,7 @@ export function WindsurfAccountsPage() {
     });
 
     return result;
-  }, [accounts, filterType, resolveCreditsSummary, resolvePlanKey, searchQuery, sortBy, sortDirection, tagFilter]);
+  }, [accounts, filterType, resolveCreditsSummary, resolvePlanKey, resolvePresentation, searchQuery, sortBy, sortDirection, tagFilter]);
 
   const groupedAccounts = useMemo(() => {
     if (!groupByTag) return [] as Array<[string, typeof filteredAccounts]>;
@@ -997,25 +993,14 @@ export function WindsurfAccountsPage() {
   const resolveGroupLabel = (groupKey: string) =>
     groupKey === untaggedKey ? t('accounts.defaultGroup', '默认分组') : groupKey;
 
-  const resolveDisplayEmail = useCallback((account: (typeof accounts)[number]) => {
-    const candidates = [account.email, account.github_email];
-    for (const value of candidates) {
-      const trimmed = value?.trim();
-      if (trimmed && trimmed.includes('@')) return trimmed;
-    }
-    return '';
-  }, []);
-
   const renderGridCards = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
-      const displayEmail = resolveDisplayEmail(account);
-      const emailText = displayEmail || '-';
+      const presentation = resolvePresentation(account);
+      const emailText = presentation.displayName || '-';
       const credits = resolveCreditsSummary(account);
       const cycleDisplay = resolveCycleDisplay(credits);
-      const promptMetrics = resolvePromptMetrics(credits);
-      const addOnMetrics = resolveAddOnMetrics(credits);
-      const planKey = resolvePlanKey(account);
-      const planLabel = planKey;
+      const promptMetrics = resolvePromptMetrics(account);
+      const addOnMetrics = resolveAddOnMetrics(account);
       const accountTags = (account.tags || []).map((tag) => tag.trim()).filter(Boolean);
       const visibleTags = accountTags.slice(0, 2);
       const moreTagCount = Math.max(0, accountTags.length - visibleTags.length);
@@ -1043,7 +1028,7 @@ export function WindsurfAccountsPage() {
                 {t('accounts.status.current')}
               </span>
             )}
-            <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-badge ${presentation.planClass}`}>{presentation.planLabel}</span>
           </div>
 
           {accountTags.length > 0 && (
@@ -1060,38 +1045,38 @@ export function WindsurfAccountsPage() {
           <div className="ghcp-quota-section">
             <div className="quota-item windsurf-credit-item">
               <div className="quota-header">
-                <span className="quota-label">{t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
-                <span className={`quota-pct ${getWindsurfQuotaClass(promptMetrics.usedPercent)}`}>
-                  {promptMetrics.usedPercent}%
+                <span className="quota-label">{promptMetrics?.label ?? t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
+                <span className={`quota-pct ${promptMetrics?.quotaClass ?? 'high'}`}>
+                  {promptMetrics?.valueText ?? '0%'}
                 </span>
               </div>
               <div className="windsurf-credit-meta-row">
-                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics.used, promptMetrics.total)}</span>
-                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics.left)}</span>
+                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics?.used, promptMetrics?.total)}</span>
+                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics?.left)}</span>
               </div>
               <div className="quota-bar-track">
                 <div
-                  className={`quota-bar ${getWindsurfQuotaClass(promptMetrics.usedPercent)}`}
-                  style={{ width: `${promptMetrics.usedPercent}%` }}
+                  className={`quota-bar ${promptMetrics?.quotaClass ?? 'high'}`}
+                  style={{ width: `${promptMetrics?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
 
             <div className="quota-item windsurf-credit-item">
               <div className="quota-header">
-                <span className="quota-label">{t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
-                <span className={`quota-pct ${getWindsurfQuotaClass(addOnMetrics.usedPercent)}`}>
-                  {addOnMetrics.usedPercent}%
+                <span className="quota-label">{addOnMetrics?.label ?? t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
+                <span className={`quota-pct ${addOnMetrics?.quotaClass ?? 'high'}`}>
+                  {addOnMetrics?.valueText ?? '0%'}
                 </span>
               </div>
               <div className="windsurf-credit-meta-row">
-                <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics.used, addOnMetrics.total)}</span>
-                <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics.left)}</span>
+                <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics?.used, addOnMetrics?.total)}</span>
+                <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics?.left)}</span>
               </div>
               <div className="quota-bar-track">
                 <div
-                  className={`quota-bar ${getWindsurfQuotaClass(addOnMetrics.usedPercent)}`}
-                  style={{ width: `${addOnMetrics.usedPercent}%` }}
+                  className={`quota-bar ${addOnMetrics?.quotaClass ?? 'high'}`}
+                  style={{ width: `${addOnMetrics?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -1152,14 +1137,12 @@ export function WindsurfAccountsPage() {
 
   const renderTableRows = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
-      const displayEmail = resolveDisplayEmail(account);
-      const emailText = displayEmail || '-';
+      const presentation = resolvePresentation(account);
+      const emailText = presentation.displayName || '-';
       const credits = resolveCreditsSummary(account);
       const cycleDisplay = resolveCycleDisplay(credits);
-      const promptMetrics = resolvePromptMetrics(credits);
-      const addOnMetrics = resolveAddOnMetrics(credits);
-      const planKey = resolvePlanKey(account);
-      const planLabel = planKey;
+      const promptMetrics = resolvePromptMetrics(account);
+      const addOnMetrics = resolveAddOnMetrics(account);
       const isCurrent = currentAccountId === account.id;
       return (
         <tr key={groupKey ? `${groupKey}-${account.id}` : account.id} className={isCurrent ? 'current' : ''}>
@@ -1184,24 +1167,24 @@ export function WindsurfAccountsPage() {
             </div>
           </td>
           <td>
-            <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-badge ${presentation.planClass}`}>{presentation.planLabel}</span>
           </td>
           <td>
             <div className="quota-item windsurf-table-credit-item">
               <div className="quota-header">
-                <span className="quota-name">{t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
-                <span className={`quota-value ${getWindsurfQuotaClass(promptMetrics.usedPercent)}`}>
-                  {promptMetrics.usedPercent}%
+                <span className="quota-name">{promptMetrics?.label ?? t('common.shared.columns.promptCredits', 'User Prompt credits')}</span>
+                <span className={`quota-value ${promptMetrics?.quotaClass ?? 'high'}`}>
+                  {promptMetrics?.valueText ?? '0%'}
                 </span>
               </div>
               <div className="windsurf-credit-meta-row table">
-                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics.used, promptMetrics.total)}</span>
-                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics.left)}</span>
+                <span className="windsurf-credit-used">{formatUsedLine(promptMetrics?.used, promptMetrics?.total)}</span>
+                <span className="windsurf-credit-left">{formatLeftLine(promptMetrics?.left)}</span>
               </div>
               <div className="quota-progress-track">
                 <div
-                  className={`quota-progress-bar ${getWindsurfQuotaClass(promptMetrics.usedPercent)}`}
-                  style={{ width: `${promptMetrics.usedPercent}%` }}
+                  className={`quota-progress-bar ${promptMetrics?.quotaClass ?? 'high'}`}
+                  style={{ width: `${promptMetrics?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -1209,19 +1192,19 @@ export function WindsurfAccountsPage() {
           <td>
             <div className="quota-item windsurf-table-credit-item">
               <div className="quota-header">
-                <span className="quota-name">{t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
-                <span className={`quota-value ${getWindsurfQuotaClass(addOnMetrics.usedPercent)}`}>
-                  {addOnMetrics.usedPercent}%
+                <span className="quota-name">{addOnMetrics?.label ?? t('common.shared.columns.addOnPromptCredits', 'Add-on prompt credits')}</span>
+                <span className={`quota-value ${addOnMetrics?.quotaClass ?? 'high'}`}>
+                  {addOnMetrics?.valueText ?? '0%'}
                 </span>
               </div>
               <div className="windsurf-credit-meta-row table">
-                <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics.used, addOnMetrics.total)}</span>
-                <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics.left)}</span>
+                <span className="windsurf-credit-used">{formatUsedLine(addOnMetrics?.used, addOnMetrics?.total)}</span>
+                <span className="windsurf-credit-left">{formatLeftLine(addOnMetrics?.left)}</span>
               </div>
               <div className="quota-progress-track">
                 <div
-                  className={`quota-progress-bar ${getWindsurfQuotaClass(addOnMetrics.usedPercent)}`}
-                  style={{ width: `${addOnMetrics.usedPercent}%` }}
+                  className={`quota-progress-bar ${addOnMetrics?.quotaClass ?? 'high'}`}
+                  style={{ width: `${addOnMetrics?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -1640,7 +1623,7 @@ export function WindsurfAccountsPage() {
                 onClick={() => openAddModal('token')}
               >
                 <KeyRound size={14} />
-                {t('common.shared.addModal.token', 'Token / JSON')}
+                Token / JSON
               </button>
               <button
                 className={`modal-tab ${addTab === 'import' ? 'active' : ''}`}
@@ -1739,6 +1722,22 @@ export function WindsurfAccountsPage() {
                   <p className="section-desc">
                     {t('windsurf.token.desc', '粘贴您的 Windsurf Access Token 或导出的 JSON 数据。')}
                   </p>
+                  <details className="token-format-collapse">
+                    <summary className="token-format-collapse-summary">必填字段与示例（点击展开）</summary>
+                    <div className="token-format">
+                      <p className="token-format-required">
+                        必填字段：Token 模式直接粘贴 sk-ws- 或 eyJ 开头 token；JSON 模式需包含 id、github_login、github_id、github_access_token、copilot_token、created_at、last_used
+                      </p>
+                      <div className="token-format-group">
+                        <div className="token-format-label">单条示例（Token）</div>
+                        <pre className="token-format-code">{WINDSURF_TOKEN_SINGLE_EXAMPLE}</pre>
+                      </div>
+                      <div className="token-format-group">
+                        <div className="token-format-label">批量示例（JSON）</div>
+                        <pre className="token-format-code">{WINDSURF_TOKEN_BATCH_EXAMPLE}</pre>
+                      </div>
+                    </div>
+                  </details>
                   <textarea
                     className="token-input"
                     value={tokenInput}

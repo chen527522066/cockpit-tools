@@ -29,11 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { useGitHubCopilotAccountStore } from '../stores/useGitHubCopilotAccountStore';
 import * as githubCopilotService from '../services/githubCopilotService';
 import { TagEditModal } from '../components/TagEditModal';
-import {
-  getGitHubCopilotPlanDisplayName,
-  getGitHubCopilotQuotaClass,
-  formatGitHubCopilotResetTime,
-} from '../types/githubCopilot';
+import { buildGitHubCopilotAccountPresentation } from '../presentation/platformAccountPresentation';
 
 import { save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -49,6 +45,18 @@ import {
 
 const GHCP_FLOW_NOTICE_COLLAPSED_KEY = 'agtools.github_copilot.flow_notice_collapsed';
 const GHCP_CURRENT_ACCOUNT_ID_KEY = 'agtools.github_copilot.current_account_id';
+const GHCP_TOKEN_SINGLE_EXAMPLE = `ghu_xxx... 或 github_pat_xxx...`;
+const GHCP_TOKEN_BATCH_EXAMPLE = `[
+  {
+    "id": "ghcp_demo_1",
+    "github_login": "octocat",
+    "github_id": 12345,
+    "github_access_token": "ghu_xxx...",
+    "copilot_token": "copilot_token_xxx",
+    "created_at": 1730000000,
+    "last_used": 1730000000
+  }
+]`;
 
 export function GitHubCopilotAccountsPage() {
   const { t, i18n } = useTranslation();
@@ -615,58 +623,49 @@ export function GitHubCopilotAccountsPage() {
     setSelected(allSelected ? new Set() : new Set(allIds));
   };
 
-  const normalizePlan = (planType?: string) => getGitHubCopilotPlanDisplayName(planType);
+  const normalizeTag = (tag: string) => tag.trim().toLowerCase();
 
-  const parseUsageNumber = (value: unknown): number | null => {
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const accountPresentations = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildGitHubCopilotAccountPresentation>>();
+    accounts.forEach((account) => {
+      map.set(account.id, buildGitHubCopilotAccountPresentation(account, t));
+    });
+    return map;
+  }, [accounts, t]);
+
+  const resolvePresentation = useCallback(
+    (account: (typeof accounts)[number]) =>
+      accountPresentations.get(account.id) ??
+      buildGitHubCopilotAccountPresentation(account, t),
+    [accountPresentations, t],
+  );
+
+  const resolvePlanKey = useCallback(
+    (account: (typeof accounts)[number]) => resolvePresentation(account).planClass.toUpperCase(),
+    [resolvePresentation],
+  );
+
+  const resolveUsageMetric = useCallback(
+    (account: (typeof accounts)[number], metric: 'hourly' | 'weekly' | 'premium') => {
+      const quotaItems = resolvePresentation(account).quotaItems;
+      const targetKey = metric === 'hourly' ? 'inline' : metric === 'weekly' ? 'chat' : 'premium';
+      return quotaItems.find((item) => item.key === targetKey) ?? null;
+    },
+    [resolvePresentation],
+  );
+
+  const parseResetAt = useCallback((value: string | number | null | undefined) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
     if (typeof value === 'string') {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
+      const parsed = Date.parse(value);
+      if (Number.isFinite(parsed)) {
+        return Math.floor(parsed / 1000);
+      }
     }
     return null;
-  };
-
-  const getPremiumUsagePercent = (account: (typeof accounts)[number]) => {
-    const rawData = (account.quota?.raw_data ?? null) as Record<string, unknown> | null;
-    if (rawData?.premiumIncluded === true) return 0;
-    const value = parseUsageNumber(rawData?.premiumRequestsUsedPercent);
-    return value ?? -1;
-  };
-
-  const getUsageView = (
-    account: (typeof accounts)[number],
-    metric: 'hourly' | 'weekly' | 'premium',
-  ) => {
-    const rawData = (account.quota?.raw_data ?? null) as Record<string, unknown> | null;
-    const included =
-      metric === 'hourly'
-        ? rawData?.inlineIncluded === true
-        : metric === 'weekly'
-          ? rawData?.chatIncluded === true
-          : rawData?.premiumIncluded === true;
-
-    const percent =
-      metric === 'hourly'
-        ? parseUsageNumber(account.quota?.hourly_percentage) ?? 0
-        : metric === 'weekly'
-          ? parseUsageNumber(account.quota?.weekly_percentage) ?? 0
-          : parseUsageNumber(rawData?.premiumRequestsUsedPercent) ?? 0;
-
-    const clampedPercent = Math.max(0, Math.min(100, Math.round(percent)));
-    return {
-      included,
-      hasData: included || metric !== 'premium' || rawData?.premiumRequestsUsedPercent != null,
-      label: included
-        ? t('githubCopilot.usage.included', 'Included')
-        : metric === 'premium' && rawData?.premiumRequestsUsedPercent == null
-          ? '-'
-          : `${clampedPercent}%`,
-      percent: included ? 100 : clampedPercent,
-      quotaClass: getGitHubCopilotQuotaClass(included ? 0 : clampedPercent),
-    };
-  };
-
-  const normalizeTag = (tag: string) => tag.trim().toLowerCase();
+  }, []);
 
   const availableTags = useMemo(() => {
     const set = new Set<string>();
@@ -688,27 +687,26 @@ export function GitHubCopilotAccountsPage() {
       ENTERPRISE: 0,
     };
     accounts.forEach((account) => {
-      const tier = normalizePlan(account.plan_type);
+      const tier = resolvePlanKey(account);
       if (tier in counts) {
         counts[tier as keyof typeof counts] += 1;
       }
     });
     return counts;
-  }, [accounts]);
+  }, [accounts, resolvePlanKey]);
 
   const filteredAccounts = useMemo(() => {
     let result = [...accounts];
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter((account) => {
-        const email = account.email ?? account.github_email ?? account.github_login;
-        return email.toLowerCase().includes(query);
-      });
+      result = result.filter((account) =>
+        resolvePresentation(account).displayName.toLowerCase().includes(query)
+      );
     }
 
     if (filterType !== 'all') {
-      result = result.filter((account) => normalizePlan(account.plan_type) === filterType);
+      result = result.filter((account) => resolvePlanKey(account) === filterType);
     }
 
     if (tagFilter.length > 0) {
@@ -726,14 +724,10 @@ export function GitHubCopilotAccountsPage() {
       }
 
       if (sortBy === 'weekly_reset' || sortBy === 'hourly_reset') {
-        const aReset =
-          sortBy === 'weekly_reset'
-            ? a.quota?.weekly_reset_time ?? null
-            : a.quota?.hourly_reset_time ?? null;
-        const bReset =
-          sortBy === 'weekly_reset'
-            ? b.quota?.weekly_reset_time ?? null
-            : b.quota?.hourly_reset_time ?? null;
+        const aResetMetric = resolveUsageMetric(a, sortBy === 'weekly_reset' ? 'weekly' : 'hourly');
+        const bResetMetric = resolveUsageMetric(b, sortBy === 'weekly_reset' ? 'weekly' : 'hourly');
+        const aReset = parseResetAt(aResetMetric?.resetAt);
+        const bReset = parseResetAt(bResetMetric?.resetAt);
         if (aReset === null && bReset === null) return 0;
         if (aReset === null) return 1;
         if (bReset === null) return -1;
@@ -743,22 +737,22 @@ export function GitHubCopilotAccountsPage() {
 
       const aValue =
         sortBy === 'weekly'
-          ? a.quota?.weekly_percentage ?? -1
+          ? (resolveUsageMetric(a, 'weekly')?.percentage ?? -1)
           : sortBy === 'hourly'
-            ? a.quota?.hourly_percentage ?? -1
-            : getPremiumUsagePercent(a);
+            ? (resolveUsageMetric(a, 'hourly')?.percentage ?? -1)
+            : (resolveUsageMetric(a, 'premium')?.percentage ?? -1);
       const bValue =
         sortBy === 'weekly'
-          ? b.quota?.weekly_percentage ?? -1
+          ? (resolveUsageMetric(b, 'weekly')?.percentage ?? -1)
           : sortBy === 'hourly'
-            ? b.quota?.hourly_percentage ?? -1
-            : getPremiumUsagePercent(b);
+            ? (resolveUsageMetric(b, 'hourly')?.percentage ?? -1)
+            : (resolveUsageMetric(b, 'premium')?.percentage ?? -1);
       const diff = bValue - aValue;
       return sortDirection === 'desc' ? diff : -diff;
     });
 
     return result;
-  }, [accounts, filterType, searchQuery, sortBy, sortDirection, tagFilter]);
+  }, [accounts, filterType, parseResetAt, resolvePlanKey, resolvePresentation, resolveUsageMetric, searchQuery, sortBy, sortDirection, tagFilter]);
 
   const groupedAccounts = useMemo(() => {
     if (!groupByTag) return [] as Array<[string, typeof filteredAccounts]>;
@@ -851,18 +845,16 @@ export function GitHubCopilotAccountsPage() {
 
   const renderGridCards = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
-      const displayEmail = account.email ?? account.github_email ?? account.github_login;
-      const maskedDisplayEmail = maskAccountText(displayEmail);
-      const planKey = getGitHubCopilotPlanDisplayName(account.plan_type);
-      const planLabel = planKey;
+      const presentation = resolvePresentation(account);
+      const maskedDisplayEmail = maskAccountText(presentation.displayName);
       const isSelected = selected.has(account.id);
       const isCurrent = currentAccountId === account.id;
       const accountTags = (account.tags || []).map((tag) => tag.trim()).filter(Boolean);
       const visibleTags = accountTags.slice(0, 2);
       const moreTagCount = Math.max(0, accountTags.length - visibleTags.length);
-      const inlineUsage = getUsageView(account, 'hourly');
-      const chatUsage = getUsageView(account, 'weekly');
-      const premiumUsage = getUsageView(account, 'premium');
+      const inlineUsage = presentation.quotaItems.find((item) => item.key === 'inline');
+      const chatUsage = presentation.quotaItems.find((item) => item.key === 'chat');
+      const premiumUsage = presentation.quotaItems.find((item) => item.key === 'premium');
 
       return (
         <div
@@ -885,7 +877,7 @@ export function GitHubCopilotAccountsPage() {
                 {t('accounts.status.current')}
               </span>
             )}
-            <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-badge ${presentation.planClass}`}>{presentation.planLabel}</span>
           </div>
 
           {accountTags.length > 0 && (
@@ -903,20 +895,20 @@ export function GitHubCopilotAccountsPage() {
             <div className="quota-item">
               <div className="quota-header">
                 <Clock size={14} />
-                <span className="quota-label">{t('common.shared.quota.hourly', 'Inline Suggestions')}</span>
-                <span className={`quota-pct ${inlineUsage.quotaClass}`}>
-                  {inlineUsage.label}
+                <span className="quota-label">{inlineUsage?.label ?? t('common.shared.quota.hourly', 'Inline Suggestions')}</span>
+                <span className={`quota-pct ${inlineUsage?.quotaClass ?? 'high'}`}>
+                  {inlineUsage?.valueText ?? '-'}
                 </span>
               </div>
               <div className="quota-bar-track">
                 <div
-                  className={`quota-bar ${inlineUsage.quotaClass}`}
-                  style={{ width: `${inlineUsage.percent}%` }}
+                  className={`quota-bar ${inlineUsage?.quotaClass ?? 'high'}`}
+                  style={{ width: `${inlineUsage?.percentage ?? 0}%` }}
                 />
               </div>
-              {account.quota?.hourly_reset_time && (
+              {inlineUsage?.resetText && (
                 <span className="quota-reset">
-                  {formatGitHubCopilotResetTime(account.quota.hourly_reset_time, t)}
+                  {inlineUsage.resetText}
                 </span>
               )}
             </div>
@@ -924,20 +916,20 @@ export function GitHubCopilotAccountsPage() {
             <div className="quota-item">
               <div className="quota-header">
                 <Calendar size={14} />
-                <span className="quota-label">{t('common.shared.quota.weekly', 'Chat messages')}</span>
-                <span className={`quota-pct ${chatUsage.quotaClass}`}>
-                  {chatUsage.label}
+                <span className="quota-label">{chatUsage?.label ?? t('common.shared.quota.weekly', 'Chat messages')}</span>
+                <span className={`quota-pct ${chatUsage?.quotaClass ?? 'high'}`}>
+                  {chatUsage?.valueText ?? '-'}
                 </span>
               </div>
               <div className="quota-bar-track">
                 <div
-                  className={`quota-bar ${chatUsage.quotaClass}`}
-                  style={{ width: `${chatUsage.percent}%` }}
+                  className={`quota-bar ${chatUsage?.quotaClass ?? 'high'}`}
+                  style={{ width: `${chatUsage?.percentage ?? 0}%` }}
                 />
               </div>
-              {account.quota?.weekly_reset_time && (
+              {chatUsage?.resetText && (
                 <span className="quota-reset">
-                  {formatGitHubCopilotResetTime(account.quota.weekly_reset_time, t)}
+                  {chatUsage.resetText}
                 </span>
               )}
             </div>
@@ -945,20 +937,20 @@ export function GitHubCopilotAccountsPage() {
             <div className="quota-item">
               <div className="quota-header">
                 <CircleAlert size={14} />
-                <span className="quota-label">{t('githubCopilot.columns.premium', 'Premium requests')}</span>
-                <span className={`quota-pct ${premiumUsage.quotaClass}`}>
-                  {premiumUsage.label}
+                <span className="quota-label">{premiumUsage?.label ?? t('githubCopilot.columns.premium', 'Premium requests')}</span>
+                <span className={`quota-pct ${premiumUsage?.quotaClass ?? 'high'}`}>
+                  {premiumUsage?.valueText ?? '-'}
                 </span>
               </div>
               <div className="quota-bar-track">
                 <div
-                  className={`quota-bar ${premiumUsage.quotaClass}`}
-                  style={{ width: `${premiumUsage.percent}%` }}
+                  className={`quota-bar ${premiumUsage?.quotaClass ?? 'high'}`}
+                  style={{ width: `${premiumUsage?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
 
-            {!account.quota && !premiumUsage.hasData && (
+            {presentation.quotaItems.length === 0 && (
               <div className="quota-empty">{t('common.shared.quota.noData', '暂无配额数据')}</div>
             )}
           </div>
@@ -1011,14 +1003,12 @@ export function GitHubCopilotAccountsPage() {
 
   const renderTableRows = (items: typeof filteredAccounts, groupKey?: string) =>
     items.map((account) => {
-      const displayEmail = account.email ?? account.github_email ?? account.github_login;
-      const maskedDisplayEmail = maskAccountText(displayEmail);
-      const planKey = getGitHubCopilotPlanDisplayName(account.plan_type);
-      const planLabel = planKey;
+      const presentation = resolvePresentation(account);
+      const maskedDisplayEmail = maskAccountText(presentation.displayName);
       const isCurrent = currentAccountId === account.id;
-      const inlineUsage = getUsageView(account, 'hourly');
-      const chatUsage = getUsageView(account, 'weekly');
-      const premiumUsage = getUsageView(account, 'premium');
+      const inlineUsage = presentation.quotaItems.find((item) => item.key === 'inline');
+      const chatUsage = presentation.quotaItems.find((item) => item.key === 'chat');
+      const premiumUsage = presentation.quotaItems.find((item) => item.key === 'premium');
       return (
         <tr key={groupKey ? `${groupKey}-${account.id}` : account.id} className={isCurrent ? 'current' : ''}>
           <td>
@@ -1039,26 +1029,26 @@ export function GitHubCopilotAccountsPage() {
             </div>
           </td>
           <td>
-            <span className={`tier-badge ${planKey.toLowerCase()}`}>{planLabel}</span>
+            <span className={`tier-badge ${presentation.planClass}`}>{presentation.planLabel}</span>
           </td>
           <td>
             <div className="quota-item">
               <div className="quota-header">
-                <span className="quota-name">{t('common.shared.quota.hourly', 'Inline Suggestions')}</span>
-                <span className={`quota-value ${inlineUsage.quotaClass}`}>
-                  {inlineUsage.label}
+                <span className="quota-name">{inlineUsage?.label ?? t('common.shared.quota.hourly', 'Inline Suggestions')}</span>
+                <span className={`quota-value ${inlineUsage?.quotaClass ?? 'high'}`}>
+                  {inlineUsage?.valueText ?? '-'}
                 </span>
               </div>
               <div className="quota-progress-track">
                 <div
-                  className={`quota-progress-bar ${inlineUsage.quotaClass}`}
-                  style={{ width: `${inlineUsage.percent}%` }}
+                  className={`quota-progress-bar ${inlineUsage?.quotaClass ?? 'high'}`}
+                  style={{ width: `${inlineUsage?.percentage ?? 0}%` }}
                 />
               </div>
-              {account.quota?.hourly_reset_time && (
+              {inlineUsage?.resetText && (
                 <div className="quota-footer">
                   <span className="quota-reset">
-                    {formatGitHubCopilotResetTime(account.quota.hourly_reset_time, t)}
+                    {inlineUsage.resetText}
                   </span>
                 </div>
               )}
@@ -1067,21 +1057,21 @@ export function GitHubCopilotAccountsPage() {
           <td>
             <div className="quota-item">
               <div className="quota-header">
-                <span className="quota-name">{t('common.shared.quota.weekly', 'Chat messages')}</span>
-                <span className={`quota-value ${chatUsage.quotaClass}`}>
-                  {chatUsage.label}
+                <span className="quota-name">{chatUsage?.label ?? t('common.shared.quota.weekly', 'Chat messages')}</span>
+                <span className={`quota-value ${chatUsage?.quotaClass ?? 'high'}`}>
+                  {chatUsage?.valueText ?? '-'}
                 </span>
               </div>
               <div className="quota-progress-track">
                 <div
-                  className={`quota-progress-bar ${chatUsage.quotaClass}`}
-                  style={{ width: `${chatUsage.percent}%` }}
+                  className={`quota-progress-bar ${chatUsage?.quotaClass ?? 'high'}`}
+                  style={{ width: `${chatUsage?.percentage ?? 0}%` }}
                 />
               </div>
-              {account.quota?.weekly_reset_time && (
+              {chatUsage?.resetText && (
                 <div className="quota-footer">
                   <span className="quota-reset">
-                    {formatGitHubCopilotResetTime(account.quota.weekly_reset_time, t)}
+                    {chatUsage.resetText}
                   </span>
                 </div>
               )}
@@ -1090,15 +1080,15 @@ export function GitHubCopilotAccountsPage() {
           <td>
             <div className="quota-item">
               <div className="quota-header">
-                <span className="quota-name">{t('githubCopilot.columns.premium', 'Premium requests')}</span>
-                <span className={`quota-value ${premiumUsage.quotaClass}`}>
-                  {premiumUsage.label}
+                <span className="quota-name">{premiumUsage?.label ?? t('githubCopilot.columns.premium', 'Premium requests')}</span>
+                <span className={`quota-value ${premiumUsage?.quotaClass ?? 'high'}`}>
+                  {premiumUsage?.valueText ?? '-'}
                 </span>
               </div>
               <div className="quota-progress-track">
                 <div
-                  className={`quota-progress-bar ${premiumUsage.quotaClass}`}
-                  style={{ width: `${premiumUsage.percent}%` }}
+                  className={`quota-progress-bar ${premiumUsage?.quotaClass ?? 'high'}`}
+                  style={{ width: `${premiumUsage?.percentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -1521,7 +1511,7 @@ export function GitHubCopilotAccountsPage() {
                 onClick={() => openAddModal('token')}
               >
                 <KeyRound size={14} />
-                {t('common.shared.addModal.token', 'Token / JSON')}
+                Token / JSON
               </button>
               <button
                 className={`modal-tab ${addTab === 'import' ? 'active' : ''}`}
@@ -1613,6 +1603,22 @@ export function GitHubCopilotAccountsPage() {
                   <p className="section-desc">
                     {t('githubCopilot.token.desc', '粘贴您的 GitHub Copilot Access Token 或导出的 JSON 数据。')}
                   </p>
+                  <details className="token-format-collapse">
+                    <summary className="token-format-collapse-summary">必填字段与示例（点击展开）</summary>
+                    <div className="token-format">
+                      <p className="token-format-required">
+                        必填字段：Token 模式直接粘贴 GitHub access token；JSON 模式需包含 id、github_login、github_id、github_access_token、copilot_token、created_at、last_used
+                      </p>
+                      <div className="token-format-group">
+                        <div className="token-format-label">单条示例（Token）</div>
+                        <pre className="token-format-code">{GHCP_TOKEN_SINGLE_EXAMPLE}</pre>
+                      </div>
+                      <div className="token-format-group">
+                        <div className="token-format-label">批量示例（JSON）</div>
+                        <pre className="token-format-code">{GHCP_TOKEN_BATCH_EXAMPLE}</pre>
+                      </div>
+                    </div>
+                  </details>
                   <textarea
                     className="token-input"
                     value={tokenInput}

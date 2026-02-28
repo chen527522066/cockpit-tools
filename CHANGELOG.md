@@ -7,6 +7,19 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.9.6] - 2026-02-28
+
+### Changed
+- **Unified account presentation pipeline across five platforms and multiple entry pages**: Added a shared presentation layer for display name, plan label (raw value), quota metrics, reset text, and usage summaries, and reused it in Dashboard, Accounts, and Instances pages (Antigravity / Codex / GitHub Copilot / Windsurf / Kiro) to avoid multi-place divergence.
+- **Token import UX now provides concrete input examples**: Updated token/JSON placeholder copy across locales and added token-format helper styling to improve readability in add/import modals.
+
+### Fixed
+- **Antigravity tray quota lines now follow group settings**: Tray submenu now aggregates by configured display groups (including model alias compatibility), so tray output matches grouped quota cards instead of raw per-model lines.
+- **Tray refresh now reacts immediately to group-setting updates**: Saving/changing/deleting/reordering groups triggers tray menu refresh without requiring restart/manual cache actions.
+- **Re-added accounts can reuse previous fingerprint binding after deletion**: Added deleted-account fingerprint binding persistence and lookup, so delete/re-add flows preserve original fingerprint association when available.
+- **Antigravity plan badge display is now unified to normalized tiers**: Instance/account surfaces now consistently show `PRO/ULTRA/FREE/UNKNOWN` instead of mixed raw subscription-tier strings.
+- **Antigravity token example helper copy now fully uses i18n keys**: Removed hardcoded Chinese labels in the token example panel so locale switching stays consistent.
+
 ## [0.9.5] - 2026-02-28
 
 ### Fixed
