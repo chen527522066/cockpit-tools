@@ -205,6 +205,8 @@ pub async fn delete_instance(instance_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn start_instance(instance_id: String) -> Result<InstanceProfileView, String> {
+    modules::process::ensure_antigravity_launch_path_configured()?;
+
     if instance_id == DEFAULT_INSTANCE_ID {
         let default_dir = modules::instance::get_default_user_data_dir()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();

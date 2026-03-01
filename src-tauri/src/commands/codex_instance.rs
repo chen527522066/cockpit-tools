@@ -187,6 +187,8 @@ pub async fn codex_delete_instance(instance_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn codex_start_instance(instance_id: String) -> Result<InstanceProfileView, String> {
+    modules::process::ensure_codex_launch_path_configured()?;
+
     if instance_id == DEFAULT_INSTANCE_ID {
         let default_dir = modules::codex_instance::get_default_codex_home()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();

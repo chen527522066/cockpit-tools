@@ -211,6 +211,7 @@ pub async fn kiro_delete_instance(instance_id: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn kiro_start_instance(instance_id: String) -> Result<InstanceProfileView, String> {
     modules::logger::log_info(&format!("开始启动 Kiro 实例: {}", instance_id));
+    modules::kiro_instance::ensure_kiro_launch_path_configured()?;
 
     if instance_id == DEFAULT_INSTANCE_ID {
         let default_dir = modules::kiro_instance::get_default_kiro_user_data_dir()?;

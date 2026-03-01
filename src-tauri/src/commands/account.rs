@@ -247,6 +247,9 @@ pub async fn switch_account(app: AppHandle, account_id: String) -> Result<models
     if let Some(err) = launch_error {
         // 账号状态已经切换成功，仍广播账号切换事件，确保前端状态与本地落盘一致
         modules::websocket::broadcast_account_switched(&account.id, &account.email);
+        if err.starts_with("APP_PATH_NOT_FOUND:") {
+            return Err(err);
+        }
         return Err(format!("账号已切换，但启动 Antigravity 失败: {}", err));
     }
 

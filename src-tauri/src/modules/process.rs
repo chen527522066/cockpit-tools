@@ -1473,6 +1473,20 @@ pub fn ensure_antigravity_launch_path_configured() -> Result<(), String> {
     resolve_antigravity_launch_path().map(|_| ())
 }
 
+pub fn ensure_vscode_launch_path_configured() -> Result<(), String> {
+    resolve_vscode_launch_path().map(|_| ())
+}
+
+#[cfg(target_os = "macos")]
+pub fn ensure_codex_launch_path_configured() -> Result<(), String> {
+    resolve_codex_launch_path().map(|_| ())
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn ensure_codex_launch_path_configured() -> Result<(), String> {
+    Err(app_path_missing_error("codex"))
+}
+
 fn resolve_vscode_launch_path() -> Result<std::path::PathBuf, String> {
     if let Some(custom) = normalize_custom_path(Some(&config::get_user_config().vscode_app_path)) {
         #[cfg(target_os = "macos")]
@@ -2151,6 +2165,11 @@ fn collect_antigravity_process_entries_from_proc() -> Vec<(u32, Option<String>)>
 }
 
 pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
+    let expected_launch = resolve_expected_antigravity_launch_path_for_match();
+    if expected_launch.is_none() {
+        return Vec::new();
+    }
+
     #[cfg(target_os = "macos")]
     {
         let entries = collect_antigravity_process_entries_macos();
@@ -2158,7 +2177,7 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
             return filter_entries_by_expected_launch_path(
                 "AG",
                 entries,
-                resolve_expected_antigravity_launch_path_for_match(),
+                expected_launch.clone(),
             );
         }
         let entries = collect_antigravity_process_entries_from_ps();
@@ -2166,7 +2185,7 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
             return filter_entries_by_expected_launch_path(
                 "AG",
                 entries,
-                resolve_expected_antigravity_launch_path_for_match(),
+                expected_launch.clone(),
             );
         }
     }
@@ -2178,7 +2197,7 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
             return filter_entries_by_expected_launch_path(
                 "AG",
                 entries,
-                resolve_expected_antigravity_launch_path_for_match(),
+                expected_launch.clone(),
             );
         }
     }
@@ -2190,7 +2209,7 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
             return filter_entries_by_expected_launch_path(
                 "AG",
                 entries,
-                resolve_expected_antigravity_launch_path_for_match(),
+                expected_launch.clone(),
             );
         }
     }
@@ -2231,7 +2250,7 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
     filter_entries_by_expected_launch_path(
         "AG",
         result,
-        resolve_expected_antigravity_launch_path_for_match(),
+        expected_launch,
     )
 }
 
@@ -2310,14 +2329,21 @@ fn resolve_pid_from_entries_by_user_data_dir(
         return None;
     }
 
+    let matches =
+        collect_matching_pids_by_user_data_dir(entries, target_dir, allow_none_for_target);
+
     if let Some(pid) = last_pid {
-        if is_pid_running(pid) {
+        if is_pid_running(pid) && matches.contains(&pid) {
             return Some(pid);
+        }
+        if is_pid_running(pid) {
+            crate::modules::logger::log_warn(&format!(
+                "[PID Resolve] 忽略不匹配的 last_pid={}，target={}，matched_pids={:?}",
+                pid, target_dir, matches
+            ));
         }
     }
 
-    let matches =
-        collect_matching_pids_by_user_data_dir(entries, target_dir, allow_none_for_target);
     pick_preferred_pid(matches)
 }
 
@@ -2496,12 +2522,6 @@ pub fn resolve_codex_pid_from_entries(
         .map(|value| normalize_path_for_compare(value))
         .filter(|value| !value.is_empty());
 
-    if let Some(pid) = last_pid {
-        if is_pid_running(pid) {
-            return Some(pid);
-        }
-    }
-
     let mut matches = Vec::new();
     for (pid, home) in entries {
         match (&target, home.as_ref()) {
@@ -2521,6 +2541,18 @@ pub fn resolve_codex_pid_from_entries(
                 }
             }
             _ => {}
+        }
+    }
+
+    if let Some(pid) = last_pid {
+        if is_pid_running(pid) && matches.contains(&pid) {
+            return Some(pid);
+        }
+        if is_pid_running(pid) {
+            crate::modules::logger::log_warn(&format!(
+                "[Codex Resolve] 忽略不匹配的 last_pid={}，target={:?}，matched_pids={:?}",
+                pid, target, matches
+            ));
         }
     }
 
@@ -2613,6 +2645,11 @@ fn collect_vscode_process_entries_from_powershell() -> Vec<(u32, Option<String>)
 }
 
 pub fn collect_vscode_process_entries() -> Vec<(u32, Option<String>)> {
+    let expected_launch = resolve_expected_vscode_launch_path_for_match();
+    if expected_launch.is_none() {
+        return Vec::new();
+    }
+
     #[cfg(target_os = "windows")]
     {
         let entries = collect_vscode_process_entries_from_powershell();
@@ -2620,7 +2657,7 @@ pub fn collect_vscode_process_entries() -> Vec<(u32, Option<String>)> {
             return filter_entries_by_expected_launch_path(
                 "VSCode",
                 entries,
-                resolve_expected_vscode_launch_path_for_match(),
+                expected_launch.clone(),
             );
         }
     }
@@ -2768,7 +2805,7 @@ pub fn collect_vscode_process_entries() -> Vec<(u32, Option<String>)> {
     filter_entries_by_expected_launch_path(
         "VSCode",
         result,
-        resolve_expected_vscode_launch_path_for_match(),
+        expected_launch,
     )
 }
 
@@ -4072,6 +4109,11 @@ pub fn start_antigravity_with_args(
 
 #[cfg(target_os = "macos")]
 pub fn collect_codex_process_entries() -> Vec<(u32, Option<String>)> {
+    let expected_launch = resolve_expected_codex_launch_path_for_match();
+    if expected_launch.is_none() {
+        return Vec::new();
+    }
+
     let mut result = Vec::new();
     let mut pids: Vec<u32> = Vec::new();
     if let Ok(output) = Command::new("pgrep")
@@ -4198,7 +4240,7 @@ pub fn collect_codex_process_entries() -> Vec<(u32, Option<String>)> {
     filter_entries_by_expected_launch_path(
         "Codex",
         result,
-        resolve_expected_codex_launch_path_for_match(),
+        expected_launch,
     )
 }
 

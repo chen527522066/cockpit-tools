@@ -224,6 +224,8 @@ pub async fn github_copilot_start_instance(
     instance_id: String,
 ) -> Result<InstanceProfileView, String> {
     modules::logger::log_info(&format!("开始启动 GitHub Copilot 实例: {}", instance_id));
+    modules::process::ensure_vscode_launch_path_configured()?;
+
     if instance_id == DEFAULT_INSTANCE_ID {
         let default_dir = modules::github_copilot_instance::get_default_vscode_user_data_dir()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();

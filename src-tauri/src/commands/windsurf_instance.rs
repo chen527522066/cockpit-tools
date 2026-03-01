@@ -212,6 +212,8 @@ pub async fn windsurf_delete_instance(instance_id: String) -> Result<(), String>
 #[tauri::command]
 pub async fn windsurf_start_instance(instance_id: String) -> Result<InstanceProfileView, String> {
     modules::logger::log_info(&format!("开始启动 Windsurf 实例: {}", instance_id));
+    modules::windsurf_instance::ensure_windsurf_launch_path_configured()?;
+
     if instance_id == DEFAULT_INSTANCE_ID {
         let default_dir = modules::windsurf_instance::get_default_windsurf_user_data_dir()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();

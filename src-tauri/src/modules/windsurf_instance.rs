@@ -1110,11 +1110,12 @@ fn resolve_expected_windsurf_launch_path_for_match() -> Option<String> {
 
 fn filter_windsurf_entries_by_launch_path(
     entries: Vec<(u32, Option<String>)>,
+    expected: Option<String>,
 ) -> Vec<(u32, Option<String>)> {
     if entries.is_empty() {
         return entries;
     }
-    let Some(expected) = resolve_expected_windsurf_launch_path_for_match() else {
+    let Some(expected) = expected else {
         return Vec::new();
     };
     let exe_by_pid = collect_running_process_exe_by_pid();
@@ -1138,6 +1139,11 @@ fn filter_windsurf_entries_by_launch_path(
 }
 
 pub fn collect_windsurf_process_entries() -> Vec<(u32, Option<String>)> {
+    let expected_launch = resolve_expected_windsurf_launch_path_for_match();
+    if expected_launch.is_none() {
+        return Vec::new();
+    }
+
     let mut entries: HashMap<u32, Option<String>> = HashMap::new();
     let mut system = System::new();
     system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
@@ -1221,7 +1227,7 @@ pub fn collect_windsurf_process_entries() -> Vec<(u32, Option<String>)> {
 
     let mut result: Vec<(u32, Option<String>)> = entries.into_iter().collect();
     result.sort_by_key(|(pid, _)| *pid);
-    filter_windsurf_entries_by_launch_path(result)
+    filter_windsurf_entries_by_launch_path(result, expected_launch)
 }
 
 fn pick_preferred_pid(mut pids: Vec<u32>) -> Option<u32> {
@@ -1248,12 +1254,6 @@ pub fn resolve_windsurf_pid_from_entries(
         .map(|(value, current)| value == current)
         .unwrap_or(false);
 
-    if let Some(pid) = last_pid {
-        if modules::process::is_pid_running(pid) {
-            return Some(pid);
-        }
-    }
-
     let target = target?;
 
     let mut matches = Vec::new();
@@ -1269,6 +1269,19 @@ pub fn resolve_windsurf_pid_from_entries(
             _ => {}
         }
     }
+
+    if let Some(pid) = last_pid {
+        if modules::process::is_pid_running(pid) && matches.contains(&pid) {
+            return Some(pid);
+        }
+        if modules::process::is_pid_running(pid) {
+            modules::logger::log_warn(&format!(
+                "[Windsurf Resolve] 忽略不匹配的 last_pid={}，target={}，matched_pids={:?}",
+                pid, target, matches
+            ));
+        }
+    }
+
     pick_preferred_pid(matches)
 }
 
@@ -1507,6 +1520,10 @@ fn resolve_windsurf_launch_path() -> Result<PathBuf, String> {
     }
 
     Err("APP_PATH_NOT_FOUND:windsurf".to_string())
+}
+
+pub fn ensure_windsurf_launch_path_configured() -> Result<(), String> {
+    resolve_windsurf_launch_path().map(|_| ())
 }
 
 #[cfg(target_os = "windows")]
