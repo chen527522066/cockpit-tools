@@ -429,7 +429,11 @@
       "kiroPathSelect": "Lựa chọn",
       "kiroPathReset": "Đặt lại về mặc định",
       "codexLaunchOnSwitch": "Tự động khởi chạy Codex App khi chuyển Codex",
-      "codexLaunchOnSwitchDesc": "Tự động khởi động hoặc khởi động lại Codex App sau khi chuyển tài khoản"
+      "codexLaunchOnSwitchDesc": "Tự động khởi động hoặc khởi động lại Codex App sau khi chuyển tài khoản",
+      "autoUpdate": "Tự động cập nhật nền",
+      "autoUpdateDesc": "Khi phát hiện phiên bản mới, ứng dụng sẽ cập nhật ngầm ở nền và nhắc khởi động lại sau khi hoàn tất.",
+      "autoUpdateOff": "Tắt (cập nhật thủ công)",
+      "autoUpdateOn": "Bật (cập nhật im lặng)"
     },
     "network": {
       "apiTitle": "API Antigravity Cockpit",
@@ -982,7 +986,18 @@
     "title": "Có bản cập nhật mới",
     "message": "Phiên bản hiện tại v{{current}}, đã có phiên bản mới.",
     "action": "Tải về ngay",
-    "whatsNew": "Có gì mới"
+    "whatsNew": "Tính năng mới",
+    "updateNow": "Cập nhật ngay",
+    "downloading": "Đang tải xuống...",
+    "restarting": "Đang khởi động lại...",
+    "installSuccess": "Đã cài đặt bản cập nhật! Đang khởi động lại...",
+    "autoUpdateFailed": "Cập nhật tự động thất bại. Bạn có thể tải xuống thủ công.",
+    "versionJumpTitle": "🎉 Cập nhật thành công!",
+    "versionJumpMessage": "Đã cập nhật từ v{{previous}} lên v{{current}}",
+    "gotIt": "Đã hiểu",
+    "silentReady": "Phiên bản v{{version}} đã sẵn sàng. Hãy khởi động lại để áp dụng.",
+    "later": "Để sau",
+    "restartNow": "Khởi động lại"
   },
   "closeDialog": {
     "title": "Đóng cửa sổ",

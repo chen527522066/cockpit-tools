@@ -429,7 +429,11 @@
       "kiroPathSelect": "Vybrat",
       "kiroPathReset": "Obnovit výchozí",
       "codexLaunchOnSwitch": "Při přepnutí Codex automaticky spustit Codex App",
-      "codexLaunchOnSwitchDesc": "Po přepnutí účtu automaticky spustit nebo restartovat Codex App"
+      "codexLaunchOnSwitchDesc": "Po přepnutí účtu automaticky spustit nebo restartovat Codex App",
+      "autoUpdate": "Automatické aktualizace na pozadí",
+      "autoUpdateDesc": "Při zjištění nové verze proběhne tichá aktualizace na pozadí a po dokončení budete vyzváni k restartu.",
+      "autoUpdateOff": "Vypnuto (ruční aktualizace)",
+      "autoUpdateOn": "Zapnuto (tichá aktualizace)"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -982,7 +986,18 @@
     "title": "Aktualizace k dispozici",
     "message": "Současná verze v{{current}}, je k dispozici nová verze.",
     "action": "Stáhnout nyní",
-    "whatsNew": "Co je nového"
+    "whatsNew": "Co je nového",
+    "updateNow": "Aktualizovat nyní",
+    "downloading": "Stahování...",
+    "restarting": "Restartování...",
+    "installSuccess": "Aktualizace nainstalována! Restartuji...",
+    "autoUpdateFailed": "Automatická aktualizace selhala. Můžete stáhnout ručně.",
+    "versionJumpTitle": "🎉 Úspěšně aktualizováno!",
+    "versionJumpMessage": "Aktualizováno z v{{previous}} na v{{current}}",
+    "gotIt": "Rozumím",
+    "silentReady": "Verze v{{version}} je připravena. Pro použití restartujte.",
+    "later": "Později",
+    "restartNow": "Restartovat"
   },
   "closeDialog": {
     "title": "Zavřít okno",

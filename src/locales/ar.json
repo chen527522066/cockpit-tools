@@ -429,7 +429,11 @@
       "kiroPathSelect": "يختار",
       "kiroPathReset": "إعادة التعيين إلى الوضع الافتراضي",
       "codexLaunchOnSwitch": "تشغيل تطبيق Codex App تلقائيًا عند تبديل Codex",
-      "codexLaunchOnSwitchDesc": "تشغيل أو إعادة تشغيل تطبيق Codex App تلقائيًا بعد تبديل الحساب"
+      "codexLaunchOnSwitchDesc": "تشغيل أو إعادة تشغيل تطبيق Codex App تلقائيًا بعد تبديل الحساب",
+      "autoUpdate": "التحديث التلقائي في الخلفية",
+      "autoUpdateDesc": "عند اكتشاف إصدار جديد، يتم التحديث بصمت في الخلفية ثم يُطلب إعادة التشغيل عند الجاهزية.",
+      "autoUpdateOff": "إيقاف (تحديث يدوي)",
+      "autoUpdateOn": "تشغيل (تحديث صامت)"
     },
     "network": {
       "apiTitle": "واجهة برمجة تطبيقات قمرة القيادة المضادة للجاذبية",
@@ -982,7 +986,18 @@
     "title": "التحديث متاح",
     "message": "الإصدار الحالي v{{current}}، يتوفر إصدار جديد.",
     "action": "تنزيل الآن",
-    "whatsNew": "ما الجديد"
+    "whatsNew": "ما الجديد",
+    "updateNow": "حدّث الآن",
+    "downloading": "جارٍ التنزيل...",
+    "restarting": "جارٍ إعادة التشغيل...",
+    "installSuccess": "تم تثبيت التحديث! جارٍ إعادة التشغيل...",
+    "autoUpdateFailed": "فشل التحديث التلقائي. يمكنك التنزيل يدويًا.",
+    "versionJumpTitle": "🎉 تم التحديث بنجاح!",
+    "versionJumpMessage": "تم التحديث من v{{previous}} إلى v{{current}}",
+    "gotIt": "حسنًا",
+    "silentReady": "الإصدار v{{version}} جاهز. أعد التشغيل لتطبيقه.",
+    "later": "لاحقًا",
+    "restartNow": "إعادة التشغيل"
   },
   "closeDialog": {
     "title": "إغلاق النافذة",
@@ -1454,7 +1469,7 @@
     "title": "الإشعارات",
     "empty": "لا توجد إشعارات",
     "markAllRead": "تحديد الكل كمقروء",
-    "gotIt": "فهمت",
+    "gotIt": "حسنًا",
     "later": "لاحقاً",
     "new": "جديد",
     "timeAgo": {

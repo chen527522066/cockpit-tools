@@ -10,12 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.12] - 2026-03-03
 
 ### Added
-- **Delete unbound fingerprints in one click**: Added a "Delete Unbound" toolbar button on the Fingerprints page that batch-deletes all custom fingerprints not bound to any account, with a live count of deletable items.
+- **Background auto update mode (zero-intervention)**: Added a `Settings > General > Background Auto Update` option. When enabled, the app checks updates normally, downloads new packages silently in the background, and prompts restart when the update is ready.
+- **Post-update changelog popup on version jump**: Added startup version-jump detection based on locally recorded `last_run_version`. After an upgrade, the app now shows a “What’s New” dialog for the current version.
+- **Silent update ready toast with restart action**: Added a bottom-right update toast after background download, with `Later` and `Restart` actions.
 
 ### Changed
-- **Extension import now strictly uses Antigravity SecretStorage**: Antigravity “Import from Extension” now reads credentials only from the Antigravity user-data database (`state.vscdb`) and no longer falls back to VS Code profile storage.
-- **Extension import is now add-only (no overwrite updates)**: Existing local accounts are skipped during extension import instead of being updated in place; success count now reflects newly added accounts only.
-- **Extension import now shows live progress and immediately refreshes subscription tier**: Import emits per-account progress events (`current/total`) and refreshes quota/subscription data for newly imported accounts right after import, reducing initial `UNKNOWN` plan badges.
+- **Desktop updater pipeline migrated to Tauri Updater**: Integrated updater/process plugins and enabled updater artifacts + release endpoint config, so in-app update flow uses signed updater metadata.
+- **Manual update dialog now supports in-app download/install progress**: The update modal now performs in-app update with progress/status/error display and falls back to opening the GitHub release page when updater flow fails.
+- **Update settings persistence behavior was hardened**: Auto-update preference loading/saving now avoids first-render overwrite and only writes when user change or explicit state change is confirmed.
+- **Update-related i18n coverage expanded across locale packs**: Added update toggle/progress/restart/version-jump translation keys in all supported locales.
 
 ---
 ## [0.9.11] - 2026-03-03

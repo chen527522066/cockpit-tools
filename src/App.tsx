@@ -20,6 +20,7 @@ import { useGitHubCopilotAccountStore } from './stores/useGitHubCopilotAccountSt
 import { useWindsurfAccountStore } from './stores/useWindsurfAccountStore';
 import { useKiroAccountStore } from './stores/useKiroAccountStore';
 import type { UpdateCheckResult } from './components/UpdateNotification';
+import type { Update as UpdaterUpdate } from '@tauri-apps/plugin-updater';
 
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
@@ -68,6 +69,12 @@ const PlatformLayoutModal = lazy(() =>
 );
 const UpdateNotification = lazy(() =>
   import('./components/UpdateNotification').then((module) => ({ default: module.UpdateNotification })),
+);
+const VersionJumpNotification = lazy(() =>
+  import('./components/VersionJumpNotification').then((module) => ({ default: module.VersionJumpNotification })),
+);
+const SilentUpdateToast = lazy(() =>
+  import('./components/SilentUpdateToast').then((module) => ({ default: module.SilentUpdateToast })),
 );
 const CloseConfirmDialog = lazy(() =>
   import('./components/CloseConfirmDialog').then((module) => ({ default: module.CloseConfirmDialog })),
@@ -214,6 +221,14 @@ function App() {
   const [appPathDetecting, setAppPathDetecting] = useState(false);
   const [appPathDraft, setAppPathDraft] = useState('');
   const [appPathActionError, setAppPathActionError] = useState('');
+  const [versionJumpInfo, setVersionJumpInfo] = useState<{
+    previous_version: string;
+    current_version: string;
+    release_notes: string;
+    release_notes_zh: string;
+  } | null>(null);
+  const [silentUpdateVersion, setSilentUpdateVersion] = useState<string | null>(null);
+  const pendingSilentUpdateRef = useRef<UpdaterUpdate | null>(null);
   const { showModal, closeModal } = useGlobalModal();
   const trayRefreshInFlightRef = useRef(false);
   const openBreakout = useCallback(() => {
@@ -251,6 +266,16 @@ function App() {
   
   // 启用自动刷新 hook
   useAutoRefresh();
+
+  useEffect(() => {
+    return () => {
+      const pendingUpdate = pendingSilentUpdateRef.current;
+      if (pendingUpdate) {
+        void pendingUpdate.close();
+        pendingSilentUpdateRef.current = null;
+      }
+    };
+  }, []);
 
   const openQuickSettingsForPlatform = useCallback((platform: QuotaAlertPlatform) => {
     const targetPage = getQuotaAlertTargetPage(platform);
@@ -402,14 +427,46 @@ function App() {
         const shouldCheck = await invoke<boolean>('should_check_updates');
         console.log('[App] Should check updates:', shouldCheck);
 
-        if (shouldCheck) {
+        if (!shouldCheck) return;
+
+        // Check if auto_install is enabled
+        const settings = await invoke<{ auto_install: boolean }>('get_update_settings');
+        const autoInstall = settings?.auto_install ?? false;
+
+        if (autoInstall) {
+          // Silent update: check and download in background, install on restart
+          console.log('[App] Auto-install enabled, attempting silent update...');
+          try {
+            const { check } = await import('@tauri-apps/plugin-updater');
+            const update = await check();
+            if (update) {
+              console.log('[App] Update found, downloading silently...');
+              await update.download();
+              if (pendingSilentUpdateRef.current) {
+                await pendingSilentUpdateRef.current.close();
+              }
+              pendingSilentUpdateRef.current = update;
+              console.log('[App] Silent download complete, waiting for restart to install.');
+              setSilentUpdateVersion(update.version);
+            } else {
+              console.log('[App] No update available.');
+            }
+          } catch (err) {
+            console.error('[App] Silent update failed, falling back to manual:', err);
+            // Fallback to manual update notification
+            setUpdateCheckSource('auto');
+            setUpdateNotificationKey(Date.now());
+            setShowUpdateNotification(true);
+          }
+        } else {
+          // Manual update: show notification dialog
           setUpdateCheckSource('auto');
           setUpdateNotificationKey(Date.now());
           setShowUpdateNotification(true);
-          // 标记已经检查过了
-          await invoke('update_last_check_time');
-          console.log('[App] Update check cycle initiated and last check time updated.');
         }
+
+        await invoke('update_last_check_time');
+        console.log('[App] Update check cycle completed.');
       } catch (error) {
         console.error('Failed to check update settings:', error);
       }
@@ -417,6 +474,29 @@ function App() {
 
     // Delay check to avoid blocking initial render
     const timer = setTimeout(checkUpdates, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Version jump detection (post-update changelog)
+  useEffect(() => {
+    const detectVersionJump = async () => {
+      try {
+        const jumpInfo = await invoke<{
+          previous_version: string;
+          current_version: string;
+          release_notes: string;
+          release_notes_zh: string;
+        } | null>('check_version_jump');
+        if (jumpInfo) {
+          console.log('[App] Version jump detected:', jumpInfo.previous_version, '->', jumpInfo.current_version);
+          setVersionJumpInfo(jumpInfo);
+        }
+      } catch (error) {
+        console.error('Failed to check version jump:', error);
+      }
+    };
+
+    const timer = setTimeout(detectVersionJump, 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -942,6 +1022,38 @@ function App() {
             source={updateCheckSource}
             onResult={handleUpdateCheckResult}
             onClose={() => setShowUpdateNotification(false)}
+          />
+        </Suspense>
+      )}
+      {/* 版本跳跃通知（更新后首次启动） */}
+      {versionJumpInfo && (
+        <Suspense fallback={null}>
+          <VersionJumpNotification
+            info={versionJumpInfo}
+            onClose={() => setVersionJumpInfo(null)}
+          />
+        </Suspense>
+      )}
+      {/* 静默更新完成 toast */}
+      {silentUpdateVersion && (
+        <Suspense fallback={null}>
+          <SilentUpdateToast
+            version={silentUpdateVersion}
+            onRestart={async () => {
+              try {
+                const pendingUpdate = pendingSilentUpdateRef.current;
+                if (pendingUpdate) {
+                  await pendingUpdate.install();
+                  await pendingUpdate.close();
+                  pendingSilentUpdateRef.current = null;
+                }
+                const { relaunch } = await import('@tauri-apps/plugin-process');
+                await relaunch();
+              } catch (error) {
+                console.error('[App] Failed to apply silent update:', error);
+              }
+            }}
+            onDismiss={() => setSilentUpdateVersion(null)}
           />
         </Suspense>
       )}

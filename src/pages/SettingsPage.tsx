@@ -165,9 +165,27 @@ export function SettingsPage() {
     text: string;
     tone?: 'error' | 'success';
   } | null>(null);
+  const [autoInstall, setAutoInstall] = useState(false);
+  const [autoInstallLoaded, setAutoInstallLoaded] = useState(false);
+  const autoInstallTouchedRef = useRef(false);
 
   useEffect(() => {
     getVersion().then(ver => setAppVersion(`v${ver}`));
+    // Load auto_install setting first to avoid overwriting existing value on initial render
+    invoke<{
+      auto_check: boolean;
+      last_check_time: number;
+      check_interval_hours: number;
+      auto_install?: boolean;
+      last_run_version?: string;
+    }>('get_update_settings')
+      .then((s) => {
+        setAutoInstall(Boolean(s?.auto_install));
+        setAutoInstallLoaded(true);
+      })
+      .catch((err) => {
+        console.error('加载自动更新设置失败:', err);
+      });
   }, []);
 
   useEffect(() => {
@@ -392,6 +410,32 @@ export function SettingsPage() {
       window.removeEventListener('config-updated', handleConfigUpdated);
     };
   }, []);
+
+  // Save auto_install setting when changed
+  useEffect(() => {
+    if (!autoInstallLoaded && !autoInstallTouchedRef.current) {
+      return;
+    }
+
+    invoke<{
+      auto_check: boolean;
+      last_check_time: number;
+      check_interval_hours: number;
+      auto_install?: boolean;
+      last_run_version?: string;
+    }>('get_update_settings')
+      .then((s) => {
+        if (Boolean(s?.auto_install) === autoInstall) {
+          return;
+        }
+        invoke('save_update_settings', {
+          settings: { ...s, auto_install: autoInstall },
+        }).catch((err: unknown) =>
+          console.error('Failed to save auto_install setting:', err),
+        );
+      })
+      .catch(() => {});
+  }, [autoInstall, autoInstallLoaded]);
   
   // 检测配额重置任务状态
   useEffect(() => {
@@ -762,6 +806,26 @@ export function SettingsPage() {
                     <option value="ask">{t('settings.general.closeBehaviorAsk')}</option>
                     <option value="minimize">{t('settings.general.closeBehaviorMinimize')}</option>
                     <option value="quit">{t('settings.general.closeBehaviorQuit')}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <div className="row-label">
+                  <div className="row-title">{t('settings.general.autoUpdate')}</div>
+                  <div className="row-desc">{t('settings.general.autoUpdateDesc')}</div>
+                </div>
+                <div className="row-control">
+                  <select
+                    className="settings-select"
+                    value={autoInstall ? 'true' : 'false'}
+                    onChange={(e) => {
+                      autoInstallTouchedRef.current = true;
+                      setAutoInstall(e.target.value === 'true');
+                    }}
+                  >
+                    <option value="false">{t('settings.general.autoUpdateOff')}</option>
+                    <option value="true">{t('settings.general.autoUpdateOn')}</option>
                   </select>
                 </div>
               </div>

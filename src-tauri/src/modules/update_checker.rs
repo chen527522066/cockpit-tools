@@ -27,6 +27,10 @@ pub struct UpdateSettings {
     pub last_check_time: u64,
     #[serde(default = "default_check_interval")]
     pub check_interval_hours: u64,
+    #[serde(default)]
+    pub auto_install: bool,
+    #[serde(default)]
+    pub last_run_version: String,
 }
 
 fn default_check_interval() -> u64 {
@@ -39,8 +43,19 @@ impl Default for UpdateSettings {
             auto_check: true,
             last_check_time: 0,
             check_interval_hours: DEFAULT_CHECK_INTERVAL_HOURS,
+            auto_install: false,
+            last_run_version: String::new(),
         }
     }
+}
+
+/// Version jump info returned when app was updated since last run
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VersionJumpInfo {
+    pub previous_version: String,
+    pub current_version: String,
+    pub release_notes: String,
+    pub release_notes_zh: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -262,6 +277,59 @@ pub fn update_last_check_time() -> Result<(), String> {
         .unwrap()
         .as_secs();
     save_update_settings(&settings)
+}
+
+/// Check if a version jump occurred (app was updated since last run)
+/// Returns Some(VersionJumpInfo) if the current version is higher than the last recorded version
+pub async fn check_version_jump() -> Result<Option<VersionJumpInfo>, String> {
+    let mut settings = load_update_settings()?;
+    let current = CURRENT_VERSION.to_string();
+
+    // First run or same version – just record and return
+    if settings.last_run_version.is_empty() || settings.last_run_version == current {
+        if settings.last_run_version != current {
+            settings.last_run_version = current;
+            save_update_settings(&settings)?;
+        }
+        return Ok(None);
+    }
+
+    let previous = settings.last_run_version.clone();
+
+    // Only trigger if current > previous (upgrade, not downgrade)
+    if !compare_versions(&current, &previous) {
+        settings.last_run_version = current;
+        save_update_settings(&settings)?;
+        return Ok(None);
+    }
+
+    // Fetch release notes for the current (new) version
+    let client = reqwest::Client::builder()
+        .user_agent("Antigravity-Cockpit-Tools")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let release_notes =
+        fetch_changelog_for_version(&client, CHANGELOG_EN_URL, &current).await;
+    let release_notes_zh =
+        fetch_changelog_for_version(&client, CHANGELOG_ZH_URL, &current).await;
+
+    // Update the stored version
+    settings.last_run_version = current.clone();
+    save_update_settings(&settings)?;
+
+    logger::log_info(&format!(
+        "检测到版本跳跃: {} -> {}",
+        previous, current
+    ));
+
+    Ok(Some(VersionJumpInfo {
+        previous_version: previous,
+        current_version: current,
+        release_notes,
+        release_notes_zh,
+    }))
 }
 
 #[cfg(test)]

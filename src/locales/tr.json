@@ -429,7 +429,11 @@
       "kiroPathSelect": "Seçme",
       "kiroPathReset": "Varsayılana sıfırla",
       "codexLaunchOnSwitch": "Codex değiştirirken Codex App'i otomatik başlat",
-      "codexLaunchOnSwitchDesc": "Hesap değişiminden sonra Codex App'i otomatik başlat veya yeniden başlat"
+      "codexLaunchOnSwitchDesc": "Hesap değişiminden sonra Codex App'i otomatik başlat veya yeniden başlat",
+      "autoUpdate": "Arka planda otomatik güncelleme",
+      "autoUpdateDesc": "Yeni sürüm algılandığında güncelleme arka planda sessizce yapılır ve tamamlandığında yeniden başlatma istenir.",
+      "autoUpdateOff": "Kapalı (manuel güncelleme)",
+      "autoUpdateOn": "Açık (sessiz güncelleme)"
     },
     "network": {
       "apiTitle": "Yerçekimine Karşı Kokpit API'si",
@@ -982,7 +986,18 @@
     "title": "Güncelleme Mevcut",
     "message": "Mevcut sürüm v{{current}}, yeni bir sürüm mevcut.",
     "action": "Şimdi İndir",
-    "whatsNew": "Yenilikler"
+    "whatsNew": "Yenilikler",
+    "updateNow": "Şimdi güncelle",
+    "downloading": "İndiriliyor...",
+    "restarting": "Yeniden başlatılıyor...",
+    "installSuccess": "Güncelleme yüklendi! Yeniden başlatılıyor...",
+    "autoUpdateFailed": "Otomatik güncelleme başarısız oldu. Elle indirebilirsiniz.",
+    "versionJumpTitle": "🎉 Güncelleme başarıyla tamamlandı!",
+    "versionJumpMessage": "v{{previous}} sürümünden v{{current}} sürümüne güncellendi",
+    "gotIt": "Anladım",
+    "silentReady": "v{{version}} hazır. Uygulamak için yeniden başlatın.",
+    "later": "Daha sonra",
+    "restartNow": "Yeniden başlat"
   },
   "closeDialog": {
     "title": "Pencereyi kapat",
@@ -1454,7 +1469,7 @@
     "title": "Bildirimler",
     "empty": "Bildirim yok",
     "markAllRead": "Tümünü okundu işaretle",
-    "gotIt": "Anlaşıldı",
+    "gotIt": "Anladım",
     "later": "Daha sonra",
     "new": "Yeni",
     "timeAgo": {

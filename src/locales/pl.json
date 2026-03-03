@@ -429,7 +429,11 @@
       "kiroPathSelect": "Wybierać",
       "kiroPathReset": "Przywróć ustawienia domyślne",
       "codexLaunchOnSwitch": "Automatycznie uruchamiaj Codex App podczas przełączania Codex",
-      "codexLaunchOnSwitchDesc": "Po przełączeniu konta automatycznie uruchom lub uruchom ponownie Codex App"
+      "codexLaunchOnSwitchDesc": "Po przełączeniu konta automatycznie uruchom lub uruchom ponownie Codex App",
+      "autoUpdate": "Automatyczna aktualizacja w tle",
+      "autoUpdateDesc": "Po wykryciu nowej wersji aktualizacja zostanie wykonana w tle, a po zakończeniu pojawi się monit o ponowne uruchomienie.",
+      "autoUpdateOff": "Wyłączone (aktualizacja ręczna)",
+      "autoUpdateOn": "Włączone (cicha aktualizacja)"
     },
     "network": {
       "apiTitle": "API kokpitu antygrawitacyjnego",
@@ -982,7 +986,18 @@
     "title": "Dostępna aktualizacja",
     "message": "Aktualna wersja v{{current}}, dostępna jest nowa wersja.",
     "action": "Pobierz teraz",
-    "whatsNew": "Co nowego"
+    "whatsNew": "Co nowego",
+    "updateNow": "Aktualizuj teraz",
+    "downloading": "Pobieranie...",
+    "restarting": "Ponowne uruchamianie...",
+    "installSuccess": "Zainstalowano aktualizację! Ponowne uruchamianie...",
+    "autoUpdateFailed": "Automatyczna aktualizacja nie powiodła się. Możesz pobrać ręcznie.",
+    "versionJumpTitle": "🎉 Aktualizacja zakończona!",
+    "versionJumpMessage": "Zaktualizowano z v{{previous}} do v{{current}}",
+    "gotIt": "Rozumiem",
+    "silentReady": "Wersja v{{version}} jest gotowa. Uruchom ponownie, aby zastosować.",
+    "later": "Później",
+    "restartNow": "Uruchom ponownie"
   },
   "closeDialog": {
     "title": "Zamknij okno",

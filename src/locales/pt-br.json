@@ -429,7 +429,11 @@
       "kiroPathSelect": "Selecione",
       "kiroPathReset": "Redefinir para o padrão",
       "codexLaunchOnSwitch": "Iniciar Codex App ao trocar Codex",
-      "codexLaunchOnSwitchDesc": "Iniciar ou reiniciar automaticamente o Codex App após trocar de conta"
+      "codexLaunchOnSwitchDesc": "Iniciar ou reiniciar automaticamente o Codex App após trocar de conta",
+      "autoUpdate": "Atualização automática em segundo plano",
+      "autoUpdateDesc": "Quando uma nova versão for detectada, a atualização ocorrerá em segundo plano e, ao concluir, será solicitado reinício.",
+      "autoUpdateOff": "Desativado (atualização manual)",
+      "autoUpdateOn": "Ativado (atualização silenciosa)"
     },
     "network": {
       "apiTitle": "API de cockpit antigravidade",
@@ -982,7 +986,18 @@
     "title": "Atualização disponível",
     "message": "Versão atual v{{current}}, uma nova versão está disponível.",
     "action": "Baixar agora",
-    "whatsNew": "O que há de novo"
+    "whatsNew": "Novidades",
+    "updateNow": "Atualizar agora",
+    "downloading": "Baixando...",
+    "restarting": "Reiniciando...",
+    "installSuccess": "Atualização instalada! Reiniciando...",
+    "autoUpdateFailed": "A atualização automática falhou. Você pode baixar manualmente.",
+    "versionJumpTitle": "🎉 Atualização concluída!",
+    "versionJumpMessage": "Atualizado de v{{previous}} para v{{current}}",
+    "gotIt": "Entendi",
+    "silentReady": "A versão v{{version}} está pronta. Reinicie para aplicar.",
+    "later": "Mais tarde",
+    "restartNow": "Reiniciar"
   },
   "closeDialog": {
     "title": "Fechar janela",

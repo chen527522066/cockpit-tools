@@ -429,7 +429,11 @@
       "kiroPathSelect": "선택하다",
       "kiroPathReset": "기본값으로 재설정",
       "codexLaunchOnSwitch": "Codex 전환 시 Codex App 자동 실행",
-      "codexLaunchOnSwitchDesc": "계정 전환 후 Codex App을 자동으로 시작하거나 재시작"
+      "codexLaunchOnSwitchDesc": "계정 전환 후 Codex App을 자동으로 시작하거나 재시작",
+      "autoUpdate": "백그라운드 자동 업데이트",
+      "autoUpdateDesc": "새 버전이 감지되면 백그라운드에서 조용히 업데이트하고 완료 후 재시작을 안내합니다.",
+      "autoUpdateOff": "끔(수동 업데이트)",
+      "autoUpdateOn": "켬(자동 업데이트)"
     },
     "network": {
       "apiTitle": "반중력 조종석 API",
@@ -982,7 +986,18 @@
     "title": "새로운 버전이 있습니다",
     "message": "현재 버전은 v{{current}}입니다. 새로운 버전을 사용할 수 있습니다.",
     "action": "지금 다운로드",
-    "whatsNew": "새로운 기능"
+    "whatsNew": "새로운 기능",
+    "updateNow": "지금 업데이트",
+    "downloading": "다운로드 중...",
+    "restarting": "재시작 중...",
+    "installSuccess": "업데이트가 설치되었습니다. 재시작 중...",
+    "autoUpdateFailed": "자동 업데이트에 실패했습니다. 수동으로 다운로드할 수 있습니다.",
+    "versionJumpTitle": "🎉 업데이트 완료!",
+    "versionJumpMessage": "v{{previous}}에서 v{{current}}로 업데이트되었습니다",
+    "gotIt": "확인",
+    "silentReady": "v{{version}} 준비가 완료되었습니다. 적용하려면 재시작하세요.",
+    "later": "나중에",
+    "restartNow": "재시작"
   },
   "closeDialog": {
     "title": "창 닫기",

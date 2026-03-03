@@ -429,7 +429,11 @@
       "kiroPathSelect": "Selezionare",
       "kiroPathReset": "Ripristina le impostazioni predefinite",
       "codexLaunchOnSwitch": "Avvia Codex App quando cambi Codex",
-      "codexLaunchOnSwitchDesc": "Avvia o riavvia automaticamente Codex App dopo il cambio account"
+      "codexLaunchOnSwitchDesc": "Avvia o riavvia automaticamente Codex App dopo il cambio account",
+      "autoUpdate": "Aggiornamento automatico in background",
+      "autoUpdateDesc": "Quando viene rilevata una nuova versione, l'aggiornamento avviene in background e al termine viene richiesto il riavvio.",
+      "autoUpdateOff": "Disattivato (aggiornamento manuale)",
+      "autoUpdateOn": "Attivato (aggiornamento silenzioso)"
     },
     "network": {
       "apiTitle": "API della cabina di pilotaggio antigravità",
@@ -982,7 +986,18 @@
     "title": "Aggiornamento disponibile",
     "message": "Versione attuale v{{current}}, è disponibile una nuova versione.",
     "action": "Scarica ora",
-    "whatsNew": "Novità"
+    "whatsNew": "Novità",
+    "updateNow": "Aggiorna ora",
+    "downloading": "Download in corso...",
+    "restarting": "Riavvio in corso...",
+    "installSuccess": "Aggiornamento installato! Riavvio...",
+    "autoUpdateFailed": "L'aggiornamento automatico non è riuscito. Puoi scaricare manualmente.",
+    "versionJumpTitle": "🎉 Aggiornamento completato!",
+    "versionJumpMessage": "Aggiornato da v{{previous}} a v{{current}}",
+    "gotIt": "Ho capito",
+    "silentReady": "La versione v{{version}} è pronta. Riavvia per applicarla.",
+    "later": "Più tardi",
+    "restartNow": "Riavvia"
   },
   "closeDialog": {
     "title": "Chiudi finestra",
@@ -1454,7 +1469,7 @@
     "title": "Notifiche",
     "empty": "Nessuna notifica",
     "markAllRead": "Segna tutto come letto",
-    "gotIt": "Capito",
+    "gotIt": "Ho capito",
     "later": "Più tardi",
     "new": "Nuovo",
     "timeAgo": {

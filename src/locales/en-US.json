@@ -429,7 +429,11 @@
       "kiroPathSelect": "Select",
       "kiroPathReset": "Reset to default",
       "codexLaunchOnSwitch": "Launch Codex App when switching Codex",
-      "codexLaunchOnSwitchDesc": "Start or restart Codex App after switching accounts"
+      "codexLaunchOnSwitchDesc": "Start or restart Codex App after switching accounts",
+      "autoUpdate": "Background Auto Update",
+      "autoUpdateDesc": "When a new version is detected, update in the background and prompt for restart when ready.",
+      "autoUpdateOff": "Off (manual update)",
+      "autoUpdateOn": "On (silent update)"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -982,7 +986,18 @@
     "title": "Update Available",
     "message": "Current version v{{current}}, a new version is available.",
     "action": "Download Now",
-    "whatsNew": "What's New"
+    "whatsNew": "What's New",
+    "updateNow": "Update Now",
+    "downloading": "Downloading...",
+    "restarting": "Restarting...",
+    "installSuccess": "Update installed! Restarting...",
+    "autoUpdateFailed": "Auto-update failed. You can download manually.",
+    "versionJumpTitle": "🎉 Successfully Updated!",
+    "versionJumpMessage": "Updated from v{{previous}} to v{{current}}",
+    "gotIt": "Got it!",
+    "silentReady": "v{{version}} is ready. Restart to apply.",
+    "later": "Later",
+    "restartNow": "Restart"
   },
   "closeDialog": {
     "title": "Close Window",
@@ -1454,7 +1469,7 @@
     "title": "Notifications",
     "empty": "No notifications",
     "markAllRead": "Mark all read",
-    "gotIt": "Got it",
+    "gotIt": "Got it!",
     "later": "Later",
     "new": "New",
     "timeAgo": {

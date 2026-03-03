@@ -429,7 +429,11 @@
       "kiroPathSelect": "Wählen",
       "kiroPathReset": "Auf Standard zurücksetzen",
       "codexLaunchOnSwitch": "Codex App beim Wechseln von Codex automatisch starten",
-      "codexLaunchOnSwitchDesc": "Nach dem Kontowechsel Codex App automatisch starten oder neu starten"
+      "codexLaunchOnSwitchDesc": "Nach dem Kontowechsel Codex App automatisch starten oder neu starten",
+      "autoUpdate": "Automatische Hintergrund-Updates",
+      "autoUpdateDesc": "Wenn eine neue Version erkannt wird, wird im Hintergrund still aktualisiert und danach zum Neustart aufgefordert.",
+      "autoUpdateOff": "Aus (manuelles Update)",
+      "autoUpdateOn": "Ein (stilles Update)"
     },
     "network": {
       "apiTitle": "Antigravity-Cockpit-API",
@@ -982,7 +986,18 @@
     "title": "Update verfügbar",
     "message": "Aktuelle Version v{{current}}, eine neue Version ist verfügbar.",
     "action": "Jetzt herunterladen",
-    "whatsNew": "Was ist neu"
+    "whatsNew": "Neuerungen",
+    "updateNow": "Jetzt aktualisieren",
+    "downloading": "Wird heruntergeladen...",
+    "restarting": "Wird neu gestartet...",
+    "installSuccess": "Aktualisierung installiert! Neustart...",
+    "autoUpdateFailed": "Automatisches Update fehlgeschlagen. Sie können manuell herunterladen.",
+    "versionJumpTitle": "🎉 Erfolgreich aktualisiert!",
+    "versionJumpMessage": "Von v{{previous}} auf v{{current}} aktualisiert",
+    "gotIt": "Verstanden",
+    "silentReady": "v{{version}} ist bereit. Zum Anwenden neu starten.",
+    "later": "Später",
+    "restartNow": "Neu starten"
   },
   "closeDialog": {
     "title": "Fenster schließen",

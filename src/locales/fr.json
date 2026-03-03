@@ -429,7 +429,11 @@
       "kiroPathSelect": "Sélectionner",
       "kiroPathReset": "Réinitialiser aux valeurs par défaut",
       "codexLaunchOnSwitch": "Lancer Codex App lors du changement de Codex",
-      "codexLaunchOnSwitchDesc": "Démarrer ou redémarrer automatiquement Codex App après un changement de compte"
+      "codexLaunchOnSwitchDesc": "Démarrer ou redémarrer automatiquement Codex App après un changement de compte",
+      "autoUpdate": "Mise à jour automatique en arrière-plan",
+      "autoUpdateDesc": "Lorsqu'une nouvelle version est détectée, la mise à jour se fait en arrière-plan puis un redémarrage est proposé.",
+      "autoUpdateOff": "Désactivé (mise à jour manuelle)",
+      "autoUpdateOn": "Activé (mise à jour silencieuse)"
     },
     "network": {
       "apiTitle": "API du cockpit antigravité",
@@ -982,7 +986,18 @@
     "title": "Mise à jour disponible",
     "message": "Version actuelle v{{current}}, une nouvelle version est disponible.",
     "action": "Télécharger maintenant",
-    "whatsNew": "Nouveautés"
+    "whatsNew": "Nouveautés",
+    "updateNow": "Mettre à jour",
+    "downloading": "Téléchargement...",
+    "restarting": "Redémarrage...",
+    "installSuccess": "Mise à jour installée ! Redémarrage...",
+    "autoUpdateFailed": "La mise à jour automatique a échoué. Vous pouvez télécharger manuellement.",
+    "versionJumpTitle": "🎉 Mise à jour réussie !",
+    "versionJumpMessage": "Mis à jour de v{{previous}} vers v{{current}}",
+    "gotIt": "J'ai compris",
+    "silentReady": "La version v{{version}} est prête. Redémarrez pour l'appliquer.",
+    "later": "Plus tard",
+    "restartNow": "Redémarrer"
   },
   "closeDialog": {
     "title": "Fermer la fenêtre",
@@ -1454,7 +1469,7 @@
     "title": "Notifications",
     "empty": "Aucune notification",
     "markAllRead": "Tout marquer comme lu",
-    "gotIt": "Compris",
+    "gotIt": "J'ai compris",
     "later": "Plus tard",
     "new": "Nouveauté",
     "timeAgo": {
