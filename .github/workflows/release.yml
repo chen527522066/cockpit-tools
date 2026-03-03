@@ -159,9 +159,102 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
+  rebuild-latest-json:
+    name: Rebuild merged latest.json
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Node.js setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Determine version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download release assets (retry)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          TAG="v${VERSION}"
+          downloaded="false"
+          for i in $(seq 1 30); do
+            if gh release download "$TAG" --dir release-assets --pattern "*" --clobber; then
+              downloaded="true"
+              echo "Downloaded release assets from $TAG"
+              break
+            fi
+            echo "Release assets not ready yet (attempt $i/30). Sleeping 10s..."
+            sleep 10
+          done
+          if [ "$downloaded" != "true" ]; then
+            echo "Failed to download release assets from $TAG after retries."
+            exit 1
+          fi
+
+      - name: Read release metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "v${VERSION}" --json body --jq '.body' > release-notes.md
+          PUBLISHED_AT="$(gh release view "v${VERSION}" --json publishedAt --jq '.publishedAt')"
+          echo "PUBLISHED_AT=${PUBLISHED_AT}" >> "$GITHUB_ENV"
+
+      - name: Build merged latest.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/release/build_merged_latest_json.cjs \
+            --version "${VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --assets-dir "release-assets" \
+            --notes-file "release-notes.md" \
+            --published-at "${PUBLISHED_AT}" \
+            --output "latest.json"
+
+      - name: Validate merged latest.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .platforms["darwin-aarch64"] and
+            .platforms["darwin-x86_64"] and
+            .platforms["windows-x86_64"] and
+            .platforms["windows-x86_64-nsis"] and
+            .platforms["linux-x86_64-appimage"] and
+            .platforms["linux-aarch64-appimage"]
+          ' latest.json > /dev/null
+          jq -r '.platforms | keys[]' latest.json
+
+      - name: Upload merged latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "v${VERSION}" latest.json --clobber
+
   upload-checksums:
     name: Upload SHA256SUMS
-    needs: release
+    needs:
+      - release
+      - rebuild-latest-json
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -227,6 +320,7 @@ jobs:
     name: Update Homebrew Cask
     needs:
       - release
+      - rebuild-latest-json
       - upload-checksums
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
