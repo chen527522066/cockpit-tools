@@ -156,7 +156,11 @@
     "dashboard": "Gösterge Paneli",
     "morePlatforms": "Daha Fazla Platform",
     "instances": "Çoklu Örnek",
-    "manual": "Kullanım kılavuzu"
+    "manual": "Kullanım kılavuzu",
+    "quickUpdate": {
+      "update": "Güncelle",
+      "restart": "Yeniden başlat"
+    }
   },
   "platformLayout": {
     "title": "Platform Düzeni",
@@ -997,7 +1001,15 @@
     "gotIt": "Anladım",
     "silentReady": "v{{version}} hazır. Uygulamak için yeniden başlatın.",
     "later": "Daha sonra",
-    "restartNow": "Yeniden başlat"
+    "restartNow": "Yeniden başlat",
+    "checkRetrying": "Ağ kararsız, güncelleme denetimi yeniden deneniyor ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Ağ kararsız, güncelleme indirme yeniden deneniyor ({{attempt}}/{{total}})...",
+    "retryDownload": "İndirmeyi yeniden dene",
+    "cancelUpdate": "Güncellemeyi iptal et",
+    "showErrorDetails": "Ayrıntıları göster",
+    "hideErrorDetails": "Ayrıntıları gizle",
+    "autoUpdateFailedAfterRetries": "Otomatik güncelleme {{count}} denemeden sonra başarısız oldu. Daha sonra tekrar deneyin veya manuel indirin.",
+    "updateCancelled": "Güncelleme iptal edildi."
   },
   "closeDialog": {
     "title": "Pencereyi kapat",

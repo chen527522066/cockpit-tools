@@ -156,7 +156,11 @@
     "dashboard": "Panel",
     "morePlatforms": "Más plataformas",
     "instances": "Multi-Instancia",
-    "manual": "Manual de uso"
+    "manual": "Manual de uso",
+    "quickUpdate": {
+      "update": "Actualizar",
+      "restart": "Reiniciar"
+    }
   },
   "platformLayout": {
     "title": "Diseño de plataformas",
@@ -997,7 +1001,15 @@
     "gotIt": "Entendido",
     "silentReady": "La versión v{{version}} está lista. Reinicia para aplicarla.",
     "later": "Más tarde",
-    "restartNow": "Reiniciar"
+    "restartNow": "Reiniciar",
+    "checkRetrying": "La red es inestable, reintentando la comprobación de actualización ({{attempt}}/{{total}})...",
+    "downloadRetrying": "La red es inestable, reintentando la descarga de actualización ({{attempt}}/{{total}})...",
+    "retryDownload": "Reintentar descarga",
+    "cancelUpdate": "Cancelar actualización",
+    "showErrorDetails": "Ver detalles",
+    "hideErrorDetails": "Ocultar detalles",
+    "autoUpdateFailedAfterRetries": "La actualización automática falló tras {{count}} intentos. Inténtalo más tarde o descarga manualmente.",
+    "updateCancelled": "Actualización cancelada."
   },
   "closeDialog": {
     "title": "Cerrar ventana",

@@ -13,6 +13,9 @@ interface SideNavProps {
   easterEggClickCount: number;
   onEasterEggTriggerClick: () => void;
   hasBreakoutSession: boolean;
+  updateActionState: 'hidden' | 'available' | 'downloading' | 'ready';
+  updateProgress: number;
+  onUpdateActionClick: () => void;
 }
 
 interface FlyingRocket {
@@ -35,6 +38,9 @@ export function SideNav({
   easterEggClickCount,
   onEasterEggTriggerClick,
   hasBreakoutSession,
+  updateActionState,
+  updateProgress,
+  onUpdateActionClick,
 }: SideNavProps) {
   const { t } = useTranslation();
   const [flyingRockets, setFlyingRockets] = useState<FlyingRocket[]>([]);
@@ -86,8 +92,52 @@ export function SideNav({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMore]);
 
+  const clampedUpdateProgress = Math.max(0, Math.min(100, Math.round(updateProgress)));
+  const updateVisualState = updateActionState === 'ready'
+    ? 'restart'
+    : updateActionState === 'downloading'
+      ? 'progress'
+      : 'update';
+
   return (
     <nav className="side-nav">
+      {updateActionState !== 'hidden' && (
+        <div className="side-nav-update-entry">
+          <button
+            type="button"
+            className={`side-nav-update-btn is-${updateVisualState}`}
+            onClick={onUpdateActionClick}
+            title={
+              updateActionState === 'downloading'
+                ? t('update_notification.downloading', '下载中...')
+                : updateActionState === 'ready'
+                  ? t('nav.quickUpdate.restart', '重启')
+                  : t('nav.quickUpdate.update', '更新')
+            }
+            disabled={updateActionState === 'downloading'}
+          >
+            {updateActionState === 'downloading' ? (
+              <span className="side-nav-update-progress-lr">
+                <span
+                  className={`side-nav-update-progress-fill${clampedUpdateProgress >= 100 ? ' is-full' : ''}`}
+                  style={{ width: `${clampedUpdateProgress}%` }}
+                >
+                  <span className="side-nav-update-progress-ripple side-nav-update-progress-ripple-a" />
+                  <span className="side-nav-update-progress-ripple side-nav-update-progress-ripple-b" />
+                </span>
+                <span className="side-nav-update-progress-percent">{clampedUpdateProgress}%</span>
+              </span>
+            ) : (
+              <span className="side-nav-update-text">
+                {updateActionState === 'ready'
+                  ? t('nav.quickUpdate.restart', '重启')
+                  : t('nav.quickUpdate.update', '更新')}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       <div className="nav-brand" style={{ position: 'relative', zIndex: 10 }}>
          <div 
            ref={logoRef}

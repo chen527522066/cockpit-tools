@@ -156,7 +156,11 @@
     "dashboard": "仪表盘",
     "morePlatforms": "更多平台",
     "instances": "多开实例",
-    "manual": "使用手册"
+    "manual": "使用手册",
+    "quickUpdate": {
+      "update": "更新",
+      "restart": "重启"
+    }
   },
   "platformLayout": {
     "title": "平台布局",
@@ -997,7 +1001,15 @@
     "gotIt": "我知道了",
     "silentReady": "v{{version}} 已就绪，重启后生效。",
     "later": "稍后",
-    "restartNow": "立即重启"
+    "restartNow": "立即重启",
+    "checkRetrying": "网络波动，正在重试检查 ({{attempt}}/{{total}})...",
+    "downloadRetrying": "网络波动，正在重试下载 ({{attempt}}/{{total}})...",
+    "retryDownload": "重试下载",
+    "cancelUpdate": "取消更新",
+    "showErrorDetails": "查看详情",
+    "hideErrorDetails": "收起详情",
+    "autoUpdateFailedAfterRetries": "自动更新失败，已重试 {{count}} 次。您可以稍后重试或手动下载安装。",
+    "updateCancelled": "更新已取消。"
   },
   "closeDialog": {
     "title": "关闭窗口",

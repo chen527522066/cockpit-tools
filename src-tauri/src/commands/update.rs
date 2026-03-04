@@ -1,3 +1,4 @@
+use crate::modules::logger;
 use crate::modules::update_checker::{self, UpdateSettings, VersionJumpInfo};
 
 /// Check if we should check for updates (based on interval settings)
@@ -39,4 +40,23 @@ pub fn save_pending_update_notes(
 #[tauri::command]
 pub fn check_version_jump() -> Result<Option<VersionJumpInfo>, String> {
     update_checker::check_version_jump()
+}
+
+/// Write updater lifecycle logs from frontend into app.log
+#[tauri::command]
+pub fn update_log(level: String, message: String) -> Result<(), String> {
+    let level = level.trim().to_lowercase();
+    let message = message.trim();
+    if message.is_empty() {
+        return Ok(());
+    }
+
+    let text = format!("[Updater] {}", message);
+    match level.as_str() {
+        "error" => logger::log_error(&text),
+        "warn" | "warning" => logger::log_warn(&text),
+        _ => logger::log_info(&text),
+    }
+
+    Ok(())
 }

@@ -372,6 +372,19 @@ fn upsert_account_with_hints(
     Ok(account)
 }
 
+/// 更新索引中账号的 plan_type（供配额刷新时同步订阅标识）
+pub fn update_account_plan_type_in_index(
+    account_id: &str,
+    plan_type: &Option<String>,
+) -> Result<(), String> {
+    let mut index = load_account_index();
+    if let Some(summary) = index.accounts.iter_mut().find(|a| a.id == account_id) {
+        summary.plan_type = plan_type.clone();
+        save_account_index(&index)?;
+    }
+    Ok(())
+}
+
 /// 删除账号
 pub fn remove_account(account_id: &str) -> Result<(), String> {
     let mut index = load_account_index();

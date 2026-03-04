@@ -1,14 +1,17 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { X, Download, Sparkles, RefreshCw, Check } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
-import type { Update as UpdaterUpdate } from '@tauri-apps/plugin-updater';
 import { useTranslation } from 'react-i18next';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   parseUpdaterReleaseNotes,
   resolveUpdaterDownloadUrl,
 } from '../utils/updaterReleaseNotes';
+import {
+  isRetryableUpdaterError,
+  retryWithBackoff,
+  UPDATE_CHECK_RETRY_DELAYS_MS,
+} from '../utils/updaterRetry';
 import './UpdateNotification.css';
 
 interface UpdateInfo {
@@ -21,6 +24,7 @@ interface UpdateInfo {
 
 type UpdateCheckSource = 'auto' | 'manual';
 type UpdateCheckStatus = 'has_update' | 'up_to_date' | 'failed';
+type UpdateActionState = 'hidden' | 'available' | 'downloading' | 'ready';
 
 export interface UpdateCheckResult {
   source: UpdateCheckSource;
@@ -30,46 +34,89 @@ export interface UpdateCheckResult {
   error?: string;
 }
 
+export interface UpdateNotificationStateChange {
+  phase: 'available' | 'ready';
+  version: string;
+}
+
 interface UpdateNotificationProps {
   onClose: () => void;
   source?: UpdateCheckSource;
   onResult?: (result: UpdateCheckResult) => void;
+  onStateChange?: (state: UpdateNotificationStateChange) => void;
+  preparedUpdateVersion?: string | null;
+  onRestartUpdate?: () => Promise<void>;
+  actionState?: UpdateActionState;
+  actionVersion?: string | null;
+  actionProgress?: number;
+  actionRetryStatus?: string;
+  actionError?: string;
+  actionErrorDetails?: string;
+  onPrimaryAction?: () => Promise<void> | void;
+  onCancelUpdate?: () => Promise<void> | void;
 }
-
-type DownloadState = 'idle' | 'downloading' | 'downloaded' | 'installing' | 'error';
 
 export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
   onClose,
   source = 'auto',
   onResult,
+  onStateChange,
+  preparedUpdateVersion,
+  onRestartUpdate,
+  actionState = 'hidden',
+  actionVersion = null,
+  actionProgress = 0,
+  actionRetryStatus = '',
+  actionError = '',
+  actionErrorDetails = '',
+  onPrimaryAction,
+  onCancelUpdate,
 }) => {
   const { t, i18n } = useTranslation();
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const updateRef = useRef<UpdaterUpdate | null>(null);
-  const [downloadState, setDownloadState] = useState<DownloadState>('idle');
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [downloadError, setDownloadError] = useState('');
+  const [retryStatus, setRetryStatus] = useState('');
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
 
   useEffect(() => {
     void checkForUpdates();
-    return () => {
-      const pendingUpdate = updateRef.current;
-      if (pendingUpdate) {
-        void pendingUpdate.close();
-        updateRef.current = null;
-      }
-    };
   }, []);
 
   const checkForUpdates = async () => {
     try {
       const { check } = await import('@tauri-apps/plugin-updater');
-      const update = await check();
+      const update = await retryWithBackoff(
+        async () => check(),
+        {
+          delaysMs: UPDATE_CHECK_RETRY_DELAYS_MS,
+          shouldRetry: isRetryableUpdaterError,
+          onRetry: ({ retryIndex, totalRetries }) => {
+            setRetryStatus(
+              t('update_notification.checkRetrying', {
+                attempt: retryIndex,
+                total: totalRetries,
+              }),
+            );
+          },
+        },
+      );
+      setRetryStatus('');
       if (update) {
-        if (updateRef.current) {
-          await updateRef.current.close();
+        const preparedOrReadyVersion =
+          preparedUpdateVersion || (actionState === 'ready' ? actionVersion : null);
+
+        if (preparedOrReadyVersion === update.version) {
+          onStateChange?.({
+            phase: 'ready',
+            version: update.version,
+          });
+        } else {
+          onStateChange?.({
+            phase: 'available',
+            version: update.version,
+          });
         }
-        updateRef.current = update;
+
         const { releaseNotes, releaseNotesZh } = parseUpdaterReleaseNotes(update.body);
         const currentVersion = update.currentVersion || (await getVersion());
         onResult?.({
@@ -97,6 +144,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
       }
     } catch (error) {
       console.error('Failed to check for updates:', error);
+      setRetryStatus('');
       onResult?.({
         source,
         status: 'failed',
@@ -106,74 +154,32 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
     }
   };
 
-  const handleInAppUpdate = useCallback(async () => {
-    if (downloadState === 'downloading' || downloadState === 'installing') return;
-    
-    setDownloadState('downloading');
-    setDownloadProgress(0);
-    setDownloadError('');
-
-    try {
-      let update = updateRef.current;
-      if (!update) {
-        const { check } = await import('@tauri-apps/plugin-updater');
-        update = await check();
-        if (update) {
-          updateRef.current = update;
-        }
-      }
-      
-      if (!update) {
-        setDownloadState('error');
-        setDownloadError('No update available from updater plugin');
-        return;
-      }
-
-      const { releaseNotes, releaseNotesZh } = parseUpdaterReleaseNotes(update.body);
-      await invoke('save_pending_update_notes', {
-        version: update.version,
-        releaseNotes,
-        releaseNotesZh,
-      }).catch((error) => {
-        console.error('Failed to cache updater release notes:', error);
-      });
-
-      let downloaded = 0;
-      let contentLength = 0;
-
-      await update.downloadAndInstall((event) => {
-        switch (event.event) {
-          case 'Started':
-            contentLength = event.data.contentLength ?? 0;
-            setDownloadState('downloading');
-            break;
-          case 'Progress':
-            downloaded += event.data.chunkLength;
-            if (contentLength > 0) {
-              setDownloadProgress(Math.min(100, Math.round((downloaded / contentLength) * 100)));
-            }
-            break;
-          case 'Finished':
-            setDownloadState('downloaded');
-            setDownloadProgress(100);
-            break;
-        }
-      });
-
-      setDownloadState('downloaded');
-      
-      // Auto relaunch after a short delay
-      const { relaunch } = await import('@tauri-apps/plugin-process');
-      setTimeout(() => {
-        void update.close().catch(() => {});
-        void relaunch();
-      }, 1500);
-    } catch (error) {
-      console.error('In-app update failed:', error);
-      setDownloadState('error');
-      setDownloadError(String(error));
+  const handleTriggerUpdate = useCallback(async () => {
+    if (!onPrimaryAction) {
+      return;
     }
-  }, [downloadState]);
+    await onPrimaryAction();
+  }, [onPrimaryAction]);
+
+  const handleRestartNow = useCallback(async () => {
+    setIsRestarting(true);
+    try {
+      if (onRestartUpdate) {
+        await onRestartUpdate();
+      } else {
+        const { relaunch } = await import('@tauri-apps/plugin-process');
+        await relaunch();
+      }
+    } catch (error) {
+      console.error('Failed to relaunch after update:', error);
+      setIsRestarting(false);
+    }
+  }, [onRestartUpdate]);
+
+  const handleRetryDownload = useCallback(() => {
+    setShowErrorDetails(false);
+    void handleTriggerUpdate();
+  }, [handleTriggerUpdate]);
 
   const handleFallbackDownload = async () => {
     if (updateInfo?.download_url) {
@@ -182,36 +188,31 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
       } catch {
         window.open(updateInfo.download_url, '_blank');
       }
-      handleClose();
+      onClose();
     }
-  };
-
-  const handleClose = () => {
-    if (downloadState === 'downloading' || downloadState === 'installing') return;
-    onClose();
   };
 
   // 根据语言选择显示中文还是英文更新日志
   const releaseNotes = useMemo(() => {
     if (!updateInfo) return '';
     const isZh = i18n.language.startsWith('zh');
-    return isZh && updateInfo.release_notes_zh 
-      ? updateInfo.release_notes_zh 
+    return isZh && updateInfo.release_notes_zh
+      ? updateInfo.release_notes_zh
       : updateInfo.release_notes;
   }, [updateInfo, i18n.language]);
 
   // 简单的 Markdown 渲染
   const formattedNotes = useMemo(() => {
     if (!releaseNotes) return null;
-    
+
     const lines = releaseNotes.split('\n');
     const elements: React.ReactNode[] = [];
     let key = 0;
-    
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      
+
       if (trimmed.startsWith('### ')) {
         elements.push(
           <h4 key={key++} className="release-notes-heading">
@@ -225,14 +226,14 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
         const parts = content.split(/\*\*(.*?)\*\*/g);
         elements.push(
           <li key={key++} className="release-notes-item">
-            {parts.map((part, i) => 
+            {parts.map((part, i) =>
               i % 2 === 1 ? <strong key={i}>{part}</strong> : part
             )}
           </li>
         );
       }
     }
-    
+
     return elements.length > 0 ? (
       <ul className="release-notes-list">{elements}</ul>
     ) : null;
@@ -242,9 +243,22 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
     return null;
   }
 
-  const isDownloading = downloadState === 'downloading';
-  const isDownloaded = downloadState === 'downloaded';
-  const isError = downloadState === 'error';
+  const versionMatched = actionVersion === updateInfo.latest_version;
+  const isDownloading = actionState === 'downloading' && versionMatched;
+  const isDownloaded = actionState === 'ready' && versionMatched;
+  const clampedProgress = Math.max(0, Math.min(100, Math.round(actionProgress)));
+  const mergedRetryStatus = actionRetryStatus || retryStatus;
+  const isError = Boolean(actionError) && !isDownloading && !isDownloaded;
+
+  const handleClose = () => {
+    if (isRestarting) {
+      return;
+    }
+    if (isDownloading && onCancelUpdate) {
+      void onCancelUpdate();
+    }
+    onClose();
+  };
 
   return (
     <div className="modal-overlay update-overlay" onClick={handleClose}>
@@ -256,11 +270,11 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
             </span>
             {t('update_notification.title')}
           </h2>
-          <button 
-            className="modal-close" 
-            onClick={handleClose} 
+          <button
+            className="modal-close"
+            onClick={handleClose}
             aria-label={t('common.cancel')}
-            disabled={isDownloading}
+            disabled={isRestarting}
           >
             <X size={18} />
           </button>
@@ -270,36 +284,57 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
           <p className="update-message">
             {t('update_notification.message', { current: updateInfo.current_version })}
           </p>
-          
-          {/* Download Progress */}
+
           {isDownloading && (
             <div className="update-progress-container">
               <div className="update-progress-bar">
-                <div 
-                  className="update-progress-fill" 
-                  style={{ width: `${downloadProgress}%` }}
+                <div
+                  className="update-progress-fill"
+                  style={{ width: `${clampedProgress}%` }}
                 />
               </div>
               <span className="update-progress-text">
-                {t('update_notification.downloading', 'Downloading...')} {downloadProgress}%
+                {t('update_notification.downloading', 'Downloading...')} {clampedProgress}%
               </span>
             </div>
           )}
 
-          {/* Download Complete */}
-          {isDownloaded && (
-            <div className="update-status update-status-success">
-              <Check size={16} />
-              <span>{t('update_notification.installSuccess', 'Update installed! Restarting...')}</span>
+          {mergedRetryStatus && (
+            <div className="update-status update-status-retrying">
+              <RefreshCw size={14} className="spin" />
+              <span>{mergedRetryStatus}</span>
             </div>
           )}
 
-          {/* Error with fallback */}
+          {isDownloaded && (
+            <div className="update-status update-status-success">
+              <Check size={16} />
+              <span>
+                {t('update_notification.silentReady', {
+                  version: updateInfo.latest_version,
+                })}
+              </span>
+            </div>
+          )}
+
           {isError && (
             <div className="update-status update-status-error">
-              <span>{t('update_notification.autoUpdateFailed', 'Auto-update failed. You can download manually.')}</span>
-              {downloadError && (
-                <span className="update-error-detail">{downloadError}</span>
+              <span>
+                {actionError || t('update_notification.autoUpdateFailed', 'Auto-update failed. You can download manually.')}
+              </span>
+              {actionErrorDetails && (
+                <button
+                  type="button"
+                  className="update-error-toggle"
+                  onClick={() => setShowErrorDetails((prev) => !prev)}
+                >
+                  {showErrorDetails
+                    ? t('update_notification.hideErrorDetails', 'Hide details')
+                    : t('update_notification.showErrorDetails', 'View details')}
+                </button>
+              )}
+              {showErrorDetails && actionErrorDetails && (
+                <span className="update-error-detail">{actionErrorDetails}</span>
               )}
             </div>
           )}
@@ -314,28 +349,43 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({
           )}
         </div>
         <div className="modal-footer">
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             onClick={handleClose}
-            disabled={isDownloading}
+            disabled={isRestarting}
           >
-            {t('common.cancel')}
+            {isDownloading
+              ? t('update_notification.cancelUpdate', 'Cancel Update')
+              : isDownloaded
+                ? t('update_notification.later', 'Later')
+                : t('common.cancel')}
           </button>
           {isError ? (
-            <button className="btn btn-primary" onClick={handleFallbackDownload}>
-              <Download size={16} />
-              {t('update_notification.action')}
-            </button>
-          ) : isDownloaded ? (
+            <>
+              <button className="btn btn-secondary" onClick={handleRetryDownload}>
+                <RefreshCw size={16} />
+                {t('update_notification.retryDownload', 'Retry Download')}
+              </button>
+              <button className="btn btn-primary" onClick={handleFallbackDownload}>
+                <Download size={16} />
+                {t('update_notification.action')}
+              </button>
+            </>
+          ) : isRestarting ? (
             <button className="btn btn-primary" disabled>
               <RefreshCw size={16} className="spin" />
               {t('update_notification.restarting', 'Restarting...')}
             </button>
+          ) : isDownloaded ? (
+            <button className="btn btn-primary" onClick={handleRestartNow}>
+              <RefreshCw size={16} />
+              {t('update_notification.restartNow', 'Restart')}
+            </button>
           ) : (
-            <button 
-              className="btn btn-primary" 
-              onClick={handleInAppUpdate}
-              disabled={isDownloading}
+            <button
+              className="btn btn-primary"
+              onClick={handleTriggerUpdate}
+              disabled={isDownloading || !onPrimaryAction}
             >
               {isDownloading ? (
                 <>

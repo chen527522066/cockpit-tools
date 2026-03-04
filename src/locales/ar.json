@@ -156,7 +156,11 @@
     "dashboard": "لوحة التحكم",
     "morePlatforms": "المزيد من المنصات",
     "instances": "مثيلات متعددة",
-    "manual": "دليل الاستخدام"
+    "manual": "دليل الاستخدام",
+    "quickUpdate": {
+      "update": "تحديث",
+      "restart": "إعادة التشغيل"
+    }
   },
   "platformLayout": {
     "title": "تخطيط المنصات",
@@ -997,7 +1001,15 @@
     "gotIt": "حسنًا",
     "silentReady": "الإصدار v{{version}} جاهز. أعد التشغيل لتطبيقه.",
     "later": "لاحقًا",
-    "restartNow": "إعادة التشغيل"
+    "restartNow": "إعادة التشغيل",
+    "checkRetrying": "الشبكة غير مستقرة، جارٍ إعادة محاولة فحص التحديث ({{attempt}}/{{total}})...",
+    "downloadRetrying": "الشبكة غير مستقرة، جارٍ إعادة محاولة تنزيل التحديث ({{attempt}}/{{total}})...",
+    "retryDownload": "إعادة محاولة التنزيل",
+    "cancelUpdate": "إلغاء التحديث",
+    "showErrorDetails": "عرض التفاصيل",
+    "hideErrorDetails": "إخفاء التفاصيل",
+    "autoUpdateFailedAfterRetries": "فشل التحديث التلقائي بعد {{count}} محاولات. يمكنك المحاولة لاحقًا أو التنزيل يدويًا.",
+    "updateCancelled": "تم إلغاء التحديث."
   },
   "closeDialog": {
     "title": "إغلاق النافذة",

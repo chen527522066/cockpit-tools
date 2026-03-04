@@ -156,7 +156,11 @@
     "dashboard": "Tableau de bord",
     "morePlatforms": "Plus de plateformes",
     "instances": "Multi-Instance",
-    "manual": "Guide d'utilisation"
+    "manual": "Guide d'utilisation",
+    "quickUpdate": {
+      "update": "Mettre à jour",
+      "restart": "Redémarrer"
+    }
   },
   "platformLayout": {
     "title": "Disposition des plateformes",
@@ -997,7 +1001,15 @@
     "gotIt": "J'ai compris",
     "silentReady": "La version v{{version}} est prête. Redémarrez pour l'appliquer.",
     "later": "Plus tard",
-    "restartNow": "Redémarrer"
+    "restartNow": "Redémarrer",
+    "checkRetrying": "Réseau instable, nouvelle tentative de vérification de mise à jour ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Réseau instable, nouvelle tentative de téléchargement de mise à jour ({{attempt}}/{{total}})...",
+    "retryDownload": "Réessayer le téléchargement",
+    "cancelUpdate": "Annuler la mise à jour",
+    "showErrorDetails": "Voir les détails",
+    "hideErrorDetails": "Masquer les détails",
+    "autoUpdateFailedAfterRetries": "La mise à jour automatique a échoué après {{count}} tentatives. Réessayez plus tard ou téléchargez manuellement.",
+    "updateCancelled": "Mise à jour annulée."
   },
   "closeDialog": {
     "title": "Fermer la fenêtre",

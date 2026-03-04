@@ -156,7 +156,11 @@
     "dashboard": "儀表板",
     "morePlatforms": "更多平台",
     "instances": "多開實例",
-    "manual": "使用手冊"
+    "manual": "使用手冊",
+    "quickUpdate": {
+      "update": "更新",
+      "restart": "重新啟動"
+    }
   },
   "platformLayout": {
     "title": "平台佈局",
@@ -997,7 +1001,15 @@
     "gotIt": "我知道了",
     "silentReady": "v{{version}} 已就緒，重新啟動後生效。",
     "later": "稍後",
-    "restartNow": "立即重啟"
+    "restartNow": "立即重啟",
+    "checkRetrying": "網路波動，正在重試檢查 ({{attempt}}/{{total}})...",
+    "downloadRetrying": "網路波動，正在重試下載 ({{attempt}}/{{total}})...",
+    "retryDownload": "重試下載",
+    "cancelUpdate": "取消更新",
+    "showErrorDetails": "查看詳情",
+    "hideErrorDetails": "收起詳情",
+    "autoUpdateFailedAfterRetries": "自動更新失敗，已重試 {{count}} 次。你可以稍後重試或手動下載安裝。",
+    "updateCancelled": "更新已取消。"
   },
   "closeDialog": {
     "title": "關閉視窗",

@@ -187,11 +187,26 @@
   color: var(--text-success, #22c55e);
 }
 
+.update-status-retrying {
+  background: var(--bg-warning, rgba(245, 158, 11, 0.12));
+  color: var(--text-warning, #d97706);
+}
+
 .update-status-error {
   background: var(--bg-error, rgba(239, 68, 68, 0.1));
   color: var(--text-error, #ef4444);
   flex-direction: column;
   align-items: flex-start;
+}
+
+.update-error-toggle {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
 }
 
 .update-error-detail {
@@ -210,4 +225,3 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-

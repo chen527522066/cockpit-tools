@@ -365,10 +365,10 @@ fn build_macos_safe_storage_candidates(
         }
     }
 
+    // Default mode is used by VS Code / GitHub Copilot injection path.
+    // Keep this list strictly VS Code-family to avoid cross-platform key probing.
     app_names.extend(
         [
-            "Antigravity",
-            "Antigravity Cockpit",
             "Code",
             "Visual Studio Code",
             "Code - OSS",

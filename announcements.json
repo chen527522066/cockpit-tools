@@ -266,6 +266,147 @@
           "actionLabel": "下載最新版本"
         }
       }
+    },
+    {
+      "id": "ann-2026-03-in-app-update-v0912",
+      "type": "feature",
+      "priority": 320,
+      "title": "✨ v0.9.12+ 已支持应用内更新",
+      "summary": "支持应用内检查、下载并安装更新；可在设置中开启后台自动更新。",
+      "content": "从 v0.9.12 开始，Cockpit Tools 已支持应用内更新。\n\n你现在可以：\n• 在应用内直接检查并下载新版本，无需再跳转浏览器手动下载安装包\n• 在“设置 > 通用”开启后台自动更新，检测到新版本后会静默下载，重启应用后自动生效\n• 更新完成后的首次启动会展示更新说明，方便快速了解改动\n\n若自动更新流程异常，仍可使用手动下载作为兜底方案。",
+      "action": {
+        "type": "url",
+        "target": "https://github.com/jlcodes99/cockpit-tools/releases/latest",
+        "label": "查看最新版本"
+      },
+      "targetVersions": "*",
+      "targetLanguages": [
+        "ar",
+        "cs",
+        "de",
+        "en-US",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pl",
+        "pt-br",
+        "ru",
+        "tr",
+        "vi",
+        "zh-CN",
+        "zh-tw"
+      ],
+      "showOnce": true,
+      "popup": true,
+      "createdAt": "2026-03-03T15:30:00.000Z",
+      "expiresAt": null,
+      "locales": {
+        "ar": {
+          "title": "✨ التحديث داخل التطبيق متاح بدءًا من v0.9.12+",
+          "summary": "يمكنك فحص التحديثات وتنزيلها وتثبيتها داخل التطبيق، مع خيار التحديث التلقائي في الخلفية.",
+          "content": "بدءًا من v0.9.12، يدعم Cockpit Tools التحديث داخل التطبيق.\n\nيمكنك الآن:\n• فحص الإصدارات الجديدة وتنزيلها مباشرةً من داخل التطبيق، بدون الانتقال إلى المتصفح لتنزيل المثبّت يدويًا\n• تفعيل التحديث التلقائي في الخلفية من الإعدادات > عام؛ عند اكتشاف إصدار جديد سيتم تنزيله بصمت وتطبيقه بعد إعادة التشغيل\n• عرض ملاحظات التحديث عند أول تشغيل بعد التحديث، لمعرفة التغييرات بسرعة\n\nإذا تعذر مسار التحديث التلقائي، يظل التنزيل اليدوي متاحًا كخيار احتياطي.",
+          "actionLabel": "عرض أحدث إصدار"
+        },
+        "cs": {
+          "title": "✨ Aktualizace v aplikaci jsou dostupné od v0.9.12+",
+          "summary": "Aktualizace lze zkontrolovat, stáhnout a nainstalovat přímo v aplikaci, včetně volitelné automatické aktualizace na pozadí.",
+          "content": "Od verze v0.9.12 podporuje Cockpit Tools aktualizace přímo v aplikaci.\n\nNyní můžete:\n• kontrolovat a stahovat nové verze přímo v aplikaci bez přechodu do prohlížeče pro ruční stažení instalátoru\n• zapnout automatickou aktualizaci na pozadí v Nastavení > Obecné; při nalezení nové verze se stáhne tiše a použije po restartu\n• při prvním spuštění po aktualizaci zobrazit poznámky k vydání a rychle zjistit, co se změnilo\n\nPokud automatická aktualizace selže, ruční stažení zůstává jako záložní možnost.",
+          "actionLabel": "Zobrazit nejnovější verzi"
+        },
+        "de": {
+          "title": "✨ In-App-Updates sind ab v0.9.12+ verfügbar",
+          "summary": "Updates können direkt in der App geprüft, heruntergeladen und installiert werden, optional mit Hintergrund-Auto-Update.",
+          "content": "Seit v0.9.12 unterstützt Cockpit Tools Updates direkt in der App.\n\nSie können jetzt:\n• neue Versionen direkt in der App prüfen und herunterladen, ohne zum Browser für manuelle Installer-Downloads zu wechseln\n• in Einstellungen > Allgemein Hintergrund-Auto-Update aktivieren; bei einer neuen Version erfolgt der Download still im Hintergrund und wird nach dem Neustart angewendet\n• beim ersten Start nach dem Update die Versionshinweise anzeigen, um Änderungen schnell zu sehen\n\nFalls der Auto-Update-Ablauf fehlschlägt, bleibt der manuelle Download als Fallback verfügbar.",
+          "actionLabel": "Neueste Version ansehen"
+        },
+        "zh-CN": {
+          "title": "✨ v0.9.12+ 已支持应用内更新",
+          "summary": "支持应用内检查、下载并安装更新；可在设置中开启后台自动更新。",
+          "content": "从 v0.9.12 开始，Cockpit Tools 已支持应用内更新。\n\n你现在可以：\n• 在应用内直接检查并下载新版本，无需再跳转浏览器手动下载安装包\n• 在“设置 > 通用”开启后台自动更新，检测到新版本后会静默下载，重启应用后自动生效\n• 更新完成后的首次启动会展示更新说明，方便快速了解改动\n\n若自动更新流程异常，仍可使用手动下载作为兜底方案。",
+          "actionLabel": "查看最新版本"
+        },
+        "zh-tw": {
+          "title": "✨ v0.9.12+ 已支援應用內更新",
+          "summary": "支援在應用內檢查、下載並安裝更新；可在設定中開啟背景自動更新。",
+          "content": "從 v0.9.12 開始，Cockpit Tools 已支援應用內更新。\n\n你現在可以：\n• 在應用內直接檢查並下載新版本，無需再跳轉瀏覽器手動下載安裝包\n• 在「設定 > 通用」開啟背景自動更新，偵測到新版本後會靜默下載，重啟應用後自動生效\n• 更新完成後首次啟動會顯示更新說明，方便快速了解變更\n\n若自動更新流程異常，仍可使用手動下載作為兜底方案。",
+          "actionLabel": "查看最新版本"
+        },
+        "en-US": {
+          "title": "✨ In-App Updates Are Live in v0.9.12+",
+          "summary": "Check, download, and install updates inside the app, with optional background auto-update.",
+          "content": "Starting from v0.9.12, Cockpit Tools supports in-app updates.\n\nYou can now:\n• Check and download new versions directly in the app, without jumping to a browser for manual installer downloads\n• Enable background auto-update in Settings > General; when a new version is detected, it downloads silently and is applied after restart\n• See update notes on the first launch after updating, so you can quickly review what changed\n\nIf the auto-update flow fails, manual download remains available as a fallback.",
+          "actionLabel": "View Latest Release"
+        },
+        "en": {
+          "title": "✨ In-App Updates Are Live in v0.9.12+",
+          "summary": "Check, download, and install updates inside the app, with optional background auto-update.",
+          "content": "Starting from v0.9.12, Cockpit Tools supports in-app updates.\n\nYou can now:\n• Check and download new versions directly in the app, without jumping to a browser for manual installer downloads\n• Enable background auto-update in Settings > General; when a new version is detected, it downloads silently and is applied after restart\n• See update notes on the first launch after updating, so you can quickly review what changed\n\nIf the auto-update flow fails, manual download remains available as a fallback.",
+          "actionLabel": "View Latest Release"
+        },
+        "es": {
+          "title": "✨ Las actualizaciones dentro de la app ya están disponibles desde v0.9.12+",
+          "summary": "Ahora puedes comprobar, descargar e instalar actualizaciones dentro de la app, con actualización automática en segundo plano opcional.",
+          "content": "A partir de la versión v0.9.12, Cockpit Tools admite actualizaciones dentro de la aplicación.\n\nAhora puedes:\n• comprobar y descargar nuevas versiones directamente en la app, sin ir al navegador para descargar el instalador manualmente\n• activar la actualización automática en segundo plano en Configuración > General; cuando se detecte una nueva versión, se descargará en silencio y se aplicará tras reiniciar\n• ver las notas de actualización en el primer inicio después de actualizar para revisar rápidamente los cambios\n\nSi falla el flujo de actualización automática, la descarga manual seguirá disponible como alternativa.",
+          "actionLabel": "Ver la última versión"
+        },
+        "fr": {
+          "title": "✨ Les mises à jour intégrées sont disponibles depuis la v0.9.12+",
+          "summary": "Vérifiez, téléchargez et installez les mises à jour directement dans l’application, avec mise à jour automatique en arrière-plan en option.",
+          "content": "À partir de la version v0.9.12, Cockpit Tools prend en charge les mises à jour intégrées.\n\nVous pouvez désormais :\n• vérifier et télécharger les nouvelles versions directement dans l’application, sans passer par le navigateur pour télécharger l’installateur manuellement\n• activer la mise à jour automatique en arrière-plan dans Paramètres > Général ; lorsqu’une nouvelle version est détectée, elle est téléchargée silencieusement et appliquée après redémarrage\n• afficher les notes de mise à jour au premier lancement après mise à jour, pour voir rapidement les changements\n\nSi le flux de mise à jour automatique échoue, le téléchargement manuel reste disponible en solution de secours.",
+          "actionLabel": "Voir la dernière version"
+        },
+        "it": {
+          "title": "✨ Aggiornamenti in-app disponibili da v0.9.12+",
+          "summary": "Ora puoi controllare, scaricare e installare gli aggiornamenti direttamente nell’app, con aggiornamento automatico in background opzionale.",
+          "content": "A partire dalla v0.9.12, Cockpit Tools supporta gli aggiornamenti in-app.\n\nOra puoi:\n• controllare e scaricare nuove versioni direttamente nell’app, senza passare dal browser per scaricare manualmente il programma di installazione\n• abilitare l’aggiornamento automatico in background in Impostazioni > Generale; quando viene rilevata una nuova versione, viene scaricata in silenzio e applicata dopo il riavvio\n• visualizzare le note di aggiornamento al primo avvio dopo l’update, per vedere subito cosa è cambiato\n\nSe il flusso di aggiornamento automatico fallisce, il download manuale resta disponibile come alternativa.",
+          "actionLabel": "Visualizza ultima versione"
+        },
+        "ja": {
+          "title": "✨ v0.9.12+ からアプリ内アップデートに対応",
+          "summary": "アプリ内で更新の確認・ダウンロード・適用が可能になり、バックグラウンド自動更新も利用できます。",
+          "content": "v0.9.12 以降、Cockpit Tools はアプリ内アップデートに対応しました。\n\n現在できること：\n• ブラウザでインストーラーを手動ダウンロードしなくても、アプリ内で新バージョンを直接確認・ダウンロード\n• 「設定 > 一般」でバックグラウンド自動更新を有効化すると、新バージョン検出時にサイレントでダウンロードされ、再起動後に反映\n• 更新後の初回起動時に更新内容を表示し、変更点をすぐ確認\n\n自動更新に失敗した場合でも、手動ダウンロードをフォールバックとして利用できます。",
+          "actionLabel": "最新バージョンを見る"
+        },
+        "ko": {
+          "title": "✨ v0.9.12+부터 앱 내 업데이트 지원",
+          "summary": "앱 안에서 업데이트 확인·다운로드·설치를 지원하며, 설정에서 백그라운드 자동 업데이트를 켤 수 있습니다.",
+          "content": "v0.9.12부터 Cockpit Tools는 앱 내 업데이트를 지원합니다.\n\n이제 다음이 가능합니다:\n• 브라우저에서 설치 파일을 수동으로 내려받지 않고 앱 안에서 새 버전을 바로 확인하고 다운로드\n• 설정 > 일반에서 백그라운드 자동 업데이트를 켜면, 새 버전 감지 시 조용히 다운로드되고 재시작 후 적용\n• 업데이트 후 첫 실행 시 변경 사항 안내를 표시하여 내용을 빠르게 확인\n\n자동 업데이트가 실패하면 수동 다운로드를 대체 경로로 계속 사용할 수 있습니다.",
+          "actionLabel": "최신 버전 보기"
+        },
+        "pl": {
+          "title": "✨ Aktualizacje w aplikacji są dostępne od v0.9.12+",
+          "summary": "Możesz sprawdzać, pobierać i instalować aktualizacje bezpośrednio w aplikacji, z opcjonalną automatyczną aktualizacją w tle.",
+          "content": "Od wersji v0.9.12 Cockpit Tools obsługuje aktualizacje w aplikacji.\n\nTeraz możesz:\n• sprawdzać i pobierać nowe wersje bezpośrednio w aplikacji, bez przechodzenia do przeglądarki i ręcznego pobierania instalatora\n• włączyć automatyczną aktualizację w tle w Ustawienia > Ogólne; po wykryciu nowej wersji zostanie pobrana po cichu i zastosowana po restarcie\n• zobaczyć notatki o aktualizacji przy pierwszym uruchomieniu po aktualizacji, aby szybko sprawdzić zmiany\n\nJeśli automatyczna aktualizacja się nie powiedzie, ręczne pobieranie pozostaje dostępne jako opcja zapasowa.",
+          "actionLabel": "Zobacz najnowszą wersję"
+        },
+        "pt-br": {
+          "title": "✨ Atualizações no app disponíveis a partir da v0.9.12+",
+          "summary": "Agora você pode verificar, baixar e instalar atualizações dentro do app, com atualização automática em segundo plano opcional.",
+          "content": "A partir da v0.9.12, o Cockpit Tools oferece suporte a atualizações dentro do aplicativo.\n\nAgora você pode:\n• verificar e baixar novas versões diretamente no app, sem precisar ir ao navegador para baixar o instalador manualmente\n• ativar a atualização automática em segundo plano em Configurações > Geral; quando uma nova versão for detectada, ela será baixada silenciosamente e aplicada após reiniciar\n• ver as notas da atualização na primeira abertura após atualizar, para conferir rapidamente o que mudou\n\nSe o fluxo de atualização automática falhar, o download manual continua disponível como alternativa.",
+          "actionLabel": "Ver versão mais recente"
+        },
+        "ru": {
+          "title": "✨ Обновления внутри приложения доступны с v0.9.12+",
+          "summary": "Проверяйте, скачивайте и устанавливайте обновления прямо в приложении, с опциональным автообновлением в фоне.",
+          "content": "Начиная с v0.9.12, Cockpit Tools поддерживает обновления внутри приложения.\n\nТеперь вы можете:\n• проверять и скачивать новые версии прямо в приложении, без перехода в браузер для ручной загрузки установщика\n• включить автообновление в фоне в Настройки > Общие; при обнаружении новой версии она тихо скачивается и применяется после перезапуска\n• просматривать заметки к обновлению при первом запуске после обновления, чтобы быстро увидеть изменения\n\nЕсли автообновление не сработает, ручная загрузка останется доступной как резервный вариант.",
+          "actionLabel": "Открыть последнюю версию"
+        },
+        "tr": {
+          "title": "✨ Uygulama içi güncellemeler v0.9.12+ ile aktif",
+          "summary": "Artık güncellemeleri uygulama içinde kontrol edip indirip kurabilirsiniz; isteğe bağlı arka plan otomatik güncelleme de desteklenir.",
+          "content": "v0.9.12 sürümünden itibaren Cockpit Tools uygulama içi güncellemeleri destekler.\n\nArtık şunları yapabilirsiniz:\n• tarayıcıya geçmeden ve kurulum dosyasını elle indirmeden, yeni sürümleri doğrudan uygulama içinde kontrol edip indirme\n• Ayarlar > Genel bölümünden arka plan otomatik güncellemeyi açma; yeni sürüm algılandığında sessizce indirilir ve yeniden başlatmadan sonra uygulanır\n• güncellemeden sonraki ilk açılışta sürüm notlarını görerek değişiklikleri hızlıca inceleme\n\nOtomatik güncelleme akışı başarısız olursa, manuel indirme yedek seçenek olarak kullanılmaya devam eder.",
+          "actionLabel": "Son sürümü görüntüle"
+        },
+        "vi": {
+          "title": "✨ Đã hỗ trợ cập nhật trong ứng dụng từ v0.9.12+",
+          "summary": "Bạn có thể kiểm tra, tải xuống và cài đặt bản cập nhật ngay trong ứng dụng, kèm tùy chọn tự động cập nhật nền.",
+          "content": "Từ phiên bản v0.9.12, Cockpit Tools đã hỗ trợ cập nhật ngay trong ứng dụng.\n\nBây giờ bạn có thể:\n• kiểm tra và tải phiên bản mới trực tiếp trong ứng dụng, không cần mở trình duyệt để tải bộ cài thủ công\n• bật tự động cập nhật nền tại Cài đặt > Chung; khi phát hiện phiên bản mới, ứng dụng sẽ tải ngầm và áp dụng sau khi khởi động lại\n• xem ghi chú cập nhật ở lần mở đầu tiên sau khi cập nhật để nắm nhanh thay đổi\n\nNếu luồng tự động cập nhật gặp lỗi, bạn vẫn có thể dùng tải thủ công làm phương án dự phòng.",
+          "actionLabel": "Xem bản mới nhất"
+        }
+      }
     }
   ]
 }

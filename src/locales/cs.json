@@ -156,7 +156,11 @@
     "dashboard": "Dashboard",
     "morePlatforms": "Další platformy",
     "instances": "Více instancí",
-    "manual": "Uživatelská příručka"
+    "manual": "Uživatelská příručka",
+    "quickUpdate": {
+      "update": "Aktualizovat",
+      "restart": "Restartovat"
+    }
   },
   "platformLayout": {
     "title": "Rozložení platforem",
@@ -997,7 +1001,15 @@
     "gotIt": "Rozumím",
     "silentReady": "Verze v{{version}} je připravena. Pro použití restartujte.",
     "later": "Později",
-    "restartNow": "Restartovat"
+    "restartNow": "Restartovat",
+    "checkRetrying": "Síť je nestabilní, opakuji kontrolu aktualizace ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Síť je nestabilní, opakuji stahování aktualizace ({{attempt}}/{{total}})...",
+    "retryDownload": "Zkusit stažení znovu",
+    "cancelUpdate": "Zrušit aktualizaci",
+    "showErrorDetails": "Zobrazit podrobnosti",
+    "hideErrorDetails": "Skrýt podrobnosti",
+    "autoUpdateFailedAfterRetries": "Automatická aktualizace selhala i po {{count}} pokusech. Zkuste to později nebo stáhněte ručně.",
+    "updateCancelled": "Aktualizace byla zrušena."
   },
   "closeDialog": {
     "title": "Zavřít okno",

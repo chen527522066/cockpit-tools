@@ -156,7 +156,11 @@
     "dashboard": "Bảng điều khiển",
     "morePlatforms": "Thêm nền tảng",
     "instances": "Đa Phiên Bản",
-    "manual": "Hướng dẫn sử dụng"
+    "manual": "Hướng dẫn sử dụng",
+    "quickUpdate": {
+      "update": "Cập nhật",
+      "restart": "Khởi động lại"
+    }
   },
   "platformLayout": {
     "title": "Bố cục nền tảng",
@@ -997,7 +1001,15 @@
     "gotIt": "Đã hiểu",
     "silentReady": "Phiên bản v{{version}} đã sẵn sàng. Hãy khởi động lại để áp dụng.",
     "later": "Để sau",
-    "restartNow": "Khởi động lại"
+    "restartNow": "Khởi động lại",
+    "checkRetrying": "Mạng không ổn định, đang thử lại kiểm tra cập nhật ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Mạng không ổn định, đang thử lại tải bản cập nhật ({{attempt}}/{{total}})...",
+    "retryDownload": "Thử tải lại",
+    "cancelUpdate": "Hủy cập nhật",
+    "showErrorDetails": "Xem chi tiết",
+    "hideErrorDetails": "Ẩn chi tiết",
+    "autoUpdateFailedAfterRetries": "Tự động cập nhật thất bại sau {{count}} lần thử. Hãy thử lại sau hoặc tải thủ công.",
+    "updateCancelled": "Đã hủy cập nhật."
   },
   "closeDialog": {
     "title": "Đóng cửa sổ",

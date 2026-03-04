@@ -156,7 +156,11 @@
     "dashboard": "Панель",
     "morePlatforms": "Другие платформы",
     "instances": "Мульти-инстанс",
-    "manual": "Руководство пользователя"
+    "manual": "Руководство пользователя",
+    "quickUpdate": {
+      "update": "Обновить",
+      "restart": "Перезапустить"
+    }
   },
   "platformLayout": {
     "title": "Макет платформ",
@@ -997,7 +1001,15 @@
     "gotIt": "Понятно",
     "silentReady": "Версия v{{version}} готова. Перезапустите, чтобы применить.",
     "later": "Позже",
-    "restartNow": "Перезапустить"
+    "restartNow": "Перезапустить",
+    "checkRetrying": "Сеть нестабильна, повторная проверка обновления ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Сеть нестабильна, повторная загрузка обновления ({{attempt}}/{{total}})...",
+    "retryDownload": "Повторить загрузку",
+    "cancelUpdate": "Отменить обновление",
+    "showErrorDetails": "Показать детали",
+    "hideErrorDetails": "Скрыть детали",
+    "autoUpdateFailedAfterRetries": "Автообновление не удалось после {{count}} попыток. Повторите позже или скачайте вручную.",
+    "updateCancelled": "Обновление отменено."
   },
   "closeDialog": {
     "title": "Закрыть окно",

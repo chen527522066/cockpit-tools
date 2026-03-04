@@ -1070,22 +1070,61 @@ fn spawn_command_with_trace(cmd: &mut Command) -> std::io::Result<std::process::
 
 fn collect_running_process_exe_by_pid() -> HashMap<u32, String> {
     let mut map = HashMap::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(
-        sysinfo::ProcessesToUpdate::All,
-        true,
-        ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet),
-    );
-    for (pid, process) in system.processes() {
-        let Some(exe) = process.exe().and_then(|value| value.to_str()) else {
-            continue;
-        };
-        let normalized = normalize_path_for_compare(exe);
-        if normalized.is_empty() {
-            continue;
+
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        if let Ok(output) = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let line = line.trim();
+                if line.is_empty() { continue; }
+                let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+                let pid_str = parts.next().unwrap_or("").trim();
+                let cmdline = parts.next().unwrap_or("").trim();
+                let pid = match pid_str.parse::<u32>() {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let lower = cmdline.to_lowercase();
+                let exe = if let Some(contents_pos) = lower.find(".app/contents/macos/") {
+                    let after = contents_pos + ".app/contents/macos/".len();
+                    let rest = &cmdline[after..];
+                    let end = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
+                    &cmdline[..after + end]
+                } else {
+                    cmdline.split_whitespace().next().unwrap_or("")
+                };
+                if !exe.is_empty() {
+                    let normalized = normalize_path_for_compare(exe);
+                    if !normalized.is_empty() {
+                        map.insert(pid, normalized);
+                    }
+                }
+            }
         }
-        map.insert(pid.as_u32(), normalized);
     }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(
+            sysinfo::ProcessesToUpdate::All,
+            true,
+            ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet),
+        );
+        for (pid, process) in system.processes() {
+            let Some(exe) = process.exe().and_then(|value| value.to_str()) else {
+                continue;
+            };
+            let normalized = normalize_path_for_compare(exe);
+            if normalized.is_empty() {
+                continue;
+            }
+            map.insert(pid.as_u32(), normalized);
+        }
+    }
+
     map
 }
 
@@ -1145,57 +1184,60 @@ pub fn collect_windsurf_process_entries() -> Vec<(u32, Option<String>)> {
     }
 
     let mut entries: HashMap<u32, Option<String>> = HashMap::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(
-        sysinfo::ProcessesToUpdate::All,
-        true,
-        ProcessRefreshKind::nothing()
-            .with_exe(UpdateKind::OnlyIfNotSet)
-            .with_cmd(UpdateKind::OnlyIfNotSet),
-    );
-    let current_pid = std::process::id();
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
+    // On macOS, skip sysinfo to avoid TCC dialogs
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(
+            sysinfo::ProcessesToUpdate::All,
+            true,
+            ProcessRefreshKind::nothing()
+                .with_exe(UpdateKind::OnlyIfNotSet)
+                .with_cmd(UpdateKind::OnlyIfNotSet),
+        );
+        let current_pid = std::process::id();
 
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-        let args_line = process
-            .cmd()
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        #[cfg(target_os = "macos")]
-        let is_windsurf = exe_path.contains("windsurf.app/contents/");
-        #[cfg(target_os = "windows")]
-        let is_windsurf = name == "windsurf.exe"
-            || exe_path.ends_with("\\windsurf.exe")
-            || (name == "electron.exe" && exe_path.contains("\\windsurf\\"));
-        #[cfg(target_os = "linux")]
-        let is_windsurf = name.contains("windsurf") || exe_path.contains("/windsurf");
-
-        if !is_windsurf || is_helper_process(&name, &args_line) {
-            continue;
-        }
-
-        let dir = extract_user_data_dir(process.cmd()).and_then(|value| {
-            let normalized = normalize_path_for_compare(&value);
-            if normalized.is_empty() {
-                None
-            } else {
-                Some(normalized)
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
             }
-        });
-        entries.insert(pid_u32, dir);
+
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let args_line = process
+                .cmd()
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            #[cfg(target_os = "windows")]
+            let is_windsurf = name == "windsurf.exe"
+                || exe_path.ends_with("\\windsurf.exe")
+                || (name == "electron.exe" && exe_path.contains("\\windsurf\\"));
+            #[cfg(target_os = "linux")]
+            let is_windsurf = name.contains("windsurf") || exe_path.contains("/windsurf");
+
+            if !is_windsurf || is_helper_process(&name, &args_line) {
+                continue;
+            }
+
+            let dir = extract_user_data_dir(process.cmd()).and_then(|value| {
+                let normalized = normalize_path_for_compare(&value);
+                if normalized.is_empty() {
+                    None
+                } else {
+                    Some(normalized)
+                }
+            });
+            entries.insert(pid_u32, dir);
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -1410,25 +1452,46 @@ fn resolve_macos_exec_path(path_str: &str) -> Option<PathBuf> {
 }
 
 fn detect_windsurf_exec_path() -> Option<PathBuf> {
-    for (pid, _) in collect_windsurf_process_entries() {
-        let mut system = System::new();
-        system.refresh_processes_specifics(
-            sysinfo::ProcessesToUpdate::All,
-            true,
-            ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet),
-        );
-        if let Some(process) = system.process(sysinfo::Pid::from(pid as usize)) {
-            if let Some(path) = process.exe() {
-                return Some(path.to_path_buf());
-            }
-        }
-    }
-
     #[cfg(target_os = "macos")]
     {
+        // On macOS, check well-known path first to avoid sysinfo TCC dialogs
         let path = PathBuf::from("/Applications/Windsurf.app/Contents/MacOS/Electron");
         if path.exists() {
             return Some(path);
+        }
+        // Fallback: try to find from running processes via ps
+        for (pid, _) in collect_windsurf_process_entries() {
+            if let Ok(output) = Command::new("ps")
+                .args(["-p", &pid.to_string(), "-o", "command="])
+                .output()
+            {
+                let cmdline = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let lower = cmdline.to_lowercase();
+                if let Some(contents_pos) = lower.find(".app/contents/macos/") {
+                    let after = contents_pos + ".app/contents/macos/".len();
+                    let rest = &cmdline[after..];
+                    let end = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
+                    return Some(PathBuf::from(&cmdline[..after + end]));
+                }
+            }
+        }
+        return None;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        for (pid, _) in collect_windsurf_process_entries() {
+            let mut system = System::new();
+            system.refresh_processes_specifics(
+                sysinfo::ProcessesToUpdate::All,
+                true,
+                ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet),
+            );
+            if let Some(process) = system.process(sysinfo::Pid::from(pid as usize)) {
+                if let Some(path) = process.exe() {
+                    return Some(path.to_path_buf());
+                }
+            }
         }
     }
 

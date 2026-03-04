@@ -156,7 +156,11 @@
     "dashboard": "Pannello di controllo",
     "morePlatforms": "Altre piattaforme",
     "instances": "Multi-Istanza",
-    "manual": "Manuale utente"
+    "manual": "Manuale utente",
+    "quickUpdate": {
+      "update": "Aggiorna",
+      "restart": "Riavvia"
+    }
   },
   "platformLayout": {
     "title": "Layout piattaforme",
@@ -997,7 +1001,15 @@
     "gotIt": "Ho capito",
     "silentReady": "La versione v{{version}} è pronta. Riavvia per applicarla.",
     "later": "Più tardi",
-    "restartNow": "Riavvia"
+    "restartNow": "Riavvia",
+    "checkRetrying": "Rete instabile, nuovo tentativo di controllo aggiornamenti ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Rete instabile, nuovo tentativo di download aggiornamento ({{attempt}}/{{total}})...",
+    "retryDownload": "Riprova download",
+    "cancelUpdate": "Annulla aggiornamento",
+    "showErrorDetails": "Mostra dettagli",
+    "hideErrorDetails": "Nascondi dettagli",
+    "autoUpdateFailedAfterRetries": "Aggiornamento automatico non riuscito dopo {{count}} tentativi. Riprova più tardi o scarica manualmente.",
+    "updateCancelled": "Aggiornamento annullato."
   },
   "closeDialog": {
     "title": "Chiudi finestra",

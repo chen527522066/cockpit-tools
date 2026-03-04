@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const DEFAULT_CHECK_INTERVAL_HOURS: u64 = 24;
+const DEFAULT_CHECK_INTERVAL_HOURS: u64 = 1;
+const LEGACY_DEFAULT_CHECK_INTERVAL_HOURS: u64 = 24;
+const LEGACY_PREVIOUS_DEFAULT_CHECK_INTERVAL_HOURS: u64 = 6;
 const PENDING_UPDATE_NOTES_FILE: &str = "pending_update_notes.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,8 +189,23 @@ pub fn load_update_settings() -> Result<UpdateSettings, String> {
 
     let content = std::fs::read_to_string(&settings_path)
         .map_err(|e| format!("Failed to read settings file: {}", e))?;
+    let mut settings: UpdateSettings =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))?;
 
-    serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))
+    let mut should_persist = false;
+    if settings.check_interval_hours == 0
+        || settings.check_interval_hours == LEGACY_DEFAULT_CHECK_INTERVAL_HOURS
+        || settings.check_interval_hours == LEGACY_PREVIOUS_DEFAULT_CHECK_INTERVAL_HOURS
+    {
+        settings.check_interval_hours = DEFAULT_CHECK_INTERVAL_HOURS;
+        should_persist = true;
+    }
+
+    if should_persist {
+        let _ = save_update_settings(&settings);
+    }
+
+    Ok(settings)
 }
 
 /// Save update settings to config file

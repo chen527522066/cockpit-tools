@@ -156,7 +156,11 @@
     "dashboard": "대시보드",
     "morePlatforms": "더 많은 플랫폼",
     "instances": "멀티 인스턴스",
-    "manual": "사용자 매뉴얼"
+    "manual": "사용자 매뉴얼",
+    "quickUpdate": {
+      "update": "업데이트",
+      "restart": "재시작"
+    }
   },
   "platformLayout": {
     "title": "플랫폼 레이아웃",
@@ -997,7 +1001,15 @@
     "gotIt": "확인",
     "silentReady": "v{{version}} 준비가 완료되었습니다. 적용하려면 재시작하세요.",
     "later": "나중에",
-    "restartNow": "재시작"
+    "restartNow": "재시작",
+    "checkRetrying": "네트워크가 불안정하여 업데이트 확인을 다시 시도하는 중입니다 ({{attempt}}/{{total}})...",
+    "downloadRetrying": "네트워크가 불안정하여 업데이트 다운로드를 다시 시도하는 중입니다 ({{attempt}}/{{total}})...",
+    "retryDownload": "다운로드 다시 시도",
+    "cancelUpdate": "업데이트 취소",
+    "showErrorDetails": "상세 보기",
+    "hideErrorDetails": "상세 숨기기",
+    "autoUpdateFailedAfterRetries": "{{count}}회 시도 후에도 자동 업데이트에 실패했습니다. 잠시 후 다시 시도하거나 수동으로 다운로드하세요.",
+    "updateCancelled": "업데이트가 취소되었습니다."
   },
   "closeDialog": {
     "title": "창 닫기",

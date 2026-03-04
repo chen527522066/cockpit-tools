@@ -156,7 +156,11 @@
     "dashboard": "ダッシュボード",
     "morePlatforms": "その他のプラットフォーム",
     "instances": "マルチインスタンス",
-    "manual": "ユーザーマニュアル"
+    "manual": "ユーザーマニュアル",
+    "quickUpdate": {
+      "update": "更新",
+      "restart": "再起動"
+    }
   },
   "platformLayout": {
     "title": "プラットフォームレイアウト",
@@ -997,7 +1001,15 @@
     "gotIt": "了解",
     "silentReady": "v{{version}} の準備ができました。適用するには再起動してください。",
     "later": "後で",
-    "restartNow": "再起動"
+    "restartNow": "再起動",
+    "checkRetrying": "ネットワークが不安定なため、更新チェックを再試行しています ({{attempt}}/{{total}})...",
+    "downloadRetrying": "ネットワークが不安定なため、更新ダウンロードを再試行しています ({{attempt}}/{{total}})...",
+    "retryDownload": "再ダウンロード",
+    "cancelUpdate": "更新を中止",
+    "showErrorDetails": "詳細を表示",
+    "hideErrorDetails": "詳細を隠す",
+    "autoUpdateFailedAfterRetries": "{{count}} 回試行しましたが自動更新に失敗しました。しばらくして再試行するか、手動でダウンロードしてください。",
+    "updateCancelled": "更新をキャンセルしました。"
   },
   "closeDialog": {
     "title": "ウィンドウを閉じる",

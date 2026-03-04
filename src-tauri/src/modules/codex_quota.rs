@@ -110,8 +110,14 @@ fn normalize_reset_time(window: &WindowInfo) -> Option<i64> {
     Some(chrono::Utc::now().timestamp() + reset_after_seconds)
 }
 
+/// 配额查询结果（包含 plan_type）
+pub struct FetchQuotaResult {
+    pub quota: CodexQuota,
+    pub plan_type: Option<String>,
+}
+
 /// 查询单个账号的配额
-pub async fn fetch_quota(account: &CodexAccount) -> Result<CodexQuota, String> {
+pub async fn fetch_quota(account: &CodexAccount) -> Result<FetchQuotaResult, String> {
     let client = reqwest::Client::new();
 
     let mut headers = HeaderMap::new();
@@ -191,7 +197,10 @@ pub async fn fetch_quota(account: &CodexAccount) -> Result<CodexQuota, String> {
     let usage: UsageResponse =
         serde_json::from_str(&body).map_err(|e| format!("解析 JSON 失败: {}", e))?;
 
-    parse_quota_from_usage(&usage, &body)
+    let quota = parse_quota_from_usage(&usage, &body)?;
+    let plan_type = usage.plan_type.clone();
+
+    Ok(FetchQuotaResult { quota, plan_type })
 }
 
 /// 从使用率响应中解析配额信息
@@ -240,6 +249,24 @@ fn parse_quota_from_usage(usage: &UsageResponse, raw_body: &str) -> Result<Codex
     })
 }
 
+/// 从 id_token 中提取 plan_type 并同步更新账号和索引
+fn sync_plan_type_from_token(account: &mut CodexAccount, plan_type: Option<String>) {
+    if let Some(ref new_plan) = plan_type {
+        let old_plan = account.plan_type.clone();
+        if account.plan_type.as_deref() != Some(new_plan) {
+            logger::log_info(&format!(
+                "Codex 账号 {} 订阅标识已更新: {:?} -> {:?}",
+                account.email, old_plan, plan_type
+            ));
+            account.plan_type = plan_type;
+            // 同步更新索引中的 plan_type
+            if let Err(e) = codex_account::update_account_plan_type_in_index(&account.id, &account.plan_type) {
+                logger::log_warn(&format!("更新索引 plan_type 失败: {}", e));
+            }
+        }
+    }
+}
+
 /// 刷新账号配额并保存（包含 token 自动刷新）
 pub async fn refresh_account_quota(account_id: &str) -> Result<CodexQuota, String> {
     let mut account = codex_account::load_account(account_id)
@@ -254,6 +281,14 @@ pub async fn refresh_account_quota(account_id: &str) -> Result<CodexQuota, Strin
                 Ok(new_tokens) => {
                     logger::log_info(&format!("账号 {} 的 Token 刷新成功", account.email));
                     account.tokens = new_tokens;
+
+                    // 从新的 id_token 重新解析 plan_type
+                    if let Ok((_, _, new_plan_type, _, _)) =
+                        codex_account::extract_user_info(&account.tokens.id_token)
+                    {
+                        sync_plan_type_from_token(&mut account, new_plan_type);
+                    }
+
                     codex_account::save_account(&account)?;
                 }
                 Err(e) => {
@@ -276,8 +311,8 @@ pub async fn refresh_account_quota(account_id: &str) -> Result<CodexQuota, Strin
         }
     }
 
-    let quota = match fetch_quota(&account).await {
-        Ok(quota) => quota,
+    let result = match fetch_quota(&account).await {
+        Ok(result) => result,
         Err(e) => {
             write_quota_error(&mut account, e.clone());
             if let Err(save_err) = codex_account::save_account(&account) {
@@ -287,11 +322,16 @@ pub async fn refresh_account_quota(account_id: &str) -> Result<CodexQuota, Strin
         }
     };
 
-    account.quota = Some(quota.clone());
+    // 从 usage 响应中的 plan_type 更新订阅标识
+    if result.plan_type.is_some() {
+        sync_plan_type_from_token(&mut account, result.plan_type);
+    }
+
+    account.quota = Some(result.quota.clone());
     account.quota_error = None;
     codex_account::save_account(&account)?;
 
-    Ok(quota)
+    Ok(result.quota)
 }
 
 /// 刷新所有账号配额

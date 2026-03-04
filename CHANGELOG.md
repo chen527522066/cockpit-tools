@@ -7,6 +7,24 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.9.14] - 2026-03-04
+
+### Added
+- **Floating sidebar quick-update action**: Added a compact action above the sidebar that follows updater lifecycle states (`Update` / `Downloading %` / `Restart`), so users can continue update flow without reopening settings pages.
+
+### Changed
+- **Updater retry and failure handling hardened**: Added retry-with-backoff plus retryable/non-retryable error classification for update check/download, with retry status feedback and sanitized error details in UI/logs.
+- **Update check baseline interval changed to 1 hour**: Default update-check interval is now 1 hour, and legacy 6h/24h interval values are migrated to 1 hour automatically when settings are loaded.
+- **macOS process probe path for desktop clients was switched to `ps`-first matching**: Antigravity/VS Code/Codex/Kiro/Windsurf process discovery now prioritizes command-line probing and keeps app-root path comparison, reducing protected-directory touches while improving process match stability for instance operations.
+- **Antigravity macOS multi-instance startup behavior was tightened**: Non-default instances now launch via `open -n` without `--reuse-window`, and startup includes a short PID resolve polling window (up to 6s) for the target `user-data-dir`.
+- **Codex quota refresh now synchronizes plan metadata back to account index**: `plan_type` is now synced from refreshed `id_token` and quota usage response into account summary index, so subscription badges can update without re-import.
+
+### Fixed
+- **Reopened update dialog now preserves prepared-update restart state**: If the same version is already downloaded, reopening the update dialog now stays in `Ready to restart` state instead of falling back to `Update now`.
+- **Manual dialog restart now reuses unified apply-update pipeline**: `Restart now` in the update dialog now follows the same install/relaunch path as silent updates, preventing state divergence between update entry points.
+- **GitHub Copilot instance injection no longer fails on macOS due to wrong Safe Storage key priority**: VS Code/Copilot injection now prefers Code-family Keychain entries before Antigravity entries, preventing `AES-CBC decryption failed: Unpad Error` when decrypting existing `github.auth`.
+
+---
 ## [0.9.13] - 2026-03-03
 
 ### Added

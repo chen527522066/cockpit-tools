@@ -156,7 +156,11 @@
     "dashboard": "Dashboard",
     "morePlatforms": "More Platforms",
     "instances": "Multi-Instance",
-    "manual": "User Manual"
+    "manual": "User Manual",
+    "quickUpdate": {
+      "update": "Update",
+      "restart": "Restart"
+    }
   },
   "platformLayout": {
     "title": "Platform Layout",
@@ -997,7 +1001,15 @@
     "gotIt": "Got it!",
     "silentReady": "v{{version}} is ready. Restart to apply.",
     "later": "Later",
-    "restartNow": "Restart"
+    "restartNow": "Restart",
+    "checkRetrying": "Network is unstable, retrying update check ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Network is unstable, retrying update download ({{attempt}}/{{total}})...",
+    "retryDownload": "Retry Download",
+    "cancelUpdate": "Cancel Update",
+    "showErrorDetails": "View details",
+    "hideErrorDetails": "Hide details",
+    "autoUpdateFailedAfterRetries": "Auto-update failed after {{count}} attempts. Try again later or download manually.",
+    "updateCancelled": "Update canceled."
   },
   "closeDialog": {
     "title": "Close Window",

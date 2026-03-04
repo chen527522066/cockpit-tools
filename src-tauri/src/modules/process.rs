@@ -23,6 +23,23 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 #[cfg(target_os = "windows")]
 const WINDOWS_PROCESS_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// On macOS, extract the executable path from a `ps` command line output.
+/// Handles paths with spaces in .app bundles (e.g., "Visual Studio Code.app").
+#[cfg(target_os = "macos")]
+fn extract_macos_exe_from_cmdline(cmdline: &str) -> Option<String> {
+    let lower = cmdline.to_lowercase();
+    // For .app bundles: find the binary after Contents/MacOS/
+    if let Some(contents_pos) = lower.find(".app/contents/macos/") {
+        let after_macos = contents_pos + ".app/contents/macos/".len();
+        // Binary name goes until next whitespace or end
+        let rest = &cmdline[after_macos..];
+        let end = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
+        return Some(cmdline[..after_macos + end].to_string());
+    }
+    // For non-.app executables: first whitespace-delimited token
+    cmdline.split_whitespace().next().map(|s| s.to_string())
+}
+
 fn strict_process_detect_enabled() -> bool {
     std::env::var("AG_STRICT_PROCESS_DETECT")
         .ok()
@@ -1102,8 +1119,20 @@ fn resolve_macos_app_root_from_config(app: &str) -> Option<String> {
 
 #[cfg(target_os = "macos")]
 fn spawn_open_app(app_root: &str, args: &[String]) -> Result<u32, String> {
+    spawn_open_app_with_options(app_root, args, false)
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_open_app_with_options(
+    app_root: &str,
+    args: &[String],
+    force_new_instance: bool,
+) -> Result<u32, String> {
     let mut cmd = Command::new("open");
     sanitize_macos_gui_launch_env(&mut cmd);
+    if force_new_instance {
+        cmd.arg("-n");
+    }
     cmd.arg("-a").arg(app_root);
     if !args.is_empty() {
         cmd.arg("--args");
@@ -1118,159 +1147,176 @@ fn spawn_open_app(app_root: &str, args: &[String]) -> Result<u32, String> {
 }
 
 fn find_antigravity_process_exe() -> Option<std::path::PathBuf> {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
-    let current_pid = std::process::id();
-
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let is_helper = args_str.contains("--type=")
-            || name.contains("helper")
-            || name.contains("plugin")
-            || name.contains("renderer")
-            || name.contains("gpu")
-            || name.contains("crashpad")
-            || name.contains("utility")
-            || name.contains("audio")
-            || name.contains("sandbox")
-            || exe_path.contains("crashpad");
-
-        #[cfg(target_os = "macos")]
-        let is_antigravity =
-            exe_path.contains("antigravity.app") && !exe_path.contains("antigravity tools.app");
-        #[cfg(target_os = "windows")]
-        let is_antigravity = name == "antigravity.exe" || exe_path.ends_with("\\antigravity.exe");
-        #[cfg(target_os = "linux")]
-        let is_antigravity = (name.contains("antigravity") || exe_path.contains("/antigravity"))
-            && !name.contains("tools")
-            && !exe_path.contains("tools");
-
-        if is_antigravity && !is_helper {
-            if let Some(exe) = process.exe() {
-                return Some(exe.to_path_buf());
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        let output = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output().ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            let line = line.trim();
+            if line.is_empty() { continue; }
+            let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+            let _pid_str = parts.next().unwrap_or("").trim();
+            let cmdline = parts.next().unwrap_or("").trim();
+            let lower = cmdline.to_lowercase();
+            if !lower.contains("antigravity.app/contents/") { continue; }
+            if lower.contains("antigravity tools.app/contents/") { continue; }
+            if lower.contains("--type=") || lower.contains("crashpad_handler") { continue; }
+            if let Some(exe) = extract_macos_exe_from_cmdline(cmdline) {
+                return Some(std::path::PathBuf::from(exe));
             }
         }
+        return None;
     }
 
-    None
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+
+        let current_pid = std::process::id();
+
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
+
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let is_helper = args_str.contains("--type=")
+                || name.contains("helper")
+                || name.contains("plugin")
+                || name.contains("renderer")
+                || name.contains("gpu")
+                || name.contains("crashpad")
+                || name.contains("utility")
+                || name.contains("audio")
+                || name.contains("sandbox")
+                || exe_path.contains("crashpad");
+
+            #[cfg(target_os = "windows")]
+            let is_antigravity = name == "antigravity.exe" || exe_path.ends_with("\\antigravity.exe");
+            #[cfg(target_os = "linux")]
+            let is_antigravity = (name.contains("antigravity") || exe_path.contains("/antigravity"))
+                && !name.contains("tools")
+                && !exe_path.contains("tools");
+
+            if is_antigravity && !is_helper {
+                if let Some(exe) = process.exe() {
+                    return Some(exe.to_path_buf());
+                }
+            }
+        }
+
+        None
+    }
 }
 
 fn find_vscode_process_exe() -> Option<std::path::PathBuf> {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
-    let current_pid = std::process::id();
-
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let is_helper = args_str.contains("--type=")
-            || name.contains("helper")
-            || name.contains("renderer")
-            || name.contains("gpu")
-            || name.contains("crashpad")
-            || name.contains("utility")
-            || name.contains("audio")
-            || name.contains("sandbox");
-
-        #[cfg(target_os = "macos")]
-        let is_vscode = exe_path.contains("visual studio code.app/contents/") && !is_helper;
-        #[cfg(target_os = "windows")]
-        let is_vscode = (name == "code.exe" || exe_path.ends_with("\\code.exe")) && !is_helper;
-        #[cfg(target_os = "linux")]
-        let is_vscode = (name == "code" || exe_path.ends_with("/code")) && !is_helper;
-
-        if is_vscode {
-            if let Some(exe) = process.exe() {
-                return Some(exe.to_path_buf());
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        let output = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output().ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            let line = line.trim();
+            if line.is_empty() { continue; }
+            let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+            let _pid_str = parts.next().unwrap_or("").trim();
+            let cmdline = parts.next().unwrap_or("").trim();
+            let lower = cmdline.to_lowercase();
+            if !lower.contains("visual studio code.app/contents/macos/") { continue; }
+            if lower.contains("--type=") || lower.contains("crashpad_handler") { continue; }
+            if let Some(exe) = extract_macos_exe_from_cmdline(cmdline) {
+                return Some(std::path::PathBuf::from(exe));
             }
         }
+        return None;
     }
 
-    None
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+
+        let current_pid = std::process::id();
+
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
+
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let is_helper = args_str.contains("--type=")
+                || name.contains("helper")
+                || name.contains("renderer")
+                || name.contains("gpu")
+                || name.contains("crashpad")
+                || name.contains("utility")
+                || name.contains("audio")
+                || name.contains("sandbox");
+
+            #[cfg(target_os = "windows")]
+            let is_vscode = (name == "code.exe" || exe_path.ends_with("\\code.exe")) && !is_helper;
+            #[cfg(target_os = "linux")]
+            let is_vscode = (name == "code" || exe_path.ends_with("/code")) && !is_helper;
+
+            if is_vscode {
+                if let Some(exe) = process.exe() {
+                    return Some(exe.to_path_buf());
+                }
+            }
+        }
+
+        None
+    }
 }
 
 #[cfg(target_os = "macos")]
 fn find_codex_process_exe() -> Option<std::path::PathBuf> {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
-    let current_pid = std::process::id();
-
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let is_helper = args_str.contains("--type=")
-            || name.contains("helper")
-            || name.contains("renderer")
-            || name.contains("gpu")
-            || name.contains("crashpad")
-            || name.contains("utility")
-            || name.contains("audio")
-            || name.contains("sandbox");
-
-        let is_codex = exe_path.contains("codex.app/contents/macos/codex");
-
-        if is_codex && !is_helper {
-            if let Some(exe) = process.exe() {
-                return Some(exe.to_path_buf());
-            }
+    // Use ps to avoid sysinfo TCC dialogs on macOS
+    let output = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output().ok()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        let line = line.trim();
+        if line.is_empty() { continue; }
+        let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+        let _pid_str = parts.next().unwrap_or("").trim();
+        let cmdline = parts.next().unwrap_or("").trim();
+        let lower = cmdline.to_lowercase();
+        if !lower.contains("codex.app/contents/macos/codex") { continue; }
+        if lower.contains("--type=") || lower.contains("crashpad_handler") { continue; }
+        if let Some(exe) = extract_macos_exe_from_cmdline(cmdline) {
+            return Some(std::path::PathBuf::from(exe));
         }
     }
-
     None
 }
 
@@ -1635,46 +1681,82 @@ pub fn detect_and_save_app_path(app: &str, force: bool) -> Option<String> {
 /// 检查 Antigravity 是否在运行
 #[allow(dead_code)]
 pub fn is_antigravity_running() -> bool {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
-    let current_pid = std::process::id();
-
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        if let Ok(output) = Command::new("ps").args(["-axww", "-o", "command="]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let lower = line.trim().to_lowercase();
+                if lower.contains("antigravity.app/contents/")
+                    && !lower.contains("antigravity tools.app/contents/")
+                    && !lower.contains("--type=")
+                    && !lower.contains("crashpad_handler")
+                {
+                    return true;
+                }
+            }
         }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        if is_antigravity_main_process(&name, &exe_path, Some(&args_str)) {
-            return true;
-        }
+        return false;
     }
 
-    false
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+
+        let current_pid = std::process::id();
+
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
+
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            if is_antigravity_main_process(&name, &exe_path, Some(&args_str)) {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub fn is_pid_running(pid: u32) -> bool {
     if pid == 0 {
         return false;
     }
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-    system.process(Pid::from(pid as usize)).is_some()
+    #[cfg(target_os = "macos")]
+    {
+        // On macOS, use ps to check process existence to avoid sysinfo TCC dialogs.
+        return Command::new("ps")
+            .args(["-p", &pid.to_string()])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+        system.process(Pid::from(pid as usize)).is_some()
+    }
 }
 
 #[allow(dead_code)]
@@ -2011,22 +2093,52 @@ fn is_antigravity_main_process(
 
 fn collect_running_process_exe_by_pid() -> HashMap<u32, String> {
     let mut map = HashMap::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(
-        sysinfo::ProcessesToUpdate::All,
-        true,
-        ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet),
-    );
-    for (pid, process) in system.processes() {
-        let Some(exe) = process.exe().and_then(|value| value.to_str()) else {
-            continue;
-        };
-        let normalized = normalize_path_for_compare(exe);
-        if normalized.is_empty() {
-            continue;
+
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        if let Ok(output) = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let line = line.trim();
+                if line.is_empty() { continue; }
+                let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+                let pid_str = parts.next().unwrap_or("").trim();
+                let cmdline = parts.next().unwrap_or("").trim();
+                let pid = match pid_str.parse::<u32>() {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                if let Some(exe) = extract_macos_exe_from_cmdline(cmdline) {
+                    let normalized = normalize_path_for_compare(&exe);
+                    if !normalized.is_empty() {
+                        map.insert(pid, normalized);
+                    }
+                }
+            }
         }
-        map.insert(pid.as_u32(), normalized);
     }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(
+            sysinfo::ProcessesToUpdate::All,
+            true,
+            ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet),
+        );
+        for (pid, process) in system.processes() {
+            let Some(exe) = process.exe().and_then(|value| value.to_str()) else {
+                continue;
+            };
+            let normalized = normalize_path_for_compare(exe);
+            if normalized.is_empty() {
+                continue;
+            }
+            map.insert(pid.as_u32(), normalized);
+        }
+    }
+
     map
 }
 
@@ -2042,21 +2154,58 @@ fn filter_entries_by_expected_launch_path(
         return Vec::new();
     };
     let exe_by_pid = collect_running_process_exe_by_pid();
+    #[cfg(target_os = "macos")]
+    let expected_app_root = normalize_macos_app_root(std::path::Path::new(&expected))
+        .map(|root| normalize_path_for_compare(&root))
+        .filter(|root| !root.is_empty());
     let mut result = Vec::new();
     let mut missing_exe = 0usize;
     let mut path_mismatch = 0usize;
+    #[cfg(target_os = "macos")]
+    let mut app_root_match = 0usize;
     for (pid, dir) in entries {
         match exe_by_pid.get(&pid) {
             Some(actual) if actual == &expected => result.push((pid, dir)),
-            Some(_) => path_mismatch += 1,
+            Some(actual) => {
+                #[cfg(target_os = "macos")]
+                {
+                    if let Some(expected_root) = expected_app_root.as_ref() {
+                        let actual_root = normalize_macos_app_root(std::path::Path::new(actual))
+                            .map(|root| normalize_path_for_compare(&root))
+                            .filter(|root| !root.is_empty());
+                        if actual_root.as_ref() == Some(expected_root) {
+                            app_root_match += 1;
+                            result.push((pid, dir));
+                            continue;
+                        }
+                    }
+                }
+                path_mismatch += 1;
+            }
             None => missing_exe += 1,
         }
     }
     if result.is_empty() {
+        #[cfg(target_os = "macos")]
+        {
+            crate::modules::logger::log_warn(&format!(
+                "[{} Resolve] 启动路径硬匹配未命中：expected={}, path_mismatch={}, missing_exe={}, app_root_match={}",
+                app_label, expected, path_mismatch, missing_exe, app_root_match
+            ));
+        }
+        #[cfg(not(target_os = "macos"))]
         crate::modules::logger::log_warn(&format!(
             "[{} Resolve] 启动路径硬匹配未命中：expected={}, path_mismatch={}, missing_exe={}",
             app_label, expected, path_mismatch, missing_exe
         ));
+    } else {
+        #[cfg(target_os = "macos")]
+        if app_root_match > 0 {
+            crate::modules::logger::log_info(&format!(
+                "[{} Resolve] 使用 .app 根路径匹配到进程：expected={}, app_root_match={}",
+                app_label, expected, app_root_match
+            ));
+        }
     }
     result
 }
@@ -2382,6 +2531,8 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
                 expected_launch.clone(),
             );
         }
+        // macOS 下避免回退到 sysinfo，防止触发 TCC「其他 App 数据」授权弹窗
+        return Vec::new();
     }
 
     #[cfg(target_os = "windows")]
@@ -2417,44 +2568,47 @@ pub fn collect_antigravity_process_entries() -> Vec<(u32, Option<String>)> {
         }
     }
 
-    let mut result = Vec::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut result = Vec::new();
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    let current_pid = std::process::id();
+        let current_pid = std::process::id();
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
+
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            if !is_antigravity_main_process(&name, &exe_path, Some(&args_str)) {
+                continue;
+            }
+
+            let dir = extract_user_data_dir(&args);
+            result.push((pid_u32, dir));
         }
 
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        if !is_antigravity_main_process(&name, &exe_path, Some(&args_str)) {
-            continue;
-        }
-
-        let dir = extract_user_data_dir(&args);
-        result.push((pid_u32, dir));
+        return filter_entries_by_expected_launch_path(
+            "AG",
+            result,
+            expected_launch,
+        );
     }
-
-    filter_entries_by_expected_launch_path(
-        "AG",
-        result,
-        expected_launch,
-    )
 }
 
 fn pick_preferred_pid(mut pids: Vec<u32>) -> Option<u32> {
@@ -2958,46 +3112,49 @@ pub fn collect_vscode_process_entries() -> Vec<(u32, Option<String>)> {
     }
 
     let mut entries = Vec::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    let current_pid = std::process::id();
+    // On macOS, only use ps to avoid sysinfo TCC dialogs
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
+        let current_pid = std::process::id();
+
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
+
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args_str = process
+                .cmd()
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+            let is_helper = is_helper_command_line(&args_str) || args_str.contains("crashpad");
+
+            #[cfg(target_os = "windows")]
+            let is_vscode = name == "code.exe" || exe_path.ends_with("\\code.exe");
+            #[cfg(target_os = "linux")]
+            let is_vscode = name == "code" || exe_path.ends_with("/code");
+
+            if !is_vscode || is_helper {
+                continue;
+            }
+
+            let dir = extract_user_data_dir(process.cmd());
+            entries.push((pid_u32, dir));
         }
-
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args_str = process
-            .cmd()
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-        let is_helper = is_helper_command_line(&args_str) || args_str.contains("crashpad");
-
-        #[cfg(target_os = "macos")]
-        let is_vscode = exe_path.contains("visual studio code.app/contents/macos/");
-        #[cfg(target_os = "windows")]
-        let is_vscode = name == "code.exe" || exe_path.ends_with("\\code.exe");
-        #[cfg(target_os = "linux")]
-        let is_vscode = name == "code" || exe_path.ends_with("/code");
-
-        if !is_vscode || is_helper {
-            continue;
-        }
-
-        let dir = extract_user_data_dir(process.cmd());
-        entries.push((pid_u32, dir));
     }
 
     #[cfg(target_os = "macos")]
@@ -3349,43 +3506,49 @@ fn collect_antigravity_pids_by_user_data_dir(user_data_dir: &str) -> Vec<u32> {
     }
 
     let mut result = Vec::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    let current_pid = std::process::id();
+    // On macOS, skip sysinfo to avoid TCC dialogs
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
+        let current_pid = std::process::id();
 
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
 
-        if !is_antigravity_main_process(&name, &exe_path, Some(&args_str)) {
-            continue;
-        }
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
 
-        if let Some(dir) = extract_user_data_dir(&args) {
-            let normalized = normalize_path_for_compare(&dir);
-            if normalized == target {
-                result.push(pid_u32);
+            if !is_antigravity_main_process(&name, &exe_path, Some(&args_str)) {
+                continue;
+            }
+
+            if let Some(dir) = extract_user_data_dir(&args) {
+                let normalized = normalize_path_for_compare(&dir);
+                if normalized == target {
+                    result.push(pid_u32);
+                }
             }
         }
     }
 
     #[cfg(target_os = "macos")]
+
     {
         let entries = collect_antigravity_process_entries_macos();
         if !entries.is_empty() {
@@ -3593,45 +3756,47 @@ pub fn parse_extra_args(raw: &str) -> Vec<String> {
 
 #[allow(dead_code)]
 pub fn list_antigravity_user_data_dirs() -> Vec<String> {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
-    let current_pid = std::process::id();
     let mut result = Vec::new();
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
+    // On macOS, skip sysinfo to avoid TCC dialogs
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-        let _name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
+        let current_pid = std::process::id();
 
-        let args = process.cmd();
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
 
-        #[cfg(target_os = "macos")]
-        let is_antigravity =
-            exe_path.contains("antigravity.app") && !exe_path.contains("antigravity tools.app");
-        #[cfg(target_os = "windows")]
-        let is_antigravity = _name == "antigravity.exe" || exe_path.ends_with("\\antigravity.exe");
-        #[cfg(target_os = "linux")]
-        let is_antigravity = (_name.contains("antigravity") || exe_path.contains("/antigravity"))
-            && !_name.contains("tools")
-            && !exe_path.contains("tools");
+            let _name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
 
-        if !is_antigravity {
-            continue;
-        }
+            let args = process.cmd();
 
-        if let Some(dir) = extract_user_data_dir(&args) {
-            let normalized = normalize_path_for_compare(&dir);
-            if !normalized.is_empty() {
-                result.push(normalized);
+            #[cfg(target_os = "windows")]
+            let is_antigravity = _name == "antigravity.exe" || exe_path.ends_with("\\antigravity.exe");
+            #[cfg(target_os = "linux")]
+            let is_antigravity = (_name.contains("antigravity") || exe_path.contains("/antigravity"))
+                && !_name.contains("tools")
+                && !exe_path.contains("tools");
+
+            if !is_antigravity {
+                continue;
+            }
+
+            if let Some(dir) = extract_user_data_dir(&args) {
+                let normalized = normalize_path_for_compare(&dir);
+                if !normalized.is_empty() {
+                    result.push(normalized);
+                }
             }
         }
     }
@@ -3684,68 +3849,86 @@ pub fn list_antigravity_user_data_dirs() -> Vec<String> {
 /// 获取所有 Antigravity 进程的 PID（包括主进程和Helper进程）
 #[allow(dead_code)]
 fn get_antigravity_pids() -> Vec<u32> {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
     let mut pids = Vec::new();
-    let current_pid = std::process::id();
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-
-        // 排除自身 PID
-        if pid_u32 == current_pid {
-            continue;
-        }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        // 通用的辅助进程排除逻辑
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let is_helper = args_str.contains("--type=")
-            || name.contains("helper")
-            || name.contains("plugin")
-            || name.contains("renderer")
-            || name.contains("gpu")
-            || name.contains("crashpad")
-            || name.contains("utility")
-            || name.contains("audio")
-            || name.contains("sandbox")
-            || exe_path.contains("crashpad");
-
-        #[cfg(target_os = "macos")]
-        {
-            // 匹配 Antigravity 主程序包内的进程，但排除 Helper/Plugin/Renderer 等辅助进程
-            if exe_path.contains("antigravity.app") && !is_helper {
-                pids.push(pid_u32);
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        if let Ok(output) = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let line = line.trim();
+                if line.is_empty() { continue; }
+                let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+                let pid_str = parts.next().unwrap_or("").trim();
+                let cmdline = parts.next().unwrap_or("").trim();
+                let pid = match pid_str.parse::<u32>() {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let lower = cmdline.to_lowercase();
+                if !lower.contains("antigravity.app/contents/") { continue; }
+                if lower.contains("antigravity tools.app/contents/") { continue; }
+                // Include both main and helper processes (this function collects all)
+                pids.push(pid);
             }
         }
+    }
 
-        #[cfg(target_os = "windows")]
-        {
-            if name == "antigravity.exe" && !is_helper {
-                pids.push(pid_u32);
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+
+        let current_pid = std::process::id();
+
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+
+            if pid_u32 == current_pid {
+                continue;
             }
-        }
 
-        #[cfg(target_os = "linux")]
-        {
-            if (name == "antigravity" || exe_path.contains("/antigravity"))
-                && !name.contains("tools")
-                && !is_helper
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let is_helper = args_str.contains("--type=")
+                || name.contains("helper")
+                || name.contains("plugin")
+                || name.contains("renderer")
+                || name.contains("gpu")
+                || name.contains("crashpad")
+                || name.contains("utility")
+                || name.contains("audio")
+                || name.contains("sandbox")
+                || exe_path.contains("crashpad");
+
+            #[cfg(target_os = "windows")]
             {
-                pids.push(pid_u32);
+                if name == "antigravity.exe" && !is_helper {
+                    pids.push(pid_u32);
+                }
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                if (name == "antigravity" || exe_path.contains("/antigravity"))
+                    && !name.contains("tools")
+                    && !is_helper
+                {
+                    pids.push(pid_u32);
+                }
             }
         }
     }
@@ -4286,20 +4469,40 @@ pub fn start_antigravity_with_args(
         });
         let app_root = app_root.ok_or_else(|| app_path_missing_error("antigravity"))?;
 
+        let user_data_dir_trimmed = user_data_dir.trim();
+        let force_new_instance = !user_data_dir_trimmed.is_empty();
         let mut args: Vec<String> = Vec::new();
-        if !user_data_dir.trim().is_empty() {
+        if force_new_instance {
             args.push("--user-data-dir".to_string());
-            args.push(user_data_dir.trim().to_string());
+            args.push(user_data_dir_trimmed.to_string());
         }
-        args.push("--reuse-window".to_string());
+        if !force_new_instance {
+            args.push("--reuse-window".to_string());
+        }
         for arg in extra_args {
             if !arg.trim().is_empty() {
                 args.push(arg.to_string());
             }
         }
-        let pid =
-            spawn_open_app(&app_root, &args).map_err(|e| format!("启动 Antigravity 失败: {}", e))?;
+        let pid = spawn_open_app_with_options(&app_root, &args, force_new_instance)
+            .map_err(|e| format!("启动 Antigravity 失败: {}", e))?;
         crate::modules::logger::log_info("Antigravity 启动命令已发送");
+        if force_new_instance {
+            let probe_started = Instant::now();
+            let timeout = Duration::from_secs(6);
+            while probe_started.elapsed() < timeout {
+                if let Some(resolved_pid) =
+                    resolve_antigravity_pid(None, Some(user_data_dir_trimmed))
+                {
+                    return Ok(resolved_pid);
+                }
+                thread::sleep(Duration::from_millis(200));
+            }
+            crate::modules::logger::log_warn(&format!(
+                "[AG Start] 启动后 6s 内未匹配到实例 PID，回退 open pid={}",
+                pid
+            ));
+        }
         return Ok(pid);
     }
 
@@ -4823,134 +5026,171 @@ pub fn close_codex_instance(codex_home: &str, timeout_secs: u64) -> Result<(), S
 
 /// 检查 OpenCode（桌面端）是否在运行
 pub fn is_opencode_running() -> bool {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
-
-    let current_pid = std::process::id();
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
-    let app_lower = OPENCODE_APP_NAME.to_lowercase();
-
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let is_helper = args_str.contains("--type=")
-            || name.contains("helper")
-            || name.contains("plugin")
-            || name.contains("renderer")
-            || name.contains("gpu")
-            || name.contains("crashpad")
-            || name.contains("utility")
-            || name.contains("audio")
-            || name.contains("sandbox")
-            || exe_path.contains("crashpad");
-
-        #[cfg(target_os = "macos")]
-        {
-            let bundle_lower = format!("{}.app", app_lower);
-            if exe_path.contains(&bundle_lower) && !is_helper {
-                return true;
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        let app_lower = OPENCODE_APP_NAME.to_lowercase();
+        let bundle_pattern = format!("{}.app/contents/", app_lower);
+        if let Ok(output) = Command::new("ps").args(["-axww", "-o", "command="]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let lower = line.trim().to_lowercase();
+                if lower.contains(&bundle_pattern)
+                    && !lower.contains("--type=")
+                    && !lower.contains("crashpad_handler")
+                {
+                    return true;
+                }
             }
         }
+        return false;
+    }
 
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+
+        let current_pid = std::process::id();
         #[cfg(target_os = "windows")]
-        {
-            if (name == "opencode.exe"
-                || name == "opencode"
-                || name == app_lower
-                || exe_path.contains("opencode"))
-                && !is_helper
+        let app_lower = OPENCODE_APP_NAME.to_lowercase();
+
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
+
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let is_helper = args_str.contains("--type=")
+                || name.contains("helper")
+                || name.contains("plugin")
+                || name.contains("renderer")
+                || name.contains("gpu")
+                || name.contains("crashpad")
+                || name.contains("utility")
+                || name.contains("audio")
+                || name.contains("sandbox")
+                || exe_path.contains("crashpad");
+
+            #[cfg(target_os = "windows")]
             {
-                return true;
+                if (name == "opencode.exe"
+                    || name == "opencode"
+                    || name == app_lower
+                    || exe_path.contains("opencode"))
+                    && !is_helper
+                {
+                    return true;
+                }
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                if (name.contains("opencode") || exe_path.contains("/opencode")) && !is_helper {
+                    return true;
+                }
             }
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if (name.contains("opencode") || exe_path.contains("/opencode")) && !is_helper {
-                return true;
+        false
+    }
+}
+
+fn get_opencode_pids() -> Vec<u32> {
+    let mut pids = Vec::new();
+
+    #[cfg(target_os = "macos")]
+    {
+        // Use ps to avoid sysinfo TCC dialogs on macOS
+        let app_lower = OPENCODE_APP_NAME.to_lowercase();
+        let bundle_pattern = format!("{}.app/contents/", app_lower);
+        if let Ok(output) = Command::new("ps").args(["-axww", "-o", "pid=,command="]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let line = line.trim();
+                if line.is_empty() { continue; }
+                let mut parts = line.splitn(2, |ch: char| ch.is_whitespace());
+                let pid_str = parts.next().unwrap_or("").trim();
+                let cmdline = parts.next().unwrap_or("").trim();
+                let pid = match pid_str.parse::<u32>() {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let lower = cmdline.to_lowercase();
+                if lower.contains(&bundle_pattern)
+                    && !lower.contains("--type=")
+                    && !lower.contains("crashpad_handler")
+                {
+                    pids.push(pid);
+                }
             }
         }
     }
 
-    false
-}
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-fn get_opencode_pids() -> Vec<u32> {
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
+        let current_pid = std::process::id();
 
-    let mut pids = Vec::new();
-    let current_pid = std::process::id();
-    #[cfg(target_os = "macos")]
-    let app_lower = OPENCODE_APP_NAME.to_lowercase();
-
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
-
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        let args = process.cmd();
-        let args_str = args
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let is_helper = args_str.contains("--type=")
-            || name.contains("helper")
-            || name.contains("plugin")
-            || name.contains("renderer")
-            || name.contains("gpu")
-            || name.contains("crashpad")
-            || name.contains("utility")
-            || name.contains("audio")
-            || name.contains("sandbox")
-            || exe_path.contains("crashpad");
-
-        #[cfg(target_os = "macos")]
-        {
-            let bundle_lower = format!("{}.app", app_lower);
-            if exe_path.contains(&bundle_lower) && !is_helper {
-                pids.push(pid_u32);
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
             }
-        }
 
-        #[cfg(target_os = "windows")]
-        {
-            if (name.contains("opencode") || exe_path.contains("opencode")) && !is_helper {
-                pids.push(pid_u32);
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let args = process.cmd();
+            let args_str = args
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let is_helper = args_str.contains("--type=")
+                || name.contains("helper")
+                || name.contains("plugin")
+                || name.contains("renderer")
+                || name.contains("gpu")
+                || name.contains("crashpad")
+                || name.contains("utility")
+                || name.contains("audio")
+                || name.contains("sandbox")
+                || exe_path.contains("crashpad");
+
+            #[cfg(target_os = "windows")]
+            {
+                if (name.contains("opencode") || exe_path.contains("opencode")) && !is_helper {
+                    pids.push(pid_u32);
+                }
             }
-        }
 
-        #[cfg(target_os = "linux")]
-        {
-            if (name.contains("opencode") || exe_path.contains("/opencode")) && !is_helper {
-                pids.push(pid_u32);
+            #[cfg(target_os = "linux")]
+            {
+                if (name.contains("opencode") || exe_path.contains("/opencode")) && !is_helper {
+                    pids.push(pid_u32);
+                }
             }
         }
     }
@@ -5195,42 +5435,45 @@ pub fn kill_port_processes(port: u16) -> Result<usize, String> {
 #[allow(dead_code)]
 fn get_vscode_pids() -> Vec<u32> {
     let mut result = Vec::new();
-    let mut system = System::new();
-    system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    let current_pid = std::process::id();
+    // On macOS, skip sysinfo to avoid TCC dialogs
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut system = System::new();
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet).with_cmd(UpdateKind::OnlyIfNotSet));
 
-    for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
-            continue;
-        }
+        let current_pid = std::process::id();
 
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
-        let name = process.name().to_string_lossy().to_lowercase();
-        let exe_path = process
-            .exe()
-            .and_then(|p| p.to_str())
-            .unwrap_or("")
-            .to_lowercase();
+        for (pid, process) in system.processes() {
+            let pid_u32 = pid.as_u32();
+            if pid_u32 == current_pid {
+                continue;
+            }
 
-        let args_str = process
-            .cmd()
-            .iter()
-            .map(|arg| arg.to_string_lossy().to_lowercase())
-            .collect::<Vec<String>>()
-            .join(" ");
-        let is_helper = is_helper_command_line(&args_str) || args_str.contains("crashpad");
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            let name = process.name().to_string_lossy().to_lowercase();
+            let exe_path = process
+                .exe()
+                .and_then(|p| p.to_str())
+                .unwrap_or("")
+                .to_lowercase();
 
-        #[cfg(target_os = "macos")]
-        let is_vscode = exe_path.contains("visual studio code.app");
-        #[cfg(target_os = "windows")]
-        let is_vscode = name == "code.exe" || exe_path.ends_with("\\code.exe");
-        #[cfg(target_os = "linux")]
-        let is_vscode = name == "code" || exe_path.ends_with("/code");
+            let args_str = process
+                .cmd()
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_lowercase())
+                .collect::<Vec<String>>()
+                .join(" ");
+            let is_helper = is_helper_command_line(&args_str) || args_str.contains("crashpad");
 
-        if is_vscode && !is_helper {
-            result.push(pid_u32);
+            #[cfg(target_os = "windows")]
+            let is_vscode = name == "code.exe" || exe_path.ends_with("\\code.exe");
+            #[cfg(target_os = "linux")]
+            let is_vscode = name == "code" || exe_path.ends_with("/code");
+
+            if is_vscode && !is_helper {
+                result.push(pid_u32);
+            }
         }
     }
 

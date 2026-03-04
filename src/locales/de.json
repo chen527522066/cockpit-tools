@@ -156,7 +156,11 @@
     "dashboard": "Armaturenbrett",
     "morePlatforms": "Weitere Plattformen",
     "instances": "Multi-Instanz",
-    "manual": "Benutzerhandbuch"
+    "manual": "Benutzerhandbuch",
+    "quickUpdate": {
+      "update": "Aktualisieren",
+      "restart": "Neustart"
+    }
   },
   "platformLayout": {
     "title": "Plattformlayout",
@@ -997,7 +1001,15 @@
     "gotIt": "Verstanden",
     "silentReady": "v{{version}} ist bereit. Zum Anwenden neu starten.",
     "later": "Später",
-    "restartNow": "Neu starten"
+    "restartNow": "Neu starten",
+    "checkRetrying": "Netzwerk instabil, Update-Prüfung wird erneut versucht ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Netzwerk instabil, Update-Download wird erneut versucht ({{attempt}}/{{total}})...",
+    "retryDownload": "Download erneut versuchen",
+    "cancelUpdate": "Update abbrechen",
+    "showErrorDetails": "Details anzeigen",
+    "hideErrorDetails": "Details ausblenden",
+    "autoUpdateFailedAfterRetries": "Automatisches Update ist nach {{count}} Versuchen fehlgeschlagen. Bitte später erneut versuchen oder manuell herunterladen.",
+    "updateCancelled": "Update wurde abgebrochen."
   },
   "closeDialog": {
     "title": "Fenster schließen",

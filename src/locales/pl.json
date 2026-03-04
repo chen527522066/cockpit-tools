@@ -156,7 +156,11 @@
     "dashboard": "Panel",
     "morePlatforms": "Więcej platform",
     "instances": "Multi-Instancja",
-    "manual": "Instrukcja obsługi"
+    "manual": "Instrukcja obsługi",
+    "quickUpdate": {
+      "update": "Aktualizuj",
+      "restart": "Uruchom ponownie"
+    }
   },
   "platformLayout": {
     "title": "Układ platform",
@@ -997,7 +1001,15 @@
     "gotIt": "Rozumiem",
     "silentReady": "Wersja v{{version}} jest gotowa. Uruchom ponownie, aby zastosować.",
     "later": "Później",
-    "restartNow": "Uruchom ponownie"
+    "restartNow": "Uruchom ponownie",
+    "checkRetrying": "Sieć jest niestabilna, ponawiam sprawdzanie aktualizacji ({{attempt}}/{{total}})...",
+    "downloadRetrying": "Sieć jest niestabilna, ponawiam pobieranie aktualizacji ({{attempt}}/{{total}})...",
+    "retryDownload": "Ponów pobieranie",
+    "cancelUpdate": "Anuluj aktualizację",
+    "showErrorDetails": "Pokaż szczegóły",
+    "hideErrorDetails": "Ukryj szczegóły",
+    "autoUpdateFailedAfterRetries": "Automatyczna aktualizacja nie powiodła się po {{count}} próbach. Spróbuj ponownie później lub pobierz ręcznie.",
+    "updateCancelled": "Aktualizacja została anulowana."
   },
   "closeDialog": {
     "title": "Zamknij okno",
