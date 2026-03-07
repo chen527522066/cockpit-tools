@@ -7,6 +7,33 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [0.10.1] - 2026-03-07
+
+### 新增
+- **Cursor 平台全链路接入**：新增 Cursor 账号管理与多开实例完整能力，覆盖后端命令/模块、前端页面/store/service、侧边导航、平台页签、仪表盘卡片与托盘集成。
+- **Cursor 账号管理能力集**：新增 OAuth（PKCE）、Token/JSON 导入、本地 `state.vscdb` 导入、账号导出，以及向 Cursor profile 数据回写注入实现切号。
+- **Cursor 配额与订阅数据链路**：新增官方接口刷新流程（`usage-summary`、`GetUserMeta`、Stripe profile），支持 Total/Auto/API/On-Demand 指标与团队额度解析。
+- **Cursor 设置与自动化调度接入**：在设置页与快捷设置新增 Cursor 路径、自动刷新间隔、配额预警开关/阈值，并纳入全局自动刷新调度。
+- **跨平台实例“使用已有目录”模式**：Antigravity/Codex/GitHub Copilot/Windsurf/Kiro/Cursor 全部新增 `existingDir` 初始化模式，可直接登记本地已存在目录为实例。
+- **设备指纹预览自动补齐支持**：新增“预览当前指纹缺失字段自动生成并回写”能力，前端支持字段级自动生成标识。
+
+### 变更
+- **应用主框架全局接入 Cursor**：新增 Cursor 路由/页面挂载、仪表盘“当前账号/推荐账号”卡片动作、平台类型与导航类型扩展，以及平台元信息接入。
+- **系统托盘启动与渲染链路升级**：托盘改为先秒开骨架菜单，再异步加载完整账号菜单；同时接入 Cursor 托盘摘要与平台排序。
+- **启动阻塞路径进一步收敛**：设置合并与日志清理改为后台线程执行；i18n 启动改为预置 `en` 资源并通过加载壳层完成初始化。
+- **设置页/快捷设置/配置结构扩展**：新增 `cursor_auto_refresh_minutes`、`cursor_app_path`、`cursor_quota_alert_enabled`、`cursor_quota_alert_threshold`，并补齐兼容性归一逻辑。
+- **实例流程跨平台增强**：Antigravity/Codex/GitHub Copilot/Windsurf/Kiro/Cursor 在前后端统一支持并校验 `existingDir` 创建模式。
+- **Codex 账号展示增强**：新增身份元数据解析（`Signed in with <provider>` + ID），并在卡片/表格新增 Code Review 配额指标。
+- **套餐徽标样式统一**：引入共享 `--plan-*` 设计变量，账号页与实例页统一复用同一套套餐颜色映射。
+- **本地化覆盖范围扩展到 Cursor 新增流程**：已补齐多语言下 Cursor 页面、OAuth/导入、实例 `existingDir` 模式、快捷设置与配额展示相关文案键。
+
+### 修复
+- **平台账号去重准确性提升**：GitHub Copilot 与 Windsurf 改为按 `github_id` 去重；Kiro 在 `user_id` 存在性冲突场景不再按邮箱误合并。
+- **修复 Kiro 账号去重问题**：修复 Kiro 账号合并链路（`b045e1e2`）中“不同用户身份因同邮箱被错误合并并导致账号覆盖”的问题。
+- **设备指纹预览数据一致性提升**：读取当前 profile 时会自动补齐缺失指纹字段，返回自动生成字段标记，并尝试回写本地存储。
+- **Cursor 缺路径引导链路补齐**：`APP_PATH_NOT_FOUND:cursor` 已完整纳入统一路径设置/重置/探测/重试流程。
+
+---
 ## [0.10.0] - 2026-03-07
 
 ### 新增

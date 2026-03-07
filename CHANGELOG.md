@@ -7,6 +7,33 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.10.1] - 2026-03-07
+
+### Added
+- **Cursor platform end-to-end integration**: Added full Cursor account and multi-instance support across backend commands/modules, frontend pages/stores/services, side navigation, tabs, dashboard cards, and tray integration.
+- **Cursor account management capability set**: Added OAuth (PKCE), Token/JSON import, local `state.vscdb` import, account export, and account injection back to Cursor profile data for switching.
+- **Cursor quota and subscription pipeline**: Added official refresh chain (`usage-summary`, `GetUserMeta`, Stripe profile endpoints), including Total/Auto/API/On-Demand metrics and team-limit parsing.
+- **Cursor settings and automation wiring**: Added Cursor app path, auto-refresh interval, and quota-alert enable/threshold in both Settings and Quick Settings, and integrated Cursor into global auto-refresh.
+- **Cross-platform existing-directory instance mode**: Added `existingDir` initialization mode for Antigravity/Codex/GitHub Copilot/Windsurf/Kiro/Cursor to register existing local directories as instances.
+- **Fingerprint preview autofill support**: Added preview-current-profile autofill/writeback for missing fields and frontend field-level auto-generated indicators.
+
+### Changed
+- **App framework now includes Cursor globally**: added Cursor routing/page mounting, dashboard current/recommended account card actions, platform typing/navigation expansion, and platform metadata wiring.
+- **System tray startup and rendering path was upgraded**: tray now boots with a lightweight skeleton menu first and asynchronously loads full account-driven menus; Cursor tray summaries and platform ordering are included.
+- **Startup blocking work was reduced**: settings merge and log cleanup were moved to background threads; i18n startup preloads `en` resources and uses an explicit loading shell before app mount.
+- **Settings/Quick Settings/config schema expanded**: added `cursor_auto_refresh_minutes`, `cursor_app_path`, `cursor_quota_alert_enabled`, and `cursor_quota_alert_threshold`, with backward-compatible config normalization.
+- **Instance workflow enhancements across providers**: Antigravity/Codex/GitHub Copilot/Windsurf/Kiro/Cursor now validate and support `existingDir` creation mode in backend and frontend forms.
+- **Codex account presentation expanded**: added auth metadata parsing (`Signed in with <provider>`, ID details) and a dedicated Code Review quota metric in cards/tables.
+- **Plan/tier badge styling unified**: introduced shared `--plan-*` design tokens and switched account/instance pages to common badge color mapping.
+- **Localization coverage was expanded for new Cursor flows**: updated locale keys across supported language packs for Cursor pages, OAuth/import flow, `existingDir` instance mode, quick settings, and quota display copy.
+
+### Fixed
+- **Provider account dedup correctness improved**: GitHub Copilot and Windsurf now deduplicate by `github_id`; Kiro avoids email-only merges when `user_id` presence conflicts.
+- **Kiro account deduplication issue fixed**: Fixed the Kiro account merge path (`b045e1e2`) where different user identities could be incorrectly merged under the same email and cause account overwrite.
+- **Fingerprint preview data consistency improved**: reading current profile now autofills missing fingerprint fields, returns generated-field markers, and attempts writeback to storage.
+- **Path-missing guidance chain now covers Cursor fully**: `APP_PATH_NOT_FOUND:cursor` is handled by unified set/reset/detect/retry flow.
+
+---
 ## [0.10.0] - 2026-03-07
 
 ### Added
