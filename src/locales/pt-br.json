@@ -2023,7 +2023,7 @@
         "step1": "Abra o link abaixo no navegador e faça login",
         "step2": "Pressione F12 para abrir o DevTools e mude para a aba Network",
         "step3": "Atualize a pagina e encontre a requisicao get-user-resource",
-        "step4": "Clique com o botao direito na requisicao -> Copy -> Copy as cURL",
+        "step4": "Clique com o botao direito na requisicao -> Copy -> Copy as cURL (bash)",
         "step5": "Cole no campo abaixo"
       },
       "fields": {
@@ -2043,7 +2043,7 @@
         "accountMismatch": "O cookie de cota pertence a outra conta (UIN atual: {{expectedUin}}, UIN retornado: {{resourceUin}}, UIN pagador: {{payerUin}}). Troque para a conta correta e copie o cookie novamente.",
         "statusInvalid": "Formato de Status invalido. Use numeros separados por virgula.",
         "pageInvalid": "Valores de paginacao invalidos. Informe numeros maiores que 0.",
-        "fullCurlRequired": "Apenas o comando cURL completo é suportado. Em Network, use \"Copy as cURL\" em get-user-resource e cole exatamente como está."
+        "fullCurlRequired": "Apenas o comando cURL completo é suportado. Em Network, use \"Copy as cURL (bash)\" em get-user-resource e cole exatamente como está."
       }
     },
     "extraCredit": {

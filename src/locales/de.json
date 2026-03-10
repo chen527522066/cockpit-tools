@@ -2023,7 +2023,7 @@
         "step1": "Öffnen Sie den unten stehenden Link im Browser und melden Sie sich an",
         "step2": "Drücken Sie F12, öffnen Sie die DevTools und wechseln Sie zum Tab Network",
         "step3": "Aktualisieren Sie die Seite und suchen Sie die Anfrage get-user-resource",
-        "step4": "Rechtsklick auf die Anfrage → Copy → Copy as cURL",
+        "step4": "Rechtsklick auf die Anfrage → Copy → Copy as cURL (bash)",
         "step5": "Fügen Sie den Inhalt in das Eingabefeld unten ein"
       },
       "fields": {
@@ -2043,7 +2043,7 @@
         "accountMismatch": "Das Kontingent-Cookie gehört zu einem anderen Konto (aktuelle UIN: {{expectedUin}}, zurückgegebene UIN: {{resourceUin}}, payerUin: {{payerUin}}). Bitte wechseln Sie zum richtigen Konto und kopieren Sie das Cookie erneut.",
         "statusInvalid": "Ungültiges Status-Format. Verwenden Sie kommagetrennte Zahlen.",
         "pageInvalid": "Ungültige Paginierungswerte. Bitte Zahlen größer als 0 eingeben.",
-        "fullCurlRequired": "Es wird nur ein vollständiger cURL-Befehl unterstützt. Bitte bei get-user-resource im Network „Copy as cURL“ verwenden und unverändert einfügen."
+        "fullCurlRequired": "Es wird nur ein vollständiger cURL-Befehl unterstützt. Bitte bei get-user-resource im Network „Copy as cURL (bash)“ verwenden und unverändert einfügen."
       }
     },
     "extraCredit": {

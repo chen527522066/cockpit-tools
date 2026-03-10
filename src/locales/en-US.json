@@ -1317,7 +1317,7 @@
         "step1": "Open the link below in your browser and log in",
         "step2": "Press F12 to open DevTools, switch to the Network tab",
         "step3": "Refresh the page, find the get-user-resource request",
-        "step4": "Right-click the request → Copy → Copy as cURL",
+        "step4": "Right-click the request → Copy → Copy as cURL (bash)",
         "step5": "Paste into the input box below"
       },
       "fields": {
@@ -1334,7 +1334,7 @@
       },
       "errors": {
         "cookieRequired": "Please paste a full cURL command first.",
-        "fullCurlRequired": "Only full cURL commands are supported. Please use 'Copy as cURL' on get-user-resource in Network and paste it as-is.",
+        "fullCurlRequired": "Only full cURL commands are supported. Please use 'Copy as cURL (bash)' on get-user-resource in Network and paste it as-is.",
         "accountMismatch": "The quota cookie belongs to a different account (current UIN: {{expectedUin}}, returned UIN: {{resourceUin}}, payerUin: {{payerUin}}). Please switch to the correct account and copy the cookie again.",
         "statusInvalid": "Invalid Status format. Use comma-separated numbers.",
         "pageInvalid": "Invalid pagination values. Please enter numbers greater than 0."

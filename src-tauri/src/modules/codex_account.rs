@@ -15,7 +15,26 @@ const CODEX_QUOTA_ALERT_COOLDOWN_SECONDS: i64 = 300;
 
 /// 获取 Codex 数据目录
 pub fn get_codex_home() -> PathBuf {
+    if let Some(from_env) = resolve_codex_home_from_env() {
+        return from_env;
+    }
     dirs::home_dir().expect("无法获取用户主目录").join(".codex")
+}
+
+fn resolve_codex_home_from_env() -> Option<PathBuf> {
+    let raw = std::env::var("CODEX_HOME").ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    // 兼容用户使用 setx / shell 时可能包裹的引号
+    let unquoted = trimmed.trim_matches('"').trim_matches('\'').trim();
+    if unquoted.is_empty() {
+        return None;
+    }
+
+    Some(PathBuf::from(unquoted))
 }
 
 /// 获取官方 auth.json 路径
@@ -488,13 +507,31 @@ fn build_auth_file(account: &CodexAccount) -> CodexAuthFile {
 
 pub fn write_auth_file_to_dir(base_dir: &Path, account: &CodexAccount) -> Result<(), String> {
     let auth_path = base_dir.join("auth.json");
+    logger::log_info(&format!(
+        "[Codex切号] 准备写入登录信息: account_id={}, email={}, target_dir={}, target_file={}",
+        account.id,
+        account.email,
+        base_dir.display(),
+        auth_path.display()
+    ));
+
     if let Some(parent) = auth_path.parent() {
-        fs::create_dir_all(parent).ok();
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("创建 auth.json 目录失败: path={}, error={}", parent.display(), e))?;
     }
+
     let auth_file = build_auth_file(account);
     let content =
         serde_json::to_string_pretty(&auth_file).map_err(|e| format!("序列化失败: {}", e))?;
-    fs::write(&auth_path, content).map_err(|e| format!("写入 auth.json 失败: {}", e))?;
+    fs::write(&auth_path, content)
+        .map_err(|e| format!("写入 auth.json 失败: path={}, error={}", auth_path.display(), e))?;
+
+    logger::log_info(&format!(
+        "[Codex切号] 已写入登录信息: account_id={}, target_file={}",
+        account.id,
+        auth_path.display()
+    ));
+
     Ok(())
 }
 
@@ -526,7 +563,20 @@ pub async fn prepare_account_for_injection(account_id: &str) -> Result<CodexAcco
 /// 切换账号（写入 auth.json）
 pub fn switch_account(account_id: &str) -> Result<CodexAccount, String> {
     let account = load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
-    write_auth_file_to_dir(&get_codex_home(), &account)?;
+    let codex_home = get_codex_home();
+    let auth_path = codex_home.join("auth.json");
+    logger::log_info(&format!(
+        "[Codex切号] 开始切换账号: account_id={}, email={}, target_dir={}",
+        account.id,
+        account.email,
+        codex_home.display()
+    ));
+    write_auth_file_to_dir(&codex_home, &account)?;
+    logger::log_info(&format!(
+        "[Codex切号] 已替换目录登录信息: target_dir={}, target_file={}",
+        codex_home.display(),
+        auth_path.display()
+    ));
 
     // 更新索引中的 current_account_id
     let mut index = load_account_index();

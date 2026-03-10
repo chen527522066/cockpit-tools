@@ -2023,7 +2023,7 @@
         "step1": "在瀏覽器中開啟下方連結並登入",
         "step2": "按 F12 開啟開發者工具，切換到 Network（網路）面板",
         "step3": "重新整理頁面，找到 get-user-resource 請求",
-        "step4": "右鍵該請求 → Copy → Copy as cURL",
+        "step4": "右鍵該請求 → Copy → Copy as cURL (bash)",
         "step5": "貼到下方輸入框"
       },
       "fields": {
@@ -2043,7 +2043,7 @@
         "accountMismatch": "配額 Cookie 對應帳號與目前帳號不一致（目前 UIN：{{expectedUin}}，返回 UIN：{{resourceUin}}，payerUin：{{payerUin}}）。請切換到正確帳號後重新複製 Cookie。",
         "statusInvalid": "Status 格式無效，請使用逗號分隔的數字。",
         "pageInvalid": "分頁參數無效，請輸入大於 0 的數字。",
-        "fullCurlRequired": "僅支援完整 cURL 指令。請在瀏覽器 Network 對 get-user-resource 使用「Copy as cURL」後原樣貼上。"
+        "fullCurlRequired": "僅支援完整 cURL 指令。請在瀏覽器 Network 對 get-user-resource 使用「Copy as cURL (bash)」後原樣貼上。"
       }
     },
     "extraCredit": {

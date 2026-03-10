@@ -2023,7 +2023,7 @@
         "step1": "Otwórz poniższy link w przeglądarce i zaloguj się",
         "step2": "Naciśnij F12, aby otworzyć DevTools, i przejdź do karty Network",
         "step3": "Odśwież stronę i znajdź żądanie get-user-resource",
-        "step4": "Kliknij prawym przyciskiem żądanie → Copy → Copy as cURL",
+        "step4": "Kliknij prawym przyciskiem żądanie → Copy → Copy as cURL (bash)",
         "step5": "Wklej do pola poniżej"
       },
       "fields": {
@@ -2043,7 +2043,7 @@
         "accountMismatch": "Cookie limitu należy do innego konta (bieżący UIN: {{expectedUin}}, zwrócony UIN: {{resourceUin}}, payerUin: {{payerUin}}). Przełącz się na poprawne konto i skopiuj cookie ponownie.",
         "statusInvalid": "Nieprawidłowy format Status. Użyj liczb oddzielonych przecinkami.",
         "pageInvalid": "Nieprawidłowe wartości stronicowania. Wprowadź liczby większe od 0.",
-        "fullCurlRequired": "Obsługiwane jest tylko pełne polecenie cURL. W Network dla get-user-resource użyj „Copy as cURL” i wklej bez zmian."
+        "fullCurlRequired": "Obsługiwane jest tylko pełne polecenie cURL. W Network dla get-user-resource użyj „Copy as cURL (bash)” i wklej bez zmian."
       }
     },
     "extraCredit": {

@@ -1317,7 +1317,7 @@
         "step1": "在浏览器中打开下方链接并登录",
         "step2": "按 F12 打开开发者工具，切换到 Network（网络）面板",
         "step3": "刷新页面，找到 get-user-resource 请求",
-        "step4": "右键该请求 → Copy → Copy as cURL",
+        "step4": "右键该请求 → Copy → Copy as cURL (bash)",
         "step5": "粘贴到下方输入框"
       },
       "fields": {
@@ -1334,7 +1334,7 @@
       },
       "errors": {
         "cookieRequired": "请先粘贴完整 cURL 命令。",
-        "fullCurlRequired": "仅支持完整 cURL 命令。请在浏览器 Network 中对 get-user-resource 使用“Copy as cURL”后原样粘贴。",
+        "fullCurlRequired": "仅支持完整 cURL 命令。请在浏览器 Network 中对 get-user-resource 使用“Copy as cURL (bash)”后原样粘贴。",
         "accountMismatch": "配额 Cookie 对应账号与当前账号不一致（当前 UIN：{{expectedUin}}，返回 UIN：{{resourceUin}}，payerUin：{{payerUin}}）。请切换到正确账号后重新复制 Cookie。",
         "statusInvalid": "Status 格式无效，请使用逗号分隔的数字。",
         "pageInvalid": "分页参数无效，请输入大于 0 的数字。"

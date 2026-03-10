@@ -2023,7 +2023,7 @@
         "step1": "Otevřete níže uvedený odkaz v prohlížeči a přihlaste se",
         "step2": "Stiskněte F12, otevřete DevTools a přepněte na kartu Network",
         "step3": "Obnovte stránku a najděte požadavek get-user-resource",
-        "step4": "Klikněte pravým tlačítkem na požadavek → Copy → Copy as cURL",
+        "step4": "Klikněte pravým tlačítkem na požadavek → Copy → Copy as cURL (bash)",
         "step5": "Vložte do vstupního pole níže"
       },
       "fields": {
@@ -2043,7 +2043,7 @@
         "accountMismatch": "Cookie kvóty patří jinému účtu (aktuální UIN: {{expectedUin}}, vrácené UIN: {{resourceUin}}, payerUin: {{payerUin}}). Přepněte na správný účet a zkopírujte cookie znovu.",
         "statusInvalid": "Neplatný formát Status. Použijte čísla oddělená čárkou.",
         "pageInvalid": "Neplatné hodnoty stránkování. Zadejte čísla větší než 0.",
-        "fullCurlRequired": "Podporován je pouze kompletní příkaz cURL. V Network u požadavku get-user-resource použijte „Copy as cURL“ a vložte jej beze změn."
+        "fullCurlRequired": "Podporován je pouze kompletní příkaz cURL. V Network u požadavku get-user-resource použijte „Copy as cURL (bash)“ a vložte jej beze změn."
       }
     },
     "extraCredit": {

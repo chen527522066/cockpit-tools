@@ -221,7 +221,7 @@ export function CodebuddyAccountsPage() {
       setQuotaQueryModalError(
         t(
           'codebuddy.quotaQuery.errors.fullCurlRequired',
-          '仅支持完整 cURL 命令。请在浏览器 Network 中对 get-user-resource 使用“Copy as cURL”后原样粘贴。',
+          '仅支持完整 cURL 命令。请在浏览器 Network 中对 get-user-resource 使用“Copy as cURL (bash)”后原样粘贴。',
         ),
       );
       return;
@@ -923,7 +923,7 @@ export function CodebuddyAccountsPage() {
                     </li>
                     <li>{t('codebuddy.quotaQuery.manual.step2', '按 F12 打开开发者工具，切换到 Network（网络）面板')}</li>
                     <li>{t('codebuddy.quotaQuery.manual.step3', '刷新页面，找到 get-user-resource 请求')}</li>
-                    <li>{t('codebuddy.quotaQuery.manual.step4', '右键该请求 → Copy → Copy as cURL')}</li>
+                    <li>{t('codebuddy.quotaQuery.manual.step4', '右键该请求 → Copy → Copy as cURL (bash)')}</li>
                     <li>{t('codebuddy.quotaQuery.manual.step5', '粘贴到下方输入框')}</li>
                   </ol>
                   <div className="codebuddy-quota-form">

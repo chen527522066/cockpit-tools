@@ -2023,7 +2023,7 @@
         "step1": "افتح الرابط أدناه في متصفحك ثم سجّل الدخول",
         "step2": "اضغط F12 لفتح أدوات المطور ثم انتقل إلى تبويب Network",
         "step3": "حدّث الصفحة وابحث عن طلب get-user-resource",
-        "step4": "انقر بزر الفأرة الأيمن على الطلب → Copy → Copy as cURL",
+        "step4": "انقر بزر الفأرة الأيمن على الطلب → Copy → Copy as cURL (bash)",
         "step5": "ألصقه في مربع الإدخال أدناه"
       },
       "fields": {
@@ -2043,7 +2043,7 @@
         "accountMismatch": "ملف تعريف الارتباط الخاص بالحصة يخص حسابًا مختلفًا (UIN الحالي: {{expectedUin}}، UIN المرجع: {{resourceUin}}، payerUin: {{payerUin}}). يرجى التبديل إلى الحساب الصحيح ونسخ Cookie مرة أخرى.",
         "statusInvalid": "تنسيق Status غير صالح. استخدم أرقامًا مفصولة بفواصل.",
         "pageInvalid": "قيم التقسيم إلى صفحات غير صالحة. أدخل أرقامًا أكبر من 0.",
-        "fullCurlRequired": "يدعم فقط أمر cURL الكامل. يرجى استخدام \"Copy as cURL\" لطلب get-user-resource في Network ثم لصقه كما هو."
+        "fullCurlRequired": "يدعم فقط أمر cURL الكامل. يرجى استخدام \"Copy as cURL (bash)\" لطلب get-user-resource في Network ثم لصقه كما هو."
       }
     },
     "extraCredit": {
