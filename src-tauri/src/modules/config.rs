@@ -9,6 +9,8 @@ use std::sync::{OnceLock, RwLock};
 
 /// 默认 WebSocket 端口
 pub const DEFAULT_WS_PORT: u16 = 19528;
+/// 默认网页查询服务端口
+pub const DEFAULT_REPORT_PORT: u16 = 18081;
 
 /// 端口尝试范围（从配置端口开始，最多尝试 100 个）
 pub const PORT_RANGE: u16 = 100;
@@ -44,6 +46,15 @@ pub struct UserConfig {
     /// WebSocket 首选端口（用户配置的，实际可能不同）
     #[serde(default = "default_ws_port")]
     pub ws_port: u16,
+    /// 网页查询服务是否启用
+    #[serde(default = "default_report_enabled")]
+    pub report_enabled: bool,
+    /// 网页查询服务首选端口
+    #[serde(default = "default_report_port")]
+    pub report_port: u16,
+    /// 网页查询服务访问令牌
+    #[serde(default = "default_report_token")]
+    pub report_token: String,
     /// 界面语言
     #[serde(default = "default_language")]
     pub language: String,
@@ -251,6 +262,15 @@ fn default_ws_enabled() -> bool {
 fn default_ws_port() -> u16 {
     DEFAULT_WS_PORT
 }
+fn default_report_enabled() -> bool {
+    false
+}
+fn default_report_port() -> u16 {
+    DEFAULT_REPORT_PORT
+}
+fn default_report_token() -> String {
+    "change-this-token".to_string()
+}
 fn default_language() -> String {
     "zh-cn".to_string()
 }
@@ -422,6 +442,9 @@ impl Default for UserConfig {
         Self {
             ws_enabled: true,
             ws_port: DEFAULT_WS_PORT,
+            report_enabled: default_report_enabled(),
+            report_port: default_report_port(),
+            report_token: default_report_token(),
             language: default_language(),
             theme: default_theme(),
             ui_scale: default_ui_scale(),
@@ -634,6 +657,16 @@ pub fn load_user_config() -> Result<UserConfig, String> {
             );
         }
 
+        if !obj.contains_key("report_enabled") {
+            obj.insert("report_enabled".to_string(), json!(default_report_enabled()));
+        }
+        if !obj.contains_key("report_port") {
+            obj.insert("report_port".to_string(), json!(default_report_port()));
+        }
+        if !obj.contains_key("report_token") {
+            obj.insert("report_token".to_string(), json!(default_report_token()));
+        }
+
         let legacy_enabled = obj
             .get("quota_alert_enabled")
             .and_then(|v| v.as_bool())
@@ -790,8 +823,8 @@ pub fn save_user_config(config: &UserConfig) -> Result<(), String> {
     }
 
     crate::modules::logger::log_info(&format!(
-        "[Config] 用户配置已保存: ws_enabled={}, ws_port={}",
-        config.ws_enabled, config.ws_port
+        "[Config] 用户配置已保存: ws_enabled={}, ws_port={}, report_enabled={}, report_port={}",
+        config.ws_enabled, config.ws_port, config.report_enabled, config.report_port
     ));
 
     Ok(())

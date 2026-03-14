@@ -504,7 +504,20 @@
       "restartRequired": "配置已更改，请重启应用以使新端口生效",
       "saveSuccess": "设置已保存！",
       "saveSuccessRestart": "设置已保存！由于端口配置已更改，请重启应用以生效。",
-      "saveFailed": "保存失败: {{error}}"
+      "saveFailed": "保存失败: {{error}}",
+      "reportTitle": "网页查询服务",
+      "reportService": "HTTP 报表服务",
+      "reportServiceDesc": "提供带 token 的 HTTP 查询接口，用于查看用量摘要",
+      "reportPort": "报表端口",
+      "reportPortDesc": "默认为 {{port}}，修改后需重启应用",
+      "reportToken": "访问 Token",
+      "reportTokenDesc": "访问 /report 时必须携带，请妥善保管",
+      "reportTokenRequired": "启用网页查询服务时，访问 Token 不能为空。",
+      "generateToken": "生成",
+      "reportUrlPreview": "地址预览",
+      "reportUrlPreviewDesc": "支持 format=md 或 format=yaml",
+      "firewallHintTitle": "防火墙提示",
+      "firewallHint": "如果访问不了，请检查系统防火墙设置。"
     },
     "about": {
       "appName": "Cockpit Tools",

@@ -504,7 +504,20 @@
       "restartRequired": "Configuration changed, please restart the app to apply",
       "saveSuccess": "Settings saved!",
       "saveSuccessRestart": "Settings saved! Please restart the app for port changes to take effect.",
-      "saveFailed": "Save failed: {{error}}"
+      "saveFailed": "Save failed: {{error}}",
+      "reportTitle": "Web Query Service",
+      "reportService": "HTTP Report Service",
+      "reportServiceDesc": "Expose a token-protected HTTP endpoint for usage summaries",
+      "reportPort": "Report Port",
+      "reportPortDesc": "Default is {{port}}, restart required after change",
+      "reportToken": "Access Token",
+      "reportTokenDesc": "Required when requesting /report, keep it private",
+      "reportTokenRequired": "Access token cannot be empty when report service is enabled.",
+      "generateToken": "Generate",
+      "reportUrlPreview": "Endpoint Preview",
+      "reportUrlPreviewDesc": "Supports format=md or format=yaml",
+      "firewallHintTitle": "Firewall Tip",
+      "firewallHint": "If the URL is unreachable, check your system firewall settings."
     },
     "about": {
       "appName": "Cockpit Tools",

@@ -759,6 +759,9 @@ fn handle_set_language(language: &str, source: Option<&str>) -> Result<String, S
     let new_config = UserConfig {
         ws_enabled: current.ws_enabled,
         ws_port: current.ws_port,
+        report_enabled: current.report_enabled,
+        report_port: current.report_port,
+        report_token: current.report_token,
         language: normalized.clone(),
         theme: current.theme,
         ui_scale: current.ui_scale,

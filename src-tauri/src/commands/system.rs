@@ -3,8 +3,10 @@ use tauri::Manager;
 
 use crate::modules;
 use crate::modules::config::{
-    self, CloseWindowBehavior, MinimizeWindowBehavior, UserConfig, DEFAULT_WS_PORT,
+    self, CloseWindowBehavior, MinimizeWindowBehavior, UserConfig, DEFAULT_REPORT_PORT,
+    DEFAULT_WS_PORT,
 };
+use crate::modules::web_report;
 use crate::modules::websocket;
 
 /// 网络服务配置（前端使用）
@@ -18,6 +20,16 @@ pub struct NetworkConfig {
     pub actual_port: Option<u16>,
     /// 默认端口
     pub default_port: u16,
+    /// 网页查询服务是否启用
+    pub report_enabled: bool,
+    /// 网页查询服务配置端口
+    pub report_port: u16,
+    /// 网页查询服务实际运行端口（可能与配置不同）
+    pub report_actual_port: Option<u16>,
+    /// 网页查询服务默认端口
+    pub report_default_port: u16,
+    /// 网页查询服务访问令牌
+    pub report_token: String,
 }
 
 /// 通用设置配置（前端使用）
@@ -199,25 +211,55 @@ pub fn get_downloads_dir() -> Result<String, String> {
 #[tauri::command]
 pub fn get_network_config() -> Result<NetworkConfig, String> {
     let user_config = config::get_user_config();
-    let actual_port = config::get_actual_port();
+    let ws_actual_port = config::get_actual_port();
+    let report_actual_port = web_report::get_actual_port();
 
     Ok(NetworkConfig {
         ws_enabled: user_config.ws_enabled,
         ws_port: user_config.ws_port,
-        actual_port,
+        actual_port: ws_actual_port,
         default_port: DEFAULT_WS_PORT,
+        report_enabled: user_config.report_enabled,
+        report_port: user_config.report_port,
+        report_actual_port,
+        report_default_port: DEFAULT_REPORT_PORT,
+        report_token: user_config.report_token,
     })
 }
 
 /// 保存网络服务配置
 #[tauri::command]
-pub fn save_network_config(ws_enabled: bool, ws_port: u16) -> Result<bool, String> {
+pub fn save_network_config(
+    ws_enabled: bool,
+    ws_port: u16,
+    report_enabled: Option<bool>,
+    report_port: Option<u16>,
+    report_token: Option<String>,
+) -> Result<bool, String> {
     let current = config::get_user_config();
-    let needs_restart = current.ws_port != ws_port || current.ws_enabled != ws_enabled;
+    let next_report_enabled = report_enabled.unwrap_or(current.report_enabled);
+    let next_report_port = report_port.unwrap_or(current.report_port);
+    let next_report_token = report_token
+        .unwrap_or_else(|| current.report_token.clone())
+        .trim()
+        .to_string();
+
+    if next_report_enabled && next_report_token.is_empty() {
+        return Err("网页查询服务 token 不能为空".to_string());
+    }
+
+    let needs_restart = current.ws_port != ws_port
+        || current.ws_enabled != ws_enabled
+        || current.report_enabled != next_report_enabled
+        || current.report_port != next_report_port
+        || current.report_token != next_report_token;
 
     let new_config = UserConfig {
         ws_enabled,
         ws_port,
+        report_enabled: next_report_enabled,
+        report_port: next_report_port,
+        report_token: next_report_token,
         // 保留其他设置不变
         language: current.language,
         theme: current.theme,
@@ -466,6 +508,9 @@ pub fn save_general_config(
         // 保留网络设置不变
         ws_enabled: current.ws_enabled,
         ws_port: current.ws_port,
+        report_enabled: current.report_enabled,
+        report_port: current.report_port,
+        report_token: current.report_token,
         // 更新通用设置
         language: normalized_language.clone(),
         theme,

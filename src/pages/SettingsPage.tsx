@@ -24,6 +24,11 @@ interface NetworkConfig {
   ws_port: number;
   actual_port: number | null;
   default_port: number;
+  report_enabled: boolean;
+  report_port: number;
+  report_actual_port: number | null;
+  report_default_port: number;
+  report_token: string;
 }
 
 /** 通用配置类型 */
@@ -115,6 +120,12 @@ type UpdateCheckFinishedDetail = {
   currentVersion?: string;
   latestVersion?: string;
   error?: string;
+};
+
+const generateReportToken = () => {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
 export function SettingsPage() {
@@ -310,6 +321,11 @@ export function SettingsPage() {
   const [wsPort, setWsPort] = useState('19528');
   const [actualPort, setActualPort] = useState<number | null>(null);
   const [defaultPort, setDefaultPort] = useState(19528);
+  const [reportEnabled, setReportEnabled] = useState(false);
+  const [reportPort, setReportPort] = useState('18081');
+  const [reportActualPort, setReportActualPort] = useState<number | null>(null);
+  const [reportDefaultPort, setReportDefaultPort] = useState(18081);
+  const [reportToken, setReportToken] = useState('');
   const [needsRestart, setNeedsRestart] = useState(false);
   const [networkSaving, setNetworkSaving] = useState(false);
   
@@ -771,6 +787,11 @@ export function SettingsPage() {
       setWsPort(String(config.ws_port));
       setActualPort(config.actual_port);
       setDefaultPort(config.default_port);
+      setReportEnabled(config.report_enabled);
+      setReportPort(String(config.report_port));
+      setReportActualPort(config.report_actual_port);
+      setReportDefaultPort(config.report_default_port);
+      setReportToken(config.report_token || '');
       setNeedsRestart(false);
     } catch (err) {
       console.error('加载网络配置失败:', err);
@@ -782,9 +803,20 @@ export function SettingsPage() {
     setNetworkSaving(true);
     try {
       const portNum = parseInt(wsPort, 10) || defaultPort;
+      const reportPortNum = parseInt(reportPort, 10) || reportDefaultPort;
+      const normalizedToken = reportToken.trim();
+
+      if (reportEnabled && !normalizedToken) {
+        alert(t('settings.network.reportTokenRequired'));
+        return;
+      }
+
       const result = await invoke<boolean>('save_network_config', {
         wsEnabled,
         wsPort: portNum,
+        reportEnabled,
+        reportPort: reportPortNum,
+        reportToken: normalizedToken,
       });
       
       if (result) {
@@ -3204,6 +3236,123 @@ export function SettingsPage() {
                       </div>
                     </div>
                   )}
+                </>
+              )}
+            </div>
+
+            <div className="group-title">{t('settings.network.reportTitle')}</div>
+            <div className="settings-group">
+              <div className="settings-row">
+                <div className="row-label">
+                  <div className="row-title">{t('settings.network.reportService')}</div>
+                  <div className="row-desc">{t('settings.network.reportServiceDesc')}</div>
+                </div>
+                <div className="row-control">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={reportEnabled}
+                      onChange={(e) => setReportEnabled(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              {reportEnabled && (
+                <>
+                  <div className="settings-row" style={{ animation: 'fadeUp 0.3s ease both' }}>
+                    <div className="row-label">
+                      <div className="row-title">{t('settings.network.reportPort')}</div>
+                      <div className="row-desc">
+                        {t('settings.network.reportPortDesc').replace('{port}', String(reportDefaultPort))}
+                      </div>
+                    </div>
+                    <div className="row-control">
+                      <input
+                        type="number"
+                        className="settings-input"
+                        value={reportPort}
+                        onChange={(e) => setReportPort(e.target.value)}
+                        placeholder={String(reportDefaultPort)}
+                        min="1024"
+                        max="65535"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="settings-row" style={{ animation: 'fadeUp 0.3s ease both' }}>
+                    <div className="row-label">
+                      <div className="row-title">{t('settings.network.reportToken')}</div>
+                      <div className="row-desc">{t('settings.network.reportTokenDesc')}</div>
+                    </div>
+                    <div className="row-control" style={{ minWidth: '260px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className="settings-input"
+                        value={reportToken}
+                        onChange={(e) => setReportToken(e.target.value)}
+                        placeholder="change-this-token"
+                      />
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setReportToken(generateReportToken())}
+                        type="button"
+                      >
+                        {t('settings.network.generateToken')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {reportActualPort && (
+                    <div className="settings-row" style={{ animation: 'fadeUp 0.3s ease both' }}>
+                      <div className="row-label">
+                        <div className="row-title">{t('settings.network.currentPort')}</div>
+                        <div className="row-desc">
+                          {reportActualPort === parseInt(reportPort, 10)
+                            ? t('settings.network.portNormal')
+                            : t('settings.network.portFallback')
+                                .replace('{configured}', reportPort)
+                                .replace('{actual}', String(reportActualPort))}
+                        </div>
+                      </div>
+                      <div className="row-control">
+                        <span style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '14px',
+                          color: reportActualPort === parseInt(reportPort, 10) ? 'var(--accent)' : 'var(--warning, #f59e0b)',
+                        }}>
+                          http://0.0.0.0:{reportActualPort}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="settings-row" style={{ animation: 'fadeUp 0.3s ease both' }}>
+                    <div className="row-label">
+                      <div className="row-title">{t('settings.network.reportUrlPreview')}</div>
+                      <div className="row-desc">
+                        {t('settings.network.reportUrlPreviewDesc')}
+                      </div>
+                    </div>
+                    <div className="row-control">
+                      <span style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        wordBreak: 'break-all',
+                      }}>
+                        {`http://<当前IP>:${reportActualPort ?? (parseInt(reportPort, 10) || reportDefaultPort)}/report?token=${encodeURIComponent((reportToken || 'your-token').trim() || 'your-token')}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="settings-row" style={{ animation: 'fadeUp 0.3s ease both' }}>
+                    <div className="row-label">
+                      <div className="row-title">{t('settings.network.firewallHintTitle')}</div>
+                      <div className="row-desc">{t('settings.network.firewallHint')}</div>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
