@@ -7,7 +7,7 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
-## [0.15.0] - 2026-03-14
+## [0.14.1] - 2026-03-14
 
 ### Added
 - **CodeBuddy/CodeBuddy CN resource-package quota is now shown directly in app**: account cards and tables now render per-package quota amount, progress, and refresh/expiry time (including extra credits) without requiring web-only viewing.
