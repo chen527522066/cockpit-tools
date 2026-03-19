@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "اختيار",
       "workbuddyPathReset": "إعادة إلى الافتراضي",
       "openclawAuthOverwrite": "استبدال تسجيل دخول OpenClaw عند تبديل Codex",
-      "openclawAuthOverwriteDesc": "عند التعطيل، يتم تبديل Codex فقط ويحتفظ OpenClaw بحالة تسجيل الدخول الحالية"
+      "openclawAuthOverwriteDesc": "عند التعطيل، يتم تبديل Codex فقط ويحتفظ OpenClaw بحالة تسجيل الدخول الحالية",
+      "ghcpOpencodeAuthOverwrite": "استبدال تسجيل دخول OpenCode عند تبديل GitHub Copilot",
+      "ghcpOpencodeRestart": "إعادة تشغيل OpenCode عند تبديل GitHub Copilot",
+      "ghcpLaunchOnSwitch": "تشغيل تطبيق GitHub Copilot App تلقائيًا عند تبديل GitHub Copilot"
     },
     "network": {
       "apiTitle": "واجهة برمجة تطبيقات قمرة القيادة المضادة للجاذبية",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "المخرجات الخام",
       "reportUrlRendered": "العرض المرئي",
       "firewallHintTitle": "تلميح جدار الحماية",
-      "firewallHint": "إذا تعذر الوصول إلى الرابط، فتحقق من إعدادات جدار الحماية في النظام."
+      "firewallHint": "إذا تعذر الوصول إلى الرابط، فتحقق من إعدادات جدار الحماية في النظام.",
+      "proxyTitle": "وكيل عام",
+      "proxyEnabled": "تفعيل الوكيل العام",
+      "proxyEnabledDesc": "إدخال متغيرات بيئة الوكيل في عمليات المنصات المُدارة التي يشغّلها Cockpit.",
+      "proxyUrl": "عنوان الوكيل",
+      "proxyUrlDesc": "مثال: http://127.0.0.1:7890 أو socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "مثال: http://127.0.0.1:7890",
+      "proxyNoProxy": "قائمة NO_PROXY",
+      "proxyNoProxyDesc": "مفصولة بفواصل؛ المضيفون المطابقون يتجاوزون الوكيل.",
+      "proxyNoProxyPlaceholder": "مثال: 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "لا يمكن أن يكون عنوان الوكيل فارغًا عند تفعيل الوكيل العام."
     },
     "about": {
       "appName": "Cockpit Tools",

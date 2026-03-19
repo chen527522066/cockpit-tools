@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "Выбрать",
       "workbuddyPathReset": "Сбросить по умолчанию",
       "openclawAuthOverwrite": "Перезаписать логин OpenClaw при переключении Кодекса",
-      "openclawAuthOverwriteDesc": "Если выключено, переключается только Codex, а OpenClaw сохраняет текущее состояние входа в систему."
+      "openclawAuthOverwriteDesc": "Если выключено, переключается только Codex, а OpenClaw сохраняет текущее состояние входа в систему.",
+      "ghcpOpencodeAuthOverwrite": "Перезаписать логин OpenCode при переключении GitHub Copilot",
+      "ghcpOpencodeRestart": "Перезапускать OpenCode при переключении GitHub Copilot",
+      "ghcpLaunchOnSwitch": "Автоматически запускать GitHub Copilot App при переключении GitHub Copilot"
     },
     "network": {
       "apiTitle": "API антигравитационной кабины",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "Сырой вывод",
       "reportUrlRendered": "Отрендеренный вид",
       "firewallHintTitle": "Подсказка по брандмауэру",
-      "firewallHint": "Если URL недоступен, проверьте настройки системного брандмауэра."
+      "firewallHint": "Если URL недоступен, проверьте настройки системного брандмауэра.",
+      "proxyTitle": "Глобальный прокси",
+      "proxyEnabled": "Включить глобальный прокси",
+      "proxyEnabledDesc": "Добавлять переменные окружения прокси в управляемые процессы платформ, запускаемые Cockpit.",
+      "proxyUrl": "URL прокси",
+      "proxyUrlDesc": "Пример: http://127.0.0.1:7890 или socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "например, http://127.0.0.1:7890",
+      "proxyNoProxy": "Список NO_PROXY",
+      "proxyNoProxyDesc": "Через запятую; совпавшие хосты обходят прокси.",
+      "proxyNoProxyPlaceholder": "например, 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "URL прокси не может быть пустым, когда глобальный прокси включён."
     },
     "about": {
       "appName": "Cockpit Tools",

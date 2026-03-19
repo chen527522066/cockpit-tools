@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "選択",
       "workbuddyPathReset": "デフォルトに戻す",
       "openclawAuthOverwrite": "Codex 切り替え時に OpenClaw のログインを上書きする",
-      "openclawAuthOverwriteDesc": "オフの場合は Codex のみ切り替え、OpenClaw は現在のログイン状態を維持します"
+      "openclawAuthOverwriteDesc": "オフの場合は Codex のみ切り替え、OpenClaw は現在のログイン状態を維持します",
+      "ghcpOpencodeAuthOverwrite": "GitHub Copilot 切り替え時に OpenCode のログインを上書きする",
+      "ghcpOpencodeRestart": "GitHub Copilot 切替時に OpenCode を自動再起動",
+      "ghcpLaunchOnSwitch": "GitHub Copilot 切替時に GitHub Copilot App を自動起動"
     },
     "network": {
       "apiTitle": "反重力コックピット API",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "生データ出力",
       "reportUrlRendered": "レンダリング表示",
       "firewallHintTitle": "ファイアウォールのヒント",
-      "firewallHint": "URL にアクセスできない場合は、システムのファイアウォール設定を確認してください。"
+      "firewallHint": "URL にアクセスできない場合は、システムのファイアウォール設定を確認してください。",
+      "proxyTitle": "グローバルプロキシ",
+      "proxyEnabled": "グローバルプロキシを有効化",
+      "proxyEnabledDesc": "Cockpit が起動する管理対象プラットフォームのプロセスへ、プロキシ環境変数を注入します。",
+      "proxyUrl": "プロキシ URL",
+      "proxyUrlDesc": "例: http://127.0.0.1:7890 または socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "例: http://127.0.0.1:7890",
+      "proxyNoProxy": "NO_PROXY リスト",
+      "proxyNoProxyDesc": "カンマ区切り。一致したホストはプロキシをバイパスします。",
+      "proxyNoProxyPlaceholder": "例: 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "グローバルプロキシを有効にする場合、プロキシ URL は必須です。"
     },
     "about": {
       "appName": "Cockpit Tools",

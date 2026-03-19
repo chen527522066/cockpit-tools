@@ -964,6 +964,95 @@ fn sanitize_macos_gui_launch_env(cmd: &mut Command) {
     cmd.env_remove("XPC_SERVICE_NAME");
 }
 
+fn managed_proxy_env_pairs() -> Vec<(&'static str, String)> {
+    let config = config::get_user_config();
+    if !config.global_proxy_enabled {
+        return Vec::new();
+    }
+
+    let proxy_url = config.global_proxy_url.trim();
+    if proxy_url.is_empty() {
+        crate::modules::logger::log_warn("[Proxy] 全局代理已启用，但代理地址为空，跳过注入");
+        return Vec::new();
+    }
+
+    let mut pairs = vec![
+        ("http_proxy", proxy_url.to_string()),
+        ("https_proxy", proxy_url.to_string()),
+        ("HTTP_PROXY", proxy_url.to_string()),
+        ("HTTPS_PROXY", proxy_url.to_string()),
+        ("all_proxy", proxy_url.to_string()),
+        ("ALL_PROXY", proxy_url.to_string()),
+    ];
+
+    let no_proxy = config.global_proxy_no_proxy.trim();
+    if !no_proxy.is_empty() {
+        pairs.push(("no_proxy", no_proxy.to_string()));
+        pairs.push(("NO_PROXY", no_proxy.to_string()));
+    }
+
+    pairs
+}
+
+fn log_managed_proxy_injection(mode: &str, cmd: &Command, pairs: &[(&'static str, String)]) {
+    if pairs.is_empty() {
+        return;
+    }
+
+    let proxy_url = pairs
+        .iter()
+        .find_map(|(key, value)| (*key == "http_proxy").then_some(value.as_str()))
+        .unwrap_or("");
+    let no_proxy = pairs
+        .iter()
+        .find_map(|(key, value)| (*key == "no_proxy").then_some(value.as_str()))
+        .unwrap_or("");
+    let keys = pairs
+        .iter()
+        .map(|(key, _)| *key)
+        .collect::<Vec<&str>>()
+        .join(",");
+
+    crate::modules::logger::log_info(&format!(
+        "[Proxy] 已注入全局代理 mode={} program={} proxy_url={} no_proxy={} keys={}",
+        mode,
+        cmd.get_program().to_string_lossy(),
+        proxy_url,
+        if no_proxy.is_empty() {
+            "<empty>"
+        } else {
+            no_proxy
+        },
+        keys
+    ));
+}
+
+pub fn apply_managed_proxy_env_to_command(cmd: &mut Command) {
+    let pairs = managed_proxy_env_pairs();
+    if pairs.is_empty() {
+        return;
+    }
+    log_managed_proxy_injection("env", cmd, &pairs);
+    for (key, value) in pairs {
+        cmd.env(key, value);
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub fn append_managed_proxy_env_to_open_args(cmd: &mut Command) {
+    let pairs = managed_proxy_env_pairs();
+    if pairs.is_empty() {
+        return;
+    }
+    log_managed_proxy_injection("open-arg", cmd, &pairs);
+    for (key, value) in pairs {
+        cmd.arg("--env").arg(format!("{}={}", key, value));
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn append_managed_proxy_env_to_open_args(_cmd: &mut Command) {}
+
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 fn spawn_detached_unix(cmd: &mut Command) -> Result<Child, String> {
     use std::os::unix::process::CommandExt;
@@ -1159,6 +1248,7 @@ fn spawn_open_app_with_options(
 ) -> Result<u32, String> {
     let mut cmd = Command::new("open");
     sanitize_macos_gui_launch_env(&mut cmd);
+    append_managed_proxy_env_to_open_args(&mut cmd);
     if force_new_instance {
         cmd.arg("-n");
     }
@@ -5671,6 +5761,7 @@ pub fn start_antigravity_with_args(
         use std::os::windows::process::CommandExt;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS); // CREATE_NO_WINDOW | detached
             cmd.stdin(Stdio::null())
@@ -5701,6 +5792,7 @@ pub fn start_antigravity_with_args(
     #[cfg(target_os = "linux")]
     {
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -5906,6 +5998,7 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
         if !codex_home_trimmed.is_empty() {
             if let Ok(launch_path) = resolve_codex_launch_path() {
                 let mut cmd = Command::new(&launch_path);
+                apply_managed_proxy_env_to_command(&mut cmd);
                 sanitize_macos_gui_launch_env(&mut cmd);
                 cmd.env("CODEX_HOME", codex_home_trimmed);
                 for arg in &args {
@@ -5999,6 +6092,7 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
 
         let launch_path = resolve_codex_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -6458,8 +6552,12 @@ pub fn start_opencode_with_path(custom_path: Option<&str>) -> Result<(), String>
         let target =
             normalize_custom_path(custom_path).unwrap_or_else(|| OPENCODE_APP_NAME.to_string());
 
-        let output = Command::new("open")
-            .args(["-a", &target])
+        let mut cmd = Command::new("open");
+        sanitize_macos_gui_launch_env(&mut cmd);
+        append_managed_proxy_env_to_open_args(&mut cmd);
+        cmd.args(["-a", &target]);
+
+        let output = cmd
             .output()
             .map_err(|e| format!("启动 OpenCode 失败: {}", e))?;
 
@@ -6497,6 +6595,7 @@ pub fn start_opencode_with_path(custom_path: Option<&str>) -> Result<(), String>
                 }
             }
             let mut cmd = Command::new(&candidate);
+            apply_managed_proxy_env_to_command(&mut cmd);
             cmd.creation_flags(0x08000000);
             if spawn_command_with_trace(&mut cmd).is_ok() {
                 crate::modules::logger::log_info(&format!("OpenCode 已启动: {}", candidate));
@@ -6525,6 +6624,7 @@ pub fn start_opencode_with_path(custom_path: Option<&str>) -> Result<(), String>
                 }
             }
             let mut cmd = Command::new(&candidate);
+            apply_managed_proxy_env_to_command(&mut cmd);
             if spawn_command_with_trace(&mut cmd).is_ok() {
                 crate::modules::logger::log_info(&format!("OpenCode 已启动: {}", candidate));
                 return Ok(());
@@ -6716,6 +6816,7 @@ pub fn start_vscode_with_args_with_new_window(
         let launch_path = resolve_vscode_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -6752,6 +6853,7 @@ pub fn start_vscode_with_args_with_new_window(
         let launch_path = resolve_vscode_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -6847,6 +6949,7 @@ pub fn start_codebuddy_with_args_with_new_window(
         let launch_path = resolve_codebuddy_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -6883,6 +6986,7 @@ pub fn start_codebuddy_with_args_with_new_window(
         let launch_path = resolve_codebuddy_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -6966,6 +7070,7 @@ pub fn start_codebuddy_default_with_args_with_new_window(
 
         let launch_path = resolve_codebuddy_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -6995,6 +7100,7 @@ pub fn start_codebuddy_default_with_args_with_new_window(
     {
         let launch_path = resolve_codebuddy_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7088,6 +7194,7 @@ pub fn start_codebuddy_cn_with_args_with_new_window(
         let launch_path = resolve_codebuddy_cn_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7124,6 +7231,7 @@ pub fn start_codebuddy_cn_with_args_with_new_window(
         let launch_path = resolve_codebuddy_cn_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7207,6 +7315,7 @@ pub fn start_codebuddy_cn_default_with_args_with_new_window(
 
         let launch_path = resolve_codebuddy_cn_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7236,6 +7345,7 @@ pub fn start_codebuddy_cn_default_with_args_with_new_window(
     {
         let launch_path = resolve_codebuddy_cn_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7327,6 +7437,7 @@ pub fn start_workbuddy_with_args_with_new_window(
         let launch_path = resolve_workbuddy_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7363,6 +7474,7 @@ pub fn start_workbuddy_with_args_with_new_window(
         let launch_path = resolve_workbuddy_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7444,6 +7556,7 @@ pub fn start_workbuddy_default_with_args_with_new_window(
 
         let launch_path = resolve_workbuddy_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7473,6 +7586,7 @@ pub fn start_workbuddy_default_with_args_with_new_window(
     {
         let launch_path = resolve_workbuddy_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7561,6 +7675,7 @@ pub fn start_qoder_with_args_with_new_window(
         let launch_path = resolve_qoder_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7597,6 +7712,7 @@ pub fn start_qoder_with_args_with_new_window(
         let launch_path = resolve_qoder_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7674,6 +7790,7 @@ pub fn start_qoder_default_with_args_with_new_window(
 
         let launch_path = resolve_qoder_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7703,6 +7820,7 @@ pub fn start_qoder_default_with_args_with_new_window(
     {
         let launch_path = resolve_qoder_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7790,6 +7908,7 @@ pub fn start_trae_with_args_with_new_window(
         let launch_path = resolve_trae_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7826,6 +7945,7 @@ pub fn start_trae_with_args_with_new_window(
         let launch_path = resolve_trae_launch_path()?;
 
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -7903,6 +8023,7 @@ pub fn start_trae_default_with_args_with_new_window(
 
         let launch_path = resolve_trae_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -7932,6 +8053,7 @@ pub fn start_trae_default_with_args_with_new_window(
     {
         let launch_path = resolve_trae_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -8012,6 +8134,7 @@ pub fn start_vscode_default_with_args_with_new_window(
 
         let launch_path = resolve_vscode_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.creation_flags(0x08000000 | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS);
             cmd.stdin(Stdio::null())
@@ -8041,6 +8164,7 @@ pub fn start_vscode_default_with_args_with_new_window(
     {
         let launch_path = resolve_vscode_launch_path()?;
         let mut cmd = Command::new(&launch_path);
+        apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())

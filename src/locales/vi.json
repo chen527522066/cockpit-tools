@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "Chọn",
       "workbuddyPathReset": "Đặt lại mặc định",
       "openclawAuthOverwrite": "Ghi đè đăng nhập OpenClaw khi chuyển đổi Codex",
-      "openclawAuthOverwriteDesc": "Khi tắt, chỉ Codex được chuyển đổi và OpenClaw giữ trạng thái đăng nhập hiện tại"
+      "openclawAuthOverwriteDesc": "Khi tắt, chỉ Codex được chuyển đổi và OpenClaw giữ trạng thái đăng nhập hiện tại",
+      "ghcpOpencodeAuthOverwrite": "Ghi đè đăng nhập OpenCode khi chuyển đổi GitHub Copilot",
+      "ghcpOpencodeRestart": "Khởi động lại OpenCode khi chuyển GitHub Copilot",
+      "ghcpLaunchOnSwitch": "Tự động khởi chạy GitHub Copilot App khi chuyển GitHub Copilot"
     },
     "network": {
       "apiTitle": "API Antigravity Cockpit",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "Đầu ra thô",
       "reportUrlRendered": "Chế độ hiển thị",
       "firewallHintTitle": "Gợi ý tường lửa",
-      "firewallHint": "Nếu URL không truy cập được, hãy kiểm tra cài đặt tường lửa của hệ thống."
+      "firewallHint": "Nếu URL không truy cập được, hãy kiểm tra cài đặt tường lửa của hệ thống.",
+      "proxyTitle": "Proxy toàn cục",
+      "proxyEnabled": "Bật proxy toàn cục",
+      "proxyEnabledDesc": "Chèn biến môi trường proxy vào các tiến trình nền tảng được Cockpit quản lý khi khởi chạy.",
+      "proxyUrl": "URL proxy",
+      "proxyUrlDesc": "Ví dụ: http://127.0.0.1:7890 hoặc socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "ví dụ: http://127.0.0.1:7890",
+      "proxyNoProxy": "Danh sách NO_PROXY",
+      "proxyNoProxyDesc": "Phân tách bằng dấu phẩy; host khớp sẽ bỏ qua proxy.",
+      "proxyNoProxyPlaceholder": "ví dụ: 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "Không được để trống URL proxy khi bật proxy toàn cục."
     },
     "about": {
       "appName": "Cockpit Tools",

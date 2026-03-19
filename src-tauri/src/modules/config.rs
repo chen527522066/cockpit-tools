@@ -55,6 +55,15 @@ pub struct UserConfig {
     /// 网页查询服务访问令牌
     #[serde(default = "default_report_token")]
     pub report_token: String,
+    /// 全局代理开关（仅对受管启动链路生效）
+    #[serde(default = "default_global_proxy_enabled")]
+    pub global_proxy_enabled: bool,
+    /// 全局代理地址（如 http://127.0.0.1:7890）
+    #[serde(default = "default_global_proxy_url")]
+    pub global_proxy_url: String,
+    /// NO_PROXY 白名单（逗号分隔）
+    #[serde(default = "default_global_proxy_no_proxy")]
+    pub global_proxy_no_proxy: String,
     /// 界面语言
     #[serde(default = "default_language")]
     pub language: String,
@@ -148,6 +157,15 @@ pub struct UserConfig {
     /// 切换 Codex 时是否覆盖 OpenCode 登录信息
     #[serde(default = "default_opencode_auth_overwrite_on_switch")]
     pub opencode_auth_overwrite_on_switch: bool,
+    /// 切换 GitHub Copilot 时是否自动重启 OpenCode
+    #[serde(default = "default_ghcp_opencode_sync_on_switch")]
+    pub ghcp_opencode_sync_on_switch: bool,
+    /// 切换 GitHub Copilot 时是否覆盖 OpenCode 登录信息
+    #[serde(default = "default_ghcp_opencode_auth_overwrite_on_switch")]
+    pub ghcp_opencode_auth_overwrite_on_switch: bool,
+    /// 切换 GitHub Copilot 时是否自动启动 GitHub Copilot
+    #[serde(default = "default_ghcp_launch_on_switch")]
+    pub ghcp_launch_on_switch: bool,
     /// 切换 Codex 时是否覆盖 OpenClaw 登录信息
     #[serde(default = "default_openclaw_auth_overwrite_on_switch")]
     pub openclaw_auth_overwrite_on_switch: bool,
@@ -298,6 +316,15 @@ fn default_report_port() -> u16 {
 fn default_report_token() -> String {
     "change-this-token".to_string()
 }
+fn default_global_proxy_enabled() -> bool {
+    false
+}
+fn default_global_proxy_url() -> String {
+    String::new()
+}
+fn default_global_proxy_no_proxy() -> String {
+    "127.0.0.1,localhost,::1".to_string()
+}
 fn default_language() -> String {
     "zh-cn".to_string()
 }
@@ -389,6 +416,15 @@ fn default_opencode_sync_on_switch() -> bool {
     true
 }
 fn default_opencode_auth_overwrite_on_switch() -> bool {
+    true
+}
+fn default_ghcp_opencode_sync_on_switch() -> bool {
+    false
+}
+fn default_ghcp_opencode_auth_overwrite_on_switch() -> bool {
+    false
+}
+fn default_ghcp_launch_on_switch() -> bool {
     true
 }
 fn default_openclaw_auth_overwrite_on_switch() -> bool {
@@ -499,6 +535,9 @@ impl Default for UserConfig {
             report_enabled: default_report_enabled(),
             report_port: default_report_port(),
             report_token: default_report_token(),
+            global_proxy_enabled: default_global_proxy_enabled(),
+            global_proxy_url: default_global_proxy_url(),
+            global_proxy_no_proxy: default_global_proxy_no_proxy(),
             language: default_language(),
             theme: default_theme(),
             ui_scale: default_ui_scale(),
@@ -530,6 +569,10 @@ impl Default for UserConfig {
             workbuddy_app_path: default_workbuddy_app_path(),
             opencode_sync_on_switch: default_opencode_sync_on_switch(),
             opencode_auth_overwrite_on_switch: default_opencode_auth_overwrite_on_switch(),
+            ghcp_opencode_sync_on_switch: default_ghcp_opencode_sync_on_switch(),
+            ghcp_opencode_auth_overwrite_on_switch: default_ghcp_opencode_auth_overwrite_on_switch(
+            ),
+            ghcp_launch_on_switch: default_ghcp_launch_on_switch(),
             openclaw_auth_overwrite_on_switch: default_openclaw_auth_overwrite_on_switch(),
             codex_launch_on_switch: default_codex_launch_on_switch(),
             auto_switch_enabled: default_auto_switch_enabled(),
@@ -731,6 +774,24 @@ pub fn load_user_config() -> Result<UserConfig, String> {
         }
         if !obj.contains_key("report_token") {
             obj.insert("report_token".to_string(), json!(default_report_token()));
+        }
+        if !obj.contains_key("global_proxy_enabled") {
+            obj.insert(
+                "global_proxy_enabled".to_string(),
+                json!(default_global_proxy_enabled()),
+            );
+        }
+        if !obj.contains_key("global_proxy_url") {
+            obj.insert(
+                "global_proxy_url".to_string(),
+                json!(default_global_proxy_url()),
+            );
+        }
+        if !obj.contains_key("global_proxy_no_proxy") {
+            obj.insert(
+                "global_proxy_no_proxy".to_string(),
+                json!(default_global_proxy_no_proxy()),
+            );
         }
 
         let legacy_enabled = obj

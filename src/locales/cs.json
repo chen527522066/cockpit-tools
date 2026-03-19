@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "Vybrat",
       "workbuddyPathReset": "Obnovit výchozí",
       "openclawAuthOverwrite": "Při přepnutí Codexu přepsat přihlášení OpenClaw",
-      "openclawAuthOverwriteDesc": "Pokud je vypnuto, přepne se pouze Codex a OpenClaw zůstane v aktuálním přihlášení"
+      "openclawAuthOverwriteDesc": "Pokud je vypnuto, přepne se pouze Codex a OpenClaw zůstane v aktuálním přihlášení",
+      "ghcpOpencodeAuthOverwrite": "Při přepnutí GitHub Copilot přepsat přihlášení OpenCode",
+      "ghcpOpencodeRestart": "Restartovat OpenCode při přepnutí GitHub Copilot",
+      "ghcpLaunchOnSwitch": "Při přepnutí GitHub Copilot automaticky spustit GitHub Copilot App"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "Surový výstup",
       "reportUrlRendered": "Vykreslené zobrazení",
       "firewallHintTitle": "Tip k firewallu",
-      "firewallHint": "Pokud URL není dostupná, zkontrolujte nastavení systémového firewallu."
+      "firewallHint": "Pokud URL není dostupná, zkontrolujte nastavení systémového firewallu.",
+      "proxyTitle": "Globální proxy",
+      "proxyEnabled": "Povolit globální proxy",
+      "proxyEnabledDesc": "Vloží proxy proměnné prostředí do spravovaných procesů platforem spuštěných aplikací Cockpit.",
+      "proxyUrl": "URL proxy",
+      "proxyUrlDesc": "Příklad: http://127.0.0.1:7890 nebo socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "např. http://127.0.0.1:7890",
+      "proxyNoProxy": "Seznam NO_PROXY",
+      "proxyNoProxyDesc": "Oddělené čárkou; odpovídající hosté obejdou proxy.",
+      "proxyNoProxyPlaceholder": "např. 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "Když je globální proxy zapnutá, URL proxy nesmí být prázdná."
     },
     "about": {
       "appName": "Cockpit Tools",

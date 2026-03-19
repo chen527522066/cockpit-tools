@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "Select",
       "workbuddyPathReset": "Reset to default",
       "openclawAuthOverwrite": "Overwrite OpenClaw login when switching Codex",
-      "openclawAuthOverwriteDesc": "When off, only Codex is switched and OpenClaw keeps its current login state"
+      "openclawAuthOverwriteDesc": "When off, only Codex is switched and OpenClaw keeps its current login state",
+      "ghcpOpencodeAuthOverwrite": "Overwrite OpenCode login when switching GitHub Copilot",
+      "ghcpOpencodeRestart": "Restart OpenCode when switching GitHub Copilot",
+      "ghcpLaunchOnSwitch": "Launch GitHub Copilot App when switching GitHub Copilot"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "Raw Output",
       "reportUrlRendered": "Rendered View",
       "firewallHintTitle": "Firewall Tip",
-      "firewallHint": "If the URL is unreachable, check your system firewall settings."
+      "firewallHint": "If the URL is unreachable, check your system firewall settings.",
+      "proxyTitle": "Global Proxy",
+      "proxyEnabled": "Enable Global Proxy",
+      "proxyEnabledDesc": "Inject proxy environment variables into managed platform processes launched by Cockpit.",
+      "proxyUrl": "Proxy URL",
+      "proxyUrlDesc": "Example: http://127.0.0.1:7890 or socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "http://127.0.0.1:7890",
+      "proxyNoProxy": "NO_PROXY List",
+      "proxyNoProxyDesc": "Comma-separated; matched hosts bypass proxy.",
+      "proxyNoProxyPlaceholder": "127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "Proxy URL cannot be empty when global proxy is enabled."
     },
     "about": {
       "appName": "Cockpit Tools",

@@ -1,7 +1,7 @@
 use tauri::{AppHandle, Emitter};
 
 use crate::models::github_copilot::{GitHubCopilotAccount, GitHubCopilotOAuthStartResponse};
-use crate::modules::{github_copilot_account, github_copilot_oauth, logger};
+use crate::modules::{config, github_copilot_account, github_copilot_oauth, logger, opencode_auth, process};
 
 async fn refresh_github_copilot_account_after_login(
     account: GitHubCopilotAccount,
@@ -183,7 +183,44 @@ pub async fn inject_github_copilot_to_vscode(
         ));
     }
 
-    let launch_warning =
+    let user_config = config::get_user_config();
+    let mut opencode_updated = false;
+    if user_config.ghcp_opencode_auth_overwrite_on_switch {
+        match opencode_auth::replace_github_copilot_entry_from_account(&account) {
+            Ok(()) => {
+                opencode_updated = true;
+            }
+            Err(e) => {
+                logger::log_warn(&format!("OpenCode auth.json 更新跳过: {}", e));
+            }
+        }
+    } else {
+        logger::log_info("已关闭切换 GitHub Copilot 时覆盖 OpenCode 登录信息");
+    }
+
+    if user_config.ghcp_opencode_sync_on_switch {
+        if user_config.ghcp_opencode_auth_overwrite_on_switch && opencode_updated {
+            if process::is_opencode_running() {
+                if let Err(e) = process::close_opencode(20) {
+                    logger::log_warn(&format!("OpenCode 关闭失败: {}", e));
+                }
+            } else {
+                logger::log_info("OpenCode 未在运行，准备启动");
+            }
+            if let Err(e) = process::start_opencode_with_path(Some(&user_config.opencode_app_path))
+            {
+                logger::log_warn(&format!("OpenCode 启动失败: {}", e));
+            }
+        } else if !user_config.ghcp_opencode_auth_overwrite_on_switch {
+            logger::log_info("OpenCode 登录覆盖已关闭，跳过自动重启");
+        } else {
+            logger::log_info("OpenCode 未更新 auth.json，跳过启动/重启");
+        }
+    } else {
+        logger::log_info("已关闭 OpenCode 自动重启");
+    }
+
+    let launch_warning = if user_config.ghcp_launch_on_switch {
         match crate::commands::github_copilot_instance::github_copilot_start_instance(
             "__default__".to_string(),
         )
@@ -204,7 +241,11 @@ pub async fn inject_github_copilot_to_vscode(
                     return Err(e);
                 }
             }
-        };
+        }
+    } else {
+        logger::log_info("已关闭切换 GitHub Copilot 时自动启动 GitHub Copilot");
+        None
+    };
 
     logger::log_info(&format!(
         "GitHub Copilot 账号切换完成: {}",

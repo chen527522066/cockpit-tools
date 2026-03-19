@@ -7,6 +7,16 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [0.17.1] - 2026-03-20
+
+### 新增
+- **网络设置新增“全局代理”能力并支持注入到受管启动进程**：新增 `global_proxy_enabled`/`global_proxy_url`/`global_proxy_no_proxy`，并在 Cockpit 启动的平台应用与实例启动链路中按 macOS/Linux/Windows 注入代理环境变量。
+- **GitHub Copilot 切号新增 OpenCode 联动与启动开关配置**：通用设置与快捷设置新增 GitHub Copilot 自动启动、OpenCode 登录覆盖、切号后自动重启 OpenCode 三项控制。
+
+### 变更
+- **OpenCode 自动重启开关现在与登录覆盖开关保持依赖一致**：在设置页和快捷设置中，关闭登录覆盖时会自动关闭对应的自动重启开关，覆盖 Codex 与 GitHub Copilot 两条切号链路。
+
+---
 ## [0.17.0] - 2026-03-19
 
 ### 新增

@@ -1140,6 +1140,7 @@ fn spawn_cursor_windows(
     use std::os::windows::process::CommandExt;
 
     let mut cmd = Command::new(launch_path);
+    crate::modules::process::apply_managed_proxy_env_to_command(&mut cmd);
     cmd.creation_flags(0x08000000);
     cmd.stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -1172,6 +1173,7 @@ fn spawn_cursor_macos_open(
 
     let mut cmd = Command::new("open");
     sanitize_macos_gui_launch_env(&mut cmd);
+    crate::modules::process::append_managed_proxy_env_to_open_args(&mut cmd);
     cmd.arg("-n").arg("-a").arg(&app_root);
     cmd.arg("--args");
     cmd.arg("--user-data-dir").arg(target);
@@ -1212,6 +1214,7 @@ fn spawn_cursor_unix(
     use_new_window: bool,
 ) -> Result<u32, String> {
     let mut cmd = Command::new(launch_path);
+    crate::modules::process::apply_managed_proxy_env_to_command(&mut cmd);
     sanitize_macos_gui_launch_env(&mut cmd);
     cmd.stdin(Stdio::null())
         .stdout(Stdio::null())

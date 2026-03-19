@@ -44,6 +44,9 @@ interface GeneralConfig {
   workbuddy_app_path: string;
   opencode_sync_on_switch: boolean;
   opencode_auth_overwrite_on_switch: boolean;
+  ghcp_opencode_sync_on_switch: boolean;
+  ghcp_opencode_auth_overwrite_on_switch: boolean;
+  ghcp_launch_on_switch: boolean;
   openclaw_auth_overwrite_on_switch: boolean;
   codex_launch_on_switch: boolean;
   auto_switch_enabled: boolean;
@@ -273,6 +276,9 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
           workbuddyAppPath: merged.workbuddy_app_path,
           opencodeSyncOnSwitch: merged.opencode_sync_on_switch,
           opencodeAuthOverwriteOnSwitch: merged.opencode_auth_overwrite_on_switch,
+          ghcpOpencodeSyncOnSwitch: merged.ghcp_opencode_sync_on_switch,
+          ghcpOpencodeAuthOverwriteOnSwitch: merged.ghcp_opencode_auth_overwrite_on_switch,
+          ghcpLaunchOnSwitch: merged.ghcp_launch_on_switch,
           openclawAuthOverwriteOnSwitch: merged.openclaw_auth_overwrite_on_switch,
           codexLaunchOnSwitch: merged.codex_launch_on_switch,
           autoSwitchEnabled: merged.auto_switch_enabled,
@@ -1165,7 +1171,14 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
                         type="checkbox"
                         checked={config.opencode_auth_overwrite_on_switch}
                         onChange={(e) =>
-                          saveConfig({ opencode_auth_overwrite_on_switch: e.target.checked })
+                          saveConfig(
+                            e.target.checked
+                              ? { opencode_auth_overwrite_on_switch: true }
+                              : {
+                                  opencode_auth_overwrite_on_switch: false,
+                                  opencode_sync_on_switch: false,
+                                }
+                          )
                         }
                       />
                       <span className="qs-switch-slider"></span>
@@ -1344,6 +1357,89 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ─── GitHub Copilot: opencode sync ─── */}
+            {type === 'github_copilot' && (
+              <div className="qs-section">
+                <div className="qs-row">
+                  <div className="qs-row-label">
+                    <Zap size={15} />
+                    <span>
+                      {t(
+                        'settings.general.ghcpLaunchOnSwitch',
+                        '切换 GitHub Copilot 时自动启动 GitHub Copilot'
+                      )}
+                    </span>
+                  </div>
+                  <div className="qs-row-control">
+                    <label className="qs-switch">
+                      <input
+                        type="checkbox"
+                        checked={config.ghcp_launch_on_switch}
+                        onChange={(e) => saveConfig({ ghcp_launch_on_switch: e.target.checked })}
+                      />
+                      <span className="qs-switch-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="qs-row">
+                  <div className="qs-row-label">
+                    <Zap size={15} />
+                    <span>
+                      {t(
+                        'settings.general.ghcpOpencodeAuthOverwrite',
+                        '切换 GitHub Copilot 时覆盖 OpenCode 登录信息'
+                      )}
+                    </span>
+                  </div>
+                  <div className="qs-row-control">
+                    <label className="qs-switch">
+                      <input
+                        type="checkbox"
+                        checked={config.ghcp_opencode_auth_overwrite_on_switch}
+                        onChange={(e) =>
+                          saveConfig(
+                            e.target.checked
+                              ? { ghcp_opencode_auth_overwrite_on_switch: true }
+                              : {
+                                  ghcp_opencode_auth_overwrite_on_switch: false,
+                                  ghcp_opencode_sync_on_switch: false,
+                                }
+                          )
+                        }
+                      />
+                      <span className="qs-switch-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="qs-row">
+                  <div className="qs-row-label">
+                    <Zap size={15} />
+                    <span>
+                      {t(
+                        'settings.general.ghcpOpencodeRestart',
+                        '切换 GitHub Copilot 时自动重启 OpenCode'
+                      )}
+                    </span>
+                  </div>
+                  <div className="qs-row-control">
+                    <label className="qs-switch">
+                      <input
+                        type="checkbox"
+                        checked={config.ghcp_opencode_sync_on_switch}
+                        disabled={!config.ghcp_opencode_auth_overwrite_on_switch}
+                        onChange={(e) =>
+                          saveConfig({ ghcp_opencode_sync_on_switch: e.target.checked })
+                        }
+                      />
+                      <span className="qs-switch-slider"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}

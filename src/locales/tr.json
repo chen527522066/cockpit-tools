@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "Seç",
       "workbuddyPathReset": "Varsayılana sıfırla",
       "openclawAuthOverwrite": "Codex'i değiştirirken OpenClaw oturum açma bilgilerinin üzerine yazın",
-      "openclawAuthOverwriteDesc": "Kapalıyken yalnızca Codex açılır ve OpenClaw mevcut oturum açma durumunu korur"
+      "openclawAuthOverwriteDesc": "Kapalıyken yalnızca Codex açılır ve OpenClaw mevcut oturum açma durumunu korur",
+      "ghcpOpencodeAuthOverwrite": "GitHub Copilot değiştirirken OpenCode oturum açma bilgilerinin üzerine yazın",
+      "ghcpOpencodeRestart": "GitHub Copilot değiştirildiğinde OpenCode'u yeniden başlat",
+      "ghcpLaunchOnSwitch": "GitHub Copilot değiştirirken GitHub Copilot App'i otomatik başlat"
     },
     "network": {
       "apiTitle": "Yerçekimine Karşı Kokpit API'si",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "Ham çıktı",
       "reportUrlRendered": "İşlenmiş görünüm",
       "firewallHintTitle": "Güvenlik duvarı ipucu",
-      "firewallHint": "URL erişilemiyorsa sistem güvenlik duvarı ayarlarını kontrol edin."
+      "firewallHint": "URL erişilemiyorsa sistem güvenlik duvarı ayarlarını kontrol edin.",
+      "proxyTitle": "Genel Proxy",
+      "proxyEnabled": "Genel proxyyi etkinleştir",
+      "proxyEnabledDesc": "Cockpit tarafından başlatılan yönetilen platform süreçlerine proxy ortam değişkenleri enjekte eder.",
+      "proxyUrl": "Proxy URL",
+      "proxyUrlDesc": "Örnek: http://127.0.0.1:7890 veya socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "örn. http://127.0.0.1:7890",
+      "proxyNoProxy": "NO_PROXY Listesi",
+      "proxyNoProxyDesc": "Virgülle ayrılır; eşleşen ana bilgisayarlar proxyyi atlar.",
+      "proxyNoProxyPlaceholder": "örn. 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "Genel proxy etkin olduğunda proxy URL boş olamaz."
     },
     "about": {
       "appName": "Cockpit Tools",

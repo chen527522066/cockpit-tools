@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "Seleccionar",
       "workbuddyPathReset": "Restablecer por defecto",
       "openclawAuthOverwrite": "Sobrescribir inicio de sesión de OpenClaw al cambiar Codex",
-      "openclawAuthOverwriteDesc": "Si está desactivado, solo se cambia Codex y OpenClaw mantiene su sesión actual"
+      "openclawAuthOverwriteDesc": "Si está desactivado, solo se cambia Codex y OpenClaw mantiene su sesión actual",
+      "ghcpOpencodeAuthOverwrite": "Sobrescribir inicio de sesión de OpenCode al cambiar GitHub Copilot",
+      "ghcpOpencodeRestart": "Reiniciar OpenCode al cambiar GitHub Copilot",
+      "ghcpLaunchOnSwitch": "Iniciar GitHub Copilot App al cambiar GitHub Copilot"
     },
     "network": {
       "apiTitle": "API de cabina antigravedad",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "Salida sin procesar",
       "reportUrlRendered": "Vista renderizada",
       "firewallHintTitle": "Consejo de firewall",
-      "firewallHint": "Si no se puede acceder a la URL, revisa la configuración del firewall del sistema."
+      "firewallHint": "Si no se puede acceder a la URL, revisa la configuración del firewall del sistema.",
+      "proxyTitle": "Proxy global",
+      "proxyEnabled": "Activar proxy global",
+      "proxyEnabledDesc": "Inyecta variables de entorno de proxy en los procesos de plataforma gestionados iniciados por Cockpit.",
+      "proxyUrl": "URL del proxy",
+      "proxyUrlDesc": "Ejemplo: http://127.0.0.1:7890 o socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "p. ej. http://127.0.0.1:7890",
+      "proxyNoProxy": "Lista NO_PROXY",
+      "proxyNoProxyDesc": "Separado por comas; los hosts coincidentes omiten el proxy.",
+      "proxyNoProxyPlaceholder": "p. ej. 127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "La URL del proxy no puede estar vacía cuando el proxy global está habilitado."
     },
     "about": {
       "appName": "Cockpit Tools",

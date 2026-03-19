@@ -32,6 +32,12 @@ pub struct NetworkConfig {
     pub report_default_port: u16,
     /// 网页查询服务访问令牌
     pub report_token: String,
+    /// 全局代理开关
+    pub global_proxy_enabled: bool,
+    /// 全局代理地址（如 http://127.0.0.1:7890）
+    pub global_proxy_url: String,
+    /// NO_PROXY 白名单（逗号分隔）
+    pub global_proxy_no_proxy: String,
 }
 
 /// 通用设置配置（前端使用）
@@ -97,6 +103,12 @@ pub struct GeneralConfig {
     pub opencode_sync_on_switch: bool,
     /// 切换 Codex 时是否覆盖 OpenCode 登录信息
     pub opencode_auth_overwrite_on_switch: bool,
+    /// 切换 GitHub Copilot 时是否自动重启 OpenCode
+    pub ghcp_opencode_sync_on_switch: bool,
+    /// 切换 GitHub Copilot 时是否覆盖 OpenCode 登录信息
+    pub ghcp_opencode_auth_overwrite_on_switch: bool,
+    /// 切换 GitHub Copilot 时是否自动启动 GitHub Copilot
+    pub ghcp_launch_on_switch: bool,
     /// 切换 Codex 时是否覆盖 OpenClaw 登录信息
     pub openclaw_auth_overwrite_on_switch: bool,
     /// 切换 Codex 时是否自动启动/重启 Codex App
@@ -238,6 +250,9 @@ pub fn get_network_config() -> Result<NetworkConfig, String> {
         report_actual_port,
         report_default_port: DEFAULT_REPORT_PORT,
         report_token: user_config.report_token,
+        global_proxy_enabled: user_config.global_proxy_enabled,
+        global_proxy_url: user_config.global_proxy_url,
+        global_proxy_no_proxy: user_config.global_proxy_no_proxy,
     })
 }
 
@@ -249,6 +264,9 @@ pub fn save_network_config(
     report_enabled: Option<bool>,
     report_port: Option<u16>,
     report_token: Option<String>,
+    global_proxy_enabled: Option<bool>,
+    global_proxy_url: Option<String>,
+    global_proxy_no_proxy: Option<String>,
 ) -> Result<bool, String> {
     let current = config::get_user_config();
     let next_report_enabled = report_enabled.unwrap_or(current.report_enabled);
@@ -257,9 +275,21 @@ pub fn save_network_config(
         .unwrap_or_else(|| current.report_token.clone())
         .trim()
         .to_string();
+    let next_global_proxy_enabled = global_proxy_enabled.unwrap_or(current.global_proxy_enabled);
+    let next_global_proxy_url = global_proxy_url
+        .unwrap_or_else(|| current.global_proxy_url.clone())
+        .trim()
+        .to_string();
+    let next_global_proxy_no_proxy = global_proxy_no_proxy
+        .unwrap_or_else(|| current.global_proxy_no_proxy.clone())
+        .trim()
+        .to_string();
 
     if next_report_enabled && next_report_token.is_empty() {
         return Err("网页查询服务 token 不能为空".to_string());
+    }
+    if next_global_proxy_enabled && next_global_proxy_url.is_empty() {
+        return Err("启用全局代理时，代理地址不能为空".to_string());
     }
 
     let needs_restart = current.ws_port != ws_port
@@ -274,6 +304,9 @@ pub fn save_network_config(
         report_enabled: next_report_enabled,
         report_port: next_report_port,
         report_token: next_report_token,
+        global_proxy_enabled: next_global_proxy_enabled,
+        global_proxy_url: next_global_proxy_url,
+        global_proxy_no_proxy: next_global_proxy_no_proxy,
         // 保留其他设置不变
         language: current.language,
         theme: current.theme,
@@ -306,6 +339,9 @@ pub fn save_network_config(
         workbuddy_app_path: current.workbuddy_app_path,
         opencode_sync_on_switch: current.opencode_sync_on_switch,
         opencode_auth_overwrite_on_switch: current.opencode_auth_overwrite_on_switch,
+        ghcp_opencode_sync_on_switch: current.ghcp_opencode_sync_on_switch,
+        ghcp_opencode_auth_overwrite_on_switch: current.ghcp_opencode_auth_overwrite_on_switch,
+        ghcp_launch_on_switch: current.ghcp_launch_on_switch,
         openclaw_auth_overwrite_on_switch: current.openclaw_auth_overwrite_on_switch,
         codex_launch_on_switch: current.codex_launch_on_switch,
         auto_switch_enabled: current.auto_switch_enabled,
@@ -393,6 +429,9 @@ pub fn get_general_config() -> Result<GeneralConfig, String> {
         trae_app_path: user_config.trae_app_path,
         opencode_sync_on_switch: user_config.opencode_sync_on_switch,
         opencode_auth_overwrite_on_switch: user_config.opencode_auth_overwrite_on_switch,
+        ghcp_opencode_sync_on_switch: user_config.ghcp_opencode_sync_on_switch,
+        ghcp_opencode_auth_overwrite_on_switch: user_config.ghcp_opencode_auth_overwrite_on_switch,
+        ghcp_launch_on_switch: user_config.ghcp_launch_on_switch,
         openclaw_auth_overwrite_on_switch: user_config.openclaw_auth_overwrite_on_switch,
         codex_launch_on_switch: user_config.codex_launch_on_switch,
         auto_switch_enabled: user_config.auto_switch_enabled,
@@ -481,6 +520,9 @@ pub fn save_general_config(
     workbuddy_app_path: Option<String>,
     opencode_sync_on_switch: bool,
     opencode_auth_overwrite_on_switch: Option<bool>,
+    ghcp_opencode_sync_on_switch: Option<bool>,
+    ghcp_opencode_auth_overwrite_on_switch: Option<bool>,
+    ghcp_launch_on_switch: Option<bool>,
     openclaw_auth_overwrite_on_switch: Option<bool>,
     codex_launch_on_switch: bool,
     auto_switch_enabled: Option<bool>,
@@ -562,6 +604,20 @@ pub fn save_general_config(
     let hide_dock_icon_value = hide_dock_icon.unwrap_or(current.hide_dock_icon);
     let next_codex_quota_alert_threshold =
         codex_quota_alert_threshold.unwrap_or(current.codex_quota_alert_threshold);
+    let next_opencode_auth_overwrite_on_switch =
+        opencode_auth_overwrite_on_switch.unwrap_or(current.opencode_auth_overwrite_on_switch);
+    let next_opencode_sync_on_switch = if next_opencode_auth_overwrite_on_switch {
+        opencode_sync_on_switch
+    } else {
+        false
+    };
+    let next_ghcp_opencode_auth_overwrite_on_switch = ghcp_opencode_auth_overwrite_on_switch
+        .unwrap_or(current.ghcp_opencode_auth_overwrite_on_switch);
+    let next_ghcp_opencode_sync_on_switch = if next_ghcp_opencode_auth_overwrite_on_switch {
+        ghcp_opencode_sync_on_switch.unwrap_or(current.ghcp_opencode_sync_on_switch)
+    } else {
+        false
+    };
     #[cfg(target_os = "macos")]
     let hide_dock_icon_changed = current.hide_dock_icon != hide_dock_icon_value;
 
@@ -572,6 +628,9 @@ pub fn save_general_config(
         report_enabled: current.report_enabled,
         report_port: current.report_port,
         report_token: current.report_token,
+        global_proxy_enabled: current.global_proxy_enabled,
+        global_proxy_url: current.global_proxy_url,
+        global_proxy_no_proxy: current.global_proxy_no_proxy,
         // 更新通用设置
         language: normalized_language.clone(),
         theme,
@@ -611,9 +670,11 @@ pub fn save_general_config(
         qoder_app_path: normalized_qoder_path,
         trae_app_path: normalized_trae_path,
         workbuddy_app_path: normalized_workbuddy_path,
-        opencode_sync_on_switch,
-        opencode_auth_overwrite_on_switch: opencode_auth_overwrite_on_switch
-            .unwrap_or(current.opencode_auth_overwrite_on_switch),
+        opencode_sync_on_switch: next_opencode_sync_on_switch,
+        opencode_auth_overwrite_on_switch: next_opencode_auth_overwrite_on_switch,
+        ghcp_opencode_sync_on_switch: next_ghcp_opencode_sync_on_switch,
+        ghcp_opencode_auth_overwrite_on_switch: next_ghcp_opencode_auth_overwrite_on_switch,
+        ghcp_launch_on_switch: ghcp_launch_on_switch.unwrap_or(current.ghcp_launch_on_switch),
         openclaw_auth_overwrite_on_switch: openclaw_auth_overwrite_on_switch
             .unwrap_or(current.openclaw_auth_overwrite_on_switch),
         codex_launch_on_switch,

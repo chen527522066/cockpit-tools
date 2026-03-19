@@ -1,4 +1,5 @@
 use crate::models::codex::CodexAccount;
+use crate::models::github_copilot::GitHubCopilotAccount;
 use crate::modules::{codex_account, codex_oauth, logger};
 use serde_json::json;
 use std::fs;
@@ -103,18 +104,26 @@ fn build_openai_payload(account: &CodexAccount) -> Result<serde_json::Value, Str
     Ok(payload)
 }
 
+fn build_github_copilot_payload(account: &GitHubCopilotAccount) -> Result<serde_json::Value, String> {
+    let token = account.github_access_token.trim().to_string();
+    if token.is_empty() {
+        return Err("GitHub Copilot access_token 缺失，无法同步到 OpenCode".to_string());
+    }
+
+    Ok(json!({
+        "type": "oauth",
+        "access": token,
+        "refresh": token,
+        "expires": 0,
+    }))
+}
+
 fn decode_token_exp_ms(access_token: &str) -> Option<i64> {
     let payload = codex_account::decode_jwt_payload(access_token).ok()?;
     payload.exp.map(|exp| exp * 1000)
 }
 
-/// 使用 Codex 账号的 token 替换 OpenCode auth.json 中的 openai 记录
-pub fn replace_openai_entry_from_codex(account: &CodexAccount) -> Result<(), String> {
-    // 确保 token 未过期
-    if codex_oauth::is_token_expired(&account.tokens.access_token) {
-        return Err("Codex access_token 已过期，无法同步到 OpenCode".to_string());
-    }
-
+fn replace_provider_entry(provider_key: &str, payload: serde_json::Value) -> Result<(), String> {
     let auth_paths = get_opencode_auth_json_path_candidates()?;
     let target_auth_path = get_opencode_auth_json_path()?;
     let source_auth_path = auth_paths.iter().find(|path| path.exists()).cloned();
@@ -142,9 +151,8 @@ pub fn replace_openai_entry_from_codex(account: &CodexAccount) -> Result<(), Str
         auth_json = json!({});
     }
 
-    let openai_payload = build_openai_payload(account)?;
     if let Some(map) = auth_json.as_object_mut() {
-        map.insert("openai".to_string(), openai_payload);
+        map.insert(provider_key.to_string(), payload);
     }
 
     let content = serde_json::to_string_pretty(&auth_json)
@@ -176,8 +184,28 @@ pub fn replace_openai_entry_from_codex(account: &CodexAccount) -> Result<(), Str
     }
 
     logger::log_info(&format!(
-        "已更新 OpenCode auth.json 中的 openai 记录: {}",
+        "已更新 OpenCode auth.json 中的 {} 记录: {}",
+        provider_key,
         target_auth_path.display()
     ));
     Ok(())
+}
+
+/// 使用 Codex 账号的 token 替换 OpenCode auth.json 中的 openai 记录
+pub fn replace_openai_entry_from_codex(account: &CodexAccount) -> Result<(), String> {
+    // 确保 token 未过期
+    if codex_oauth::is_token_expired(&account.tokens.access_token) {
+        return Err("Codex access_token 已过期，无法同步到 OpenCode".to_string());
+    }
+
+    let openai_payload = build_openai_payload(account)?;
+    replace_provider_entry("openai", openai_payload)
+}
+
+/// 使用 GitHub Copilot 账号的 token 替换 OpenCode auth.json 中的 github-copilot 记录
+pub fn replace_github_copilot_entry_from_account(
+    account: &GitHubCopilotAccount,
+) -> Result<(), String> {
+    let payload = build_github_copilot_payload(account)?;
+    replace_provider_entry("github-copilot", payload)
 }

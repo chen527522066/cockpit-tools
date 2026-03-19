@@ -534,7 +534,10 @@
       "workbuddyPathSelect": "選擇",
       "workbuddyPathReset": "重設預設",
       "openclawAuthOverwrite": "切換 Codex 時覆蓋 OpenClaw 登入",
-      "openclawAuthOverwriteDesc": "關閉時，僅切換 Codex，OpenClaw 保持目前登入狀態"
+      "openclawAuthOverwriteDesc": "關閉時，僅切換 Codex，OpenClaw 保持目前登入狀態",
+      "ghcpOpencodeAuthOverwrite": "切換 GitHub Copilot 時覆蓋 OpenCode 登入",
+      "ghcpOpencodeRestart": "切換 GitHub Copilot 時自動重新啟動 OpenCode",
+      "ghcpLaunchOnSwitch": "切換 GitHub Copilot 時自動啟動 GitHub Copilot App"
     },
     "network": {
       "apiTitle": "反重力駕駛艙 API",
@@ -563,7 +566,17 @@
       "reportUrlRaw": "原始輸出",
       "reportUrlRendered": "網頁渲染",
       "firewallHintTitle": "防火牆提示",
-      "firewallHint": "若網址無法存取，請檢查系統防火牆設定。"
+      "firewallHint": "若網址無法存取，請檢查系統防火牆設定。",
+      "proxyTitle": "全域代理",
+      "proxyEnabled": "啟用全域代理",
+      "proxyEnabledDesc": "為 Cockpit 啟動的受管平台程序統一注入代理環境變數",
+      "proxyUrl": "代理位址",
+      "proxyUrlDesc": "範例：http://127.0.0.1:7890 或 socks5://127.0.0.1:7890",
+      "proxyUrlPlaceholder": "例如：http://127.0.0.1:7890",
+      "proxyNoProxy": "NO_PROXY 白名單",
+      "proxyNoProxyDesc": "以逗號分隔；匹配項將繞過代理",
+      "proxyNoProxyPlaceholder": "例如：127.0.0.1,localhost,::1",
+      "proxyUrlRequired": "啟用全域代理時，代理位址不可為空。"
     },
     "about": {
       "appName": "Cockpit Tools",

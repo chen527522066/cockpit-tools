@@ -7,6 +7,16 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.17.1] - 2026-03-20
+
+### Added
+- **Network settings now support a managed global proxy for launched platform processes**: added `global_proxy_enabled`/`global_proxy_url`/`global_proxy_no_proxy`, with env injection into Cockpit-launched platform apps and instance start flows across macOS/Linux/Windows.
+- **GitHub Copilot switching now supports OpenCode sync controls and launch toggle**: added quick-settings/general-config options to control GitHub Copilot app auto-launch, OpenCode auth overwrite, and OpenCode restart after switch.
+
+### Changed
+- **OpenCode restart toggles now follow auth-overwrite dependency in both Settings and Quick Settings**: when auth overwrite is turned off, related restart toggles are now automatically turned off for both Codex and GitHub Copilot switch flows.
+
+---
 ## [0.17.0] - 2026-03-19
 
 ### Added
