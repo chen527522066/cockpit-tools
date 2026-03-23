@@ -1193,6 +1193,7 @@ export function getWindsurfOfficialUsageMode(account: WindsurfAccount): Windsurf
 export function getWindsurfQuotaUsageSummary(account: WindsurfAccount): WindsurfQuotaUsageSummary {
   const planStatus = resolveWindsurfPlanStatus(account);
   const protoSummary = parseWindsurfProtoSummary(account);
+  const billingStrategy = getWindsurfBillingStrategy(account)?.trim().toLowerCase() ?? '';
   const topUpStatus = firstRecord([
     getPathValue(planStatus, ['topUpStatus']),
     getPathValue(planStatus, ['top_up_status']),
@@ -1246,15 +1247,26 @@ export function getWindsurfQuotaUsageSummary(account: WindsurfAccount): Windsurf
     protoSummary?.topUpEnabled ??
     null;
 
+  const dailyRemainingPercentFinal =
+    dailyRemainingPercent == null && billingStrategy === 'quota' && dailyResetAt != null
+      ? 0
+      : dailyRemainingPercent;
+  const weeklyRemainingPercentFinal =
+    weeklyRemainingPercent == null && billingStrategy === 'quota' && weeklyResetAt != null
+      ? 0
+      : weeklyRemainingPercent;
+
   return {
-    dailyRemainingPercent,
-    weeklyRemainingPercent,
+    dailyRemainingPercent: dailyRemainingPercentFinal,
+    weeklyRemainingPercent: weeklyRemainingPercentFinal,
     dailyResetAt,
     weeklyResetAt,
     overageBalanceMicros,
     autoRechargeEnabled,
     hasQuotaUsage:
-      dailyRemainingPercent != null || weeklyRemainingPercent != null || overageBalanceMicros != null,
+      dailyRemainingPercentFinal != null ||
+      weeklyRemainingPercentFinal != null ||
+      overageBalanceMicros != null,
     hasAutoRecharge: autoRechargeEnabled != null || !!topUpStatus,
   };
 }

@@ -898,6 +898,14 @@ fn append_windsurf_plan_status_candidate_rows(
     reset_fallback: &str,
     status: &str,
 ) -> usize {
+    let billing_strategy = pick_first_string(
+        plan_status,
+        &[&["billingStrategy"], &["billing_strategy"]],
+    )
+    .unwrap_or_default()
+    .to_ascii_lowercase();
+    let is_quota_strategy = billing_strategy.contains("quota");
+
     let daily_remaining_percent = pick_first_number(
         plan_status,
         &[
@@ -935,6 +943,11 @@ fn append_windsurf_plan_status_candidate_rows(
         daily_remaining_percent,
         &daily_reset,
         status,
+        if daily_remaining_percent.is_none() && (daily_reset != "-" || is_quota_strategy) {
+            Some("Daily remaining missing, fallback to exhausted")
+        } else {
+            None
+        },
     );
     quota_count += push_windsurf_quota_percent_row(
         rows,
@@ -943,6 +956,11 @@ fn append_windsurf_plan_status_candidate_rows(
         weekly_remaining_percent,
         &weekly_reset,
         status,
+        if weekly_remaining_percent.is_none() && (weekly_reset != "-" || is_quota_strategy) {
+            Some("Weekly remaining missing, fallback to exhausted")
+        } else {
+            None
+        },
     );
     if let Some(balance_micros) = overage_balance_micros {
         rows.push(make_row(
@@ -1037,13 +1055,18 @@ fn push_windsurf_quota_percent_row(
     remaining_percent: Option<f64>,
     reset: &str,
     status: &str,
+    missing_fallback_note: Option<&str>,
 ) -> usize {
-    let Some(remaining_raw) = remaining_percent else {
+    let (used, remaining, note) = if let Some(remaining_raw) = remaining_percent {
+        let remaining = clamp_percent(remaining_raw);
+        let used = clamp_percent(100.0 - remaining);
+        (used, remaining, "")
+    } else if missing_fallback_note.is_some() && reset != "-" {
+        (100.0, 0.0, missing_fallback_note.unwrap_or(""))
+    } else {
         return 0;
     };
 
-    let remaining = clamp_percent(remaining_raw);
-    let used = clamp_percent(100.0 - remaining);
     rows.push(make_row(
         "Windsurf",
         account,
@@ -1052,7 +1075,7 @@ fn push_windsurf_quota_percent_row(
         &percent_text(remaining),
         reset,
         status,
-        "",
+        note,
     ));
     1
 }
