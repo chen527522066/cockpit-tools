@@ -197,7 +197,7 @@ pub fn create_tray_skeleton<R: Runtime>(
     let show_floating_card = MenuItem::with_id(
         app,
         menu_ids::SHOW_FLOATING_CARD,
-        get_text("show_floating_card", lang),
+        get_text("show_floating_card", &lang),
         true,
         None::<&str>,
     )?;
@@ -205,7 +205,7 @@ pub fn create_tray_skeleton<R: Runtime>(
     let settings = MenuItem::with_id(
         app,
         menu_ids::SETTINGS,
-        get_text("settings", lang),
+        get_text("settings", &lang),
         true,
         None::<&str>,
     )?;
@@ -213,7 +213,7 @@ pub fn create_tray_skeleton<R: Runtime>(
     let quit = MenuItem::with_id(
         app,
         menu_ids::QUIT,
-        get_text("quit", lang),
+        get_text("quit", &lang),
         true,
         None::<&str>,
     )?;
@@ -221,7 +221,7 @@ pub fn create_tray_skeleton<R: Runtime>(
     let loading = MenuItem::with_id(
         app,
         "tray_loading",
-        get_text("loading", lang),
+        get_text("loading", &lang),
         false,
         None::<&str>,
     )?;
@@ -3118,7 +3118,7 @@ fn handle_tray_event<R: Runtime>(tray: &TrayIcon<R>, event: TrayIconEvent) {
         TrayIconEvent::Click {
             button,
             button_state,
-            rect,
+            rect: _rect,
             ..
         } => {
             #[cfg(target_os = "macos")]
@@ -3129,7 +3129,7 @@ fn handle_tray_event<R: Runtime>(tray: &TrayIcon<R>, event: TrayIconEvent) {
                     let app = tray.app_handle().clone();
                     let app_for_menu = app.clone();
                     let _ = app.run_on_main_thread(move || {
-                        crate::modules::macos_native_menu::toggle_tray_menu(&app_for_menu, rect);
+                        crate::modules::macos_native_menu::toggle_tray_menu(&app_for_menu, _rect);
                     });
                 }
             }

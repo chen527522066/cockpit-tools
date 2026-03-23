@@ -1,6 +1,7 @@
 use crate::models::codex::CodexAccount;
 use crate::modules::{codex_account, codex_oauth, logger};
 use serde_json::{json, Value};
+#[cfg(target_os = "macos")]
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::ErrorKind;
