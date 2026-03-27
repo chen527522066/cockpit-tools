@@ -344,6 +344,7 @@ export async function testCodexWakeup(
   model?: string,
   modelDisplayName?: string,
   modelReasoningEffort?: CodexWakeupReasoningEffort,
+  cancelScopeId?: string,
 ): Promise<CodexWakeupBatchResult> {
   return fromRawBatchResult(
     await invoke<RawCodexWakeupBatchResult>('codex_wakeup_test', {
@@ -353,6 +354,7 @@ export async function testCodexWakeup(
       model: model ?? null,
       modelDisplayName: modelDisplayName ?? null,
       modelReasoningEffort: modelReasoningEffort ?? null,
+      cancelScopeId: cancelScopeId ?? null,
     }),
   );
 }
@@ -361,4 +363,12 @@ export async function runCodexWakeupTask(taskId: string, runId: string): Promise
   return fromRawBatchResult(
     await invoke<RawCodexWakeupBatchResult>('codex_wakeup_run_task', { taskId, runId }),
   );
+}
+
+export async function cancelCodexWakeupScope(cancelScopeId: string): Promise<void> {
+  return await invoke('codex_wakeup_cancel_scope', { cancelScopeId });
+}
+
+export async function releaseCodexWakeupScope(cancelScopeId: string): Promise<void> {
+  return await invoke('codex_wakeup_release_scope', { cancelScopeId });
 }

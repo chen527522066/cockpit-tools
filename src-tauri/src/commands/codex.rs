@@ -451,6 +451,16 @@ pub fn codex_wakeup_clear_history() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn codex_wakeup_cancel_scope(cancel_scope_id: String) -> Result<(), String> {
+    codex_wakeup::cancel_wakeup_scope(&cancel_scope_id)
+}
+
+#[tauri::command]
+pub fn codex_wakeup_release_scope(cancel_scope_id: String) -> Result<(), String> {
+    codex_wakeup::release_wakeup_scope(&cancel_scope_id)
+}
+
+#[tauri::command]
 pub async fn codex_wakeup_test(
     app: AppHandle,
     account_ids: Vec<String>,
@@ -459,6 +469,7 @@ pub async fn codex_wakeup_test(
     model_display_name: Option<String>,
     model_reasoning_effort: Option<String>,
     run_id: Option<String>,
+    cancel_scope_id: Option<String>,
 ) -> Result<codex_wakeup::CodexWakeupBatchResult, String> {
     codex_wakeup::run_batch(
         Some(&app),
@@ -475,6 +486,7 @@ pub async fn codex_wakeup_test(
             task_name: None,
         },
         run_id,
+        cancel_scope_id.as_deref(),
     )
     .await
 }

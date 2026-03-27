@@ -340,6 +340,8 @@ pub fn run() {
             commands::codex::codex_wakeup_save_state,
             commands::codex::codex_wakeup_load_history,
             commands::codex::codex_wakeup_clear_history,
+            commands::codex::codex_wakeup_cancel_scope,
+            commands::codex::codex_wakeup_release_scope,
             commands::codex::codex_wakeup_test,
             commands::codex::codex_wakeup_run_task,
             // GitHub Copilot Commands

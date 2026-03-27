@@ -34,7 +34,10 @@ interface CodexWakeupStoreState {
     model?: string,
     modelDisplayName?: string,
     modelReasoningEffort?: CodexWakeupReasoningEffort,
+    cancelScopeId?: string,
   ) => Promise<CodexWakeupBatchResult>;
+  cancelTestScope: (cancelScopeId: string) => Promise<void>;
+  releaseTestScope: (cancelScopeId: string) => Promise<void>;
   clearHistory: () => Promise<void>;
 }
 
@@ -115,7 +118,15 @@ export const useCodexWakeupStore = create<CodexWakeupStoreState>((set) => ({
       throw error;
     }
   },
-  runTest: async (accountIds, runId, prompt, model, modelDisplayName, modelReasoningEffort) => {
+  runTest: async (
+    accountIds,
+    runId,
+    prompt,
+    model,
+    modelDisplayName,
+    modelReasoningEffort,
+    cancelScopeId,
+  ) => {
     set({ testing: true, error: null });
     try {
       const result = await codexWakeupService.testCodexWakeup(
@@ -125,6 +136,7 @@ export const useCodexWakeupStore = create<CodexWakeupStoreState>((set) => ({
         model,
         modelDisplayName,
         modelReasoningEffort,
+        cancelScopeId,
       );
       const [history, runtime] = await Promise.all([
         codexWakeupService.loadCodexWakeupHistory(),
@@ -136,6 +148,12 @@ export const useCodexWakeupStore = create<CodexWakeupStoreState>((set) => ({
       set({ testing: false, error: String(error) });
       throw error;
     }
+  },
+  cancelTestScope: async (cancelScopeId) => {
+    await codexWakeupService.cancelCodexWakeupScope(cancelScopeId);
+  },
+  releaseTestScope: async (cancelScopeId) => {
+    await codexWakeupService.releaseCodexWakeupScope(cancelScopeId);
   },
   clearHistory: async () => {
     set({ error: null });

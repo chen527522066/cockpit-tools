@@ -7,6 +7,16 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.20.11] - 2026-03-27
+
+### Added
+- **Codex now includes a dedicated Session Manager for multi-instance thread sync and trash cleanup (thanks @GiZGY, PR #324)**: users can sync missing session threads across instances from one place and move selected sessions to Trash with per-session visibility and grouped workspace context.
+- **Codex wakeup manual tests can now be cancelled while running**: test runs now carry a cancellation scope, the desktop wakeup execution can terminate in-flight Codex CLI processes, and the execution-results dialog supports explicit in-run cancellation.
+
+### Changed
+- **Homebrew cask metadata has been refreshed to keep packaged distribution in sync with the latest release assets**: the cask formula has been aligned with the current published binaries and checksums.
+
+---
 ## [0.20.10] - 2026-03-27
 
 ### Added

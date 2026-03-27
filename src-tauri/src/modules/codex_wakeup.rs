@@ -2,11 +2,13 @@ use crate::modules::{account, codex_account, logger};
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::Mutex;
+use std::process::{Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
 const TASKS_FILE: &str = "codex_wakeup_tasks.json";
@@ -20,9 +22,13 @@ const REASONING_EFFORT_LOW: &str = "low";
 const REASONING_EFFORT_MEDIUM: &str = "medium";
 const REASONING_EFFORT_HIGH: &str = "high";
 const REASONING_EFFORT_XHIGH: &str = "xhigh";
+const CODEX_WAKEUP_TEST_CANCELLED_MESSAGE: &str = "Codex 唤醒测试已取消";
+const CODEX_WAKEUP_CANCEL_POLL_MS: u64 = 120;
 
 static TASKS_LOCK: std::sync::LazyLock<Mutex<()>> = std::sync::LazyLock::new(|| Mutex::new(()));
 static HISTORY_LOCK: std::sync::LazyLock<Mutex<()>> = std::sync::LazyLock::new(|| Mutex::new(()));
+static TEST_CANCEL_SCOPES: std::sync::LazyLock<Mutex<HashMap<String, Arc<AtomicBool>>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -249,6 +255,66 @@ fn now_ts() -> i64 {
 
 fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
+}
+
+fn cancelled_error() -> String {
+    CODEX_WAKEUP_TEST_CANCELLED_MESSAGE.to_string()
+}
+
+fn is_scope_cancelled(cancel_flag: Option<&Arc<AtomicBool>>) -> bool {
+    cancel_flag
+        .map(|flag| flag.load(Ordering::SeqCst))
+        .unwrap_or(false)
+}
+
+fn resolve_cancel_flag(cancel_scope_id: Option<&str>) -> Result<Option<Arc<AtomicBool>>, String> {
+    let Some(scope_id) = cancel_scope_id
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+    else {
+        return Ok(None);
+    };
+
+    let mut guard = TEST_CANCEL_SCOPES
+        .lock()
+        .map_err(|_| "Codex 唤醒取消作用域锁已损坏".to_string())?;
+    let flag = guard
+        .entry(scope_id.to_string())
+        .or_insert_with(|| Arc::new(AtomicBool::new(false)))
+        .clone();
+    Ok(Some(flag))
+}
+
+pub fn cancel_wakeup_scope(cancel_scope_id: &str) -> Result<(), String> {
+    let scope_id = cancel_scope_id.trim();
+    if scope_id.is_empty() {
+        return Ok(());
+    }
+
+    let flag = {
+        let mut guard = TEST_CANCEL_SCOPES
+            .lock()
+            .map_err(|_| "Codex 唤醒取消作用域锁已损坏".to_string())?;
+        guard.remove(scope_id)
+    };
+
+    if let Some(flag) = flag {
+        flag.store(true, Ordering::SeqCst);
+    }
+    Ok(())
+}
+
+pub fn release_wakeup_scope(cancel_scope_id: &str) -> Result<(), String> {
+    let scope_id = cancel_scope_id.trim();
+    if scope_id.is_empty() {
+        return Ok(());
+    }
+
+    let mut guard = TEST_CANCEL_SCOPES
+        .lock()
+        .map_err(|_| "Codex 唤醒取消作用域锁已损坏".to_string())?;
+    guard.remove(scope_id);
+    Ok(())
 }
 
 fn supported_reasoning_efforts() -> &'static [&'static str] {
@@ -1263,16 +1329,6 @@ pub fn clear_history() -> Result<(), String> {
     save_json_atomic(&history_path()?, &Vec::<CodexWakeupHistoryItem>::new())
 }
 
-fn truncate_text(text: &str, max_len: usize) -> String {
-    let count = text.chars().count();
-    if count <= max_len {
-        return text.to_string();
-    }
-    let mut result = text.chars().take(max_len).collect::<String>();
-    result.push_str("...");
-    result
-}
-
 #[cfg(target_os = "windows")]
 fn apply_hidden_window_flags(command: &mut Command) {
     use std::os::windows::process::CommandExt;
@@ -1282,12 +1338,51 @@ fn apply_hidden_window_flags(command: &mut Command) {
 #[cfg(not(target_os = "windows"))]
 fn apply_hidden_window_flags(_command: &mut Command) {}
 
+fn run_command_with_cancel(
+    command: &mut Command,
+    cancel_flag: Option<&Arc<AtomicBool>>,
+) -> Result<ExitStatus, String> {
+    command.stdout(Stdio::null()).stderr(Stdio::null());
+    let mut child = command
+        .spawn()
+        .map_err(|e| format!("启动 Codex CLI 失败: {}", e))?;
+
+    loop {
+        if is_scope_cancelled(cancel_flag) {
+            if let Err(err) = child.kill() {
+                if err.kind() != io::ErrorKind::InvalidInput {
+                    logger::log_warn(&format!(
+                        "[CodexWakeup][CLI] 取消测试时终止子进程失败: {}",
+                        err
+                    ));
+                }
+            }
+            let _ = child.wait();
+            return Err(cancelled_error());
+        }
+
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok(status),
+            Ok(None) => {
+                std::thread::sleep(std::time::Duration::from_millis(
+                    CODEX_WAKEUP_CANCEL_POLL_MS,
+                ));
+            }
+            Err(err) => return Err(format!("等待 Codex CLI 进程状态失败: {}", err)),
+        }
+    }
+}
+
 fn run_codex_exec_sync(
     binary_path: &Path,
     codex_home: &Path,
     prompt: &str,
     execution_config: &CodexWakeupExecutionConfig,
+    cancel_flag: Option<&Arc<AtomicBool>>,
 ) -> Result<CommandOutput, String> {
+    if is_scope_cancelled(cancel_flag) {
+        return Err(cancelled_error());
+    }
     let workspace_dir = codex_home.join("workspace");
     fs::create_dir_all(&workspace_dir).map_err(|e| format!("创建唤醒工作目录失败: {}", e))?;
     let last_message_path = codex_home.join("last_message.txt");
@@ -1335,25 +1430,15 @@ fn run_codex_exec_sync(
     }
     command.arg(prompt);
 
-    let output = command
-        .output()
-        .map_err(|e| format!("启动 Codex CLI 失败: {}", e))?;
+    let status = run_command_with_cancel(&mut command, cancel_flag)?;
     let duration_ms = started.elapsed().as_millis().max(0) as u64;
 
     let reply = fs::read_to_string(&last_message_path)
         .ok()
         .map(|text| text.trim().to_string())
-        .filter(|text| !text.is_empty())
-        .or_else(|| {
-            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if stdout.is_empty() {
-                None
-            } else {
-                Some(stdout)
-            }
-        });
+        .filter(|text| !text.is_empty());
 
-    if output.status.success() {
+    if status.success() {
         let reply = reply.unwrap_or_else(|| "Codex CLI 已完成，但未返回可读消息。".to_string());
         logger::log_info(&format!(
             "[CodexWakeup][CLI] 唤醒命令执行成功: duration_ms={}, reply_chars={}",
@@ -1363,20 +1448,11 @@ fn run_codex_exec_sync(
         return Ok(CommandOutput { reply, duration_ms });
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     logger::log_warn(&format!(
-        "[CodexWakeup][CLI] 唤醒命令执行失败: status={}, stdout={}, stderr={}",
-        output.status,
-        truncate_log_text(&stdout, 200),
-        truncate_log_text(&stderr, 200)
+        "[CodexWakeup][CLI] 唤醒命令执行失败: status={}",
+        status,
     ));
-    let mut message = format!("Codex CLI 退出失败: {}", output.status);
-    if !stderr.is_empty() {
-        message.push_str(&format!(" | {}", truncate_text(&stderr, 400)));
-    } else if !stdout.is_empty() {
-        message.push_str(&format!(" | {}", truncate_text(&stdout, 400)));
-    }
+    let message = format!("Codex CLI 退出失败: {}", status);
     Err(message)
 }
 
@@ -1485,6 +1561,36 @@ fn create_cli_missing_record(
     )
 }
 
+fn create_cancelled_record(
+    run_id: &str,
+    context: &TaskRunContext,
+    account_id: &str,
+    prompt: Option<String>,
+    execution_config: &CodexWakeupExecutionConfig,
+    cli_path: Option<String>,
+) -> CodexWakeupHistoryItem {
+    let existing = codex_account::load_account(account_id);
+    let account_email = existing
+        .as_ref()
+        .map(|account| account.email.clone())
+        .unwrap_or_else(|| account_id.to_string());
+    let account_context_text = existing.as_ref().and_then(resolve_account_context_text);
+
+    create_failure_record(
+        run_id,
+        &context.trigger_type,
+        context.task_id.as_deref(),
+        context.task_name.as_deref(),
+        account_id,
+        account_email,
+        account_context_text,
+        prompt,
+        execution_config,
+        cancelled_error(),
+        cli_path,
+    )
+}
+
 async fn run_single_account(
     binary: Option<&ResolvedBinary>,
     run_id: &str,
@@ -1492,9 +1598,20 @@ async fn run_single_account(
     account_id: &str,
     prompt: &str,
     execution_config: &CodexWakeupExecutionConfig,
+    cancel_flag: Option<&Arc<AtomicBool>>,
 ) -> CodexWakeupHistoryItem {
     let prompt_value = Some(prompt.to_string());
     let binary_path = binary.map(|item| item.path.display().to_string());
+    if is_scope_cancelled(cancel_flag) {
+        return create_cancelled_record(
+            run_id,
+            context,
+            account_id,
+            prompt_value,
+            execution_config,
+            binary_path,
+        );
+    }
 
     let existing = match codex_account::load_account(account_id) {
         Some(account) => account,
@@ -1619,7 +1736,7 @@ async fn run_single_account(
     }
 
     let command_result =
-        run_codex_exec_sync(&binary.path, &managed_home, prompt, execution_config);
+        run_codex_exec_sync(&binary.path, &managed_home, prompt, execution_config, cancel_flag);
 
     match command_result {
         Ok(output) => {
@@ -1676,6 +1793,7 @@ pub async fn run_batch(
     execution_config: CodexWakeupExecutionConfig,
     context: TaskRunContext,
     run_id: Option<String>,
+    cancel_scope_id: Option<&str>,
 ) -> Result<CodexWakeupBatchResult, String> {
     let cleaned_ids: Vec<String> = account_ids
         .into_iter()
@@ -1694,6 +1812,7 @@ pub async fn run_batch(
     let total = cleaned_ids.len();
     let runtime = get_cli_status();
     let run_id = run_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let cancel_flag = resolve_cancel_flag(cancel_scope_id)?;
     emit_progress(
         app,
         &run_id,
@@ -1786,6 +1905,33 @@ pub async fn run_batch(
     let mut failure_count = 0usize;
 
     for (index, account_id) in cleaned_ids.into_iter().enumerate() {
+        if is_scope_cancelled(cancel_flag.as_ref()) {
+            let record = create_cancelled_record(
+                &run_id,
+                &context,
+                &account_id,
+                Some(prompt.clone()),
+                &execution_config,
+                binary.as_ref().map(|item| item.path.display().to_string()),
+            );
+            failure_count += 1;
+            emit_progress(
+                app,
+                &run_id,
+                &context,
+                total,
+                index + 1,
+                success_count,
+                failure_count,
+                index + 1 < total,
+                "account_completed",
+                Some(&account_id),
+                Some(record.clone()),
+            );
+            records.push(record);
+            continue;
+        }
+
         emit_progress(
             app,
             &run_id,
@@ -1807,6 +1953,7 @@ pub async fn run_batch(
                 &account_id,
                 &prompt,
                 &execution_config,
+                cancel_flag.as_ref(),
             )
             .await;
         if record.success {

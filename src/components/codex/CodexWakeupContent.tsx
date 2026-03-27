@@ -199,6 +199,10 @@ const DEFAULT_WAKEUP_MODEL = 'gpt-5.3-codex';
 const DEFAULT_WAKEUP_REASONING_EFFORT: CodexWakeupReasoningEffort = 'medium';
 const QUOTA_RESET_MIN_REFRESH_MINUTES = 2;
 const CODEX_WAKEUP_MODEL_SELECTION_STORAGE_KEY = 'agtools.codex.wakeup.model_selection';
+const buildWakeupTestScopeId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? `codex-wakeup-test-${crypto.randomUUID()}`
+    : `codex-wakeup-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 function createEmptyAccountPickerFilters(): AccountPickerFilters {
   return {
@@ -783,6 +787,8 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
     saveState,
     runTask,
     runTest,
+    cancelTestScope,
+    releaseTestScope,
     clearHistory,
   } = useCodexWakeupStore();
 
@@ -935,6 +941,8 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
     set: setTestModalError,
   } = useModalErrorState();
   const [testAccountFilters, setTestAccountFilters] = useState<AccountPickerFilters>(createEmptyAccountPickerFilters());
+  const activeTestRunTokenRef = useRef(0);
+  const activeTestScopeIdRef = useRef<string | null>(null);
   const [executionSession, setExecutionSession] = useState<ExecutionSessionState | null>(null);
   const [executionFilter, setExecutionFilter] = useState<ExecutionRecordFilter>('all');
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
@@ -1858,8 +1866,47 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
     setTaskDraft(createEmptyTaskDraftWithRememberedModel());
   }, [createEmptyTaskDraftWithRememberedModel, saving]);
 
+  const cancelRunningTest = useCallback(() => {
+    const scopeId = activeTestScopeIdRef.current;
+    if (!scopeId) {
+      return;
+    }
+    activeTestRunTokenRef.current = 0;
+    activeTestScopeIdRef.current = null;
+    const cancelledMessage = t('wakeup.notice.testCancelled');
+    setExecutionSession((current) => {
+      if (!current || current.triggerType !== 'test' || !current.running) {
+        return current;
+      }
+      const cancelledCount = current.records.filter(
+        (item) => item.status === 'pending' || item.status === 'running',
+      ).length;
+      const nextFailureCount = current.failureCount + cancelledCount;
+      return {
+        ...current,
+        running: false,
+        completed: current.total,
+        failureCount: nextFailureCount,
+        records: current.records.map((record) =>
+          record.status === 'pending' || record.status === 'running'
+            ? { ...record, status: 'error', error: cancelledMessage }
+            : record,
+        ),
+      };
+    });
+    setShowTestModal(false);
+    setTestModalError(null);
+    setNotice({ tone: 'error', text: cancelledMessage });
+    void cancelTestScope(scopeId).catch((error) => {
+      console.error('取消 Codex 唤醒测试失败:', error);
+    });
+  }, [cancelTestScope, t]);
+
   const closeTestModal = useCallback(() => {
-    if (testing) return;
+    if (testing) {
+      cancelRunningTest();
+      return;
+    }
     setShowTestModal(false);
     setTestModalError(null);
     setTestAccountIds([]);
@@ -1867,7 +1914,7 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
     setTestModelPresetId(resolvedModelSelection.modelPresetId);
     setTestModel(resolvedModelSelection.model);
     setTestModelReasoningEffort(resolvedModelSelection.modelReasoningEffort);
-  }, [resolvedModelSelection, testing]);
+  }, [cancelRunningTest, resolvedModelSelection, testing]);
 
   const persistTasks = useCallback(
     async (
@@ -2114,6 +2161,10 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
     }
     setTestModalError(null);
     const runId = crypto.randomUUID();
+    const runToken = activeTestRunTokenRef.current + 1;
+    const cancelScopeId = buildWakeupTestScopeId();
+    activeTestRunTokenRef.current = runToken;
+    activeTestScopeIdRef.current = cancelScopeId;
     const promptValue = testPrompt.trim() || undefined;
     setExecutionSession(
       buildExecutionSession(
@@ -2137,8 +2188,15 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
         selectedTestPreset.model,
         selectedTestPreset.name,
         testModelReasoningEffort,
+        cancelScopeId,
       );
+      if (activeTestRunTokenRef.current !== runToken) {
+        return;
+      }
       await onRefreshAccounts();
+      if (activeTestRunTokenRef.current !== runToken) {
+        return;
+      }
       setExecutionSession((current) =>
         current && current.runId === runId
           ? {
@@ -2175,6 +2233,9 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
             }
           : current,
       );
+      if (activeTestRunTokenRef.current !== runToken) {
+        return;
+      }
       setTestAccountIds([]);
       setTestPrompt('');
       setTestModelPresetId(resolvedModelSelection.modelPresetId);
@@ -2191,15 +2252,27 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
             : t('codex.wakeup.noticeTestFinished', { count: result.success_count }),
       });
     } catch (error) {
+      if (activeTestRunTokenRef.current !== runToken) {
+        return;
+      }
       setExecutionSession((current) =>
         current && current.runId === runId
           ? { ...current, running: false, errorText: String(error) }
           : current,
       );
+    } finally {
+      if (activeTestRunTokenRef.current === runToken) {
+        activeTestRunTokenRef.current = 0;
+        activeTestScopeIdRef.current = null;
+      }
+      void releaseTestScope(cancelScopeId).catch((error) => {
+        console.error('释放 Codex 唤醒测试取消作用域失败:', error);
+      });
     }
   }, [
     buildExecutionSession,
     onRefreshAccounts,
+    releaseTestScope,
     resolvedModelSelection,
     runTest,
     selectedTestPreset,
@@ -3276,6 +3349,14 @@ export function CodexWakeupContent({ accounts, onRefreshAccounts }: CodexWakeupC
               </div>
             </div>
             <div className="modal-footer">
+              {executionSession.running && executionSession.triggerType === 'test' && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={cancelRunningTest}
+                >
+                  {t('common.cancel')}
+                </button>
+              )}
               <button
                 className="btn btn-primary codex-wakeup-results-close-btn"
                 onClick={() => setExecutionSession(null)}
