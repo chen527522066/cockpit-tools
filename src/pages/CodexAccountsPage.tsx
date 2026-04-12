@@ -2035,7 +2035,7 @@ export function CodexAccountsPage() {
               <button
                 className="card-action-btn export-btn"
                 onClick={() => handleExportByIds([account.id], resolveSingleExportBaseName(account))}
-                title={t('common.shared.export', '导出')}
+                title={t('common.shared.export.title', '导出')}
               >
                 <Upload size={14} />
               </button>
@@ -2221,7 +2221,7 @@ export function CodexAccountsPage() {
             <button
               className="action-btn"
               onClick={() => handleExportByIds([account.id], resolveSingleExportBaseName(account))}
-              title={t('common.shared.export', '导出')}
+              title={t('common.shared.export.title', '导出')}
             >
               <Upload size={14} />
             </button>
@@ -2297,7 +2297,7 @@ export function CodexAccountsPage() {
             <button className="btn btn-secondary icon-only" onClick={togglePrivacyMode} title={privacyModeEnabled ? t('privacy.showSensitive', '显示邮箱') : t('privacy.hideSensitive', '隐藏邮箱')}>
               {privacyModeEnabled ? <EyeOff size={14} /> : <Eye size={14} />}</button>
             <button className="btn btn-secondary export-btn icon-only" onClick={() => void handleExport(filteredIds)} disabled={exporting || filteredIds.length === 0}
-              title={exportSelectionCount > 0 ? `${t('common.shared.export', '导出')} (${exportSelectionCount})` : t('common.shared.export', '导出')}><Upload size={14} /></button>
+              title={exportSelectionCount > 0 ? `${t('common.shared.export.title', '导出')} (${exportSelectionCount})` : t('common.shared.export.title', '导出')}><Upload size={14} /></button>
             {selected.size > 0 && (<>
               <button className="btn btn-secondary icon-only" onClick={() => setShowAddToCodexGroupModal(true)} title={t('codex.groups.addToGroup', '添加至分组')}><FolderPlus size={14} /></button>
               <button className="btn btn-danger icon-only" onClick={handleBatchDelete} title={`${t('common.delete', '删除')} (${selected.size})`}><Trash2 size={14} /></button>
@@ -2927,7 +2927,7 @@ export function CodexAccountsPage() {
 
         <ExportJsonModal
           isOpen={showExportModal}
-          title={`${t('common.shared.export', '导出')} JSON`}
+          title={`${t('common.shared.export.title', '导出')} JSON`}
           jsonContent={exportJsonContent}
           hidden={exportJsonHidden}
           copied={exportJsonCopied}

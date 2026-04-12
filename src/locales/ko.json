@@ -33,12 +33,16 @@
         "creditPackage": "추가 Credits",
         "sharedCreditPackage": "공유 Credits 패키지",
         "account": "계정",
-        "createdAt": "생성 시간"
+        "createdAt": "생성 시간",
+        "userId": "사용자 ID"
       },
       "empty": {
         "title": "계정 없음"
       },
-      "export": "내보내기",
+      "export": {
+        "title": "내보내기",
+        "copyFailed": "복사에 실패했습니다. 수동으로 복사해 주세요"
+      },
       "filter": {
         "all": "전체 ({{count}})",
         "enterprise": "기업({{count}})",
@@ -130,7 +134,8 @@
         "noData": "쿼터 데이터 없음",
         "resetDone": "재설정됨",
         "hourly": "5시간 쿼터",
-        "weekly": "주간 쿼터"
+        "weekly": "주간 쿼터",
+        "resetAt": "초기화: {{time}}"
       },
       "subtitle": "GitHub Copilot 계정을 관리합니다",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "{{relative}} 전에 업데이트"
-      }
+      },
+      "clear": "지우기",
+      "loginSuccess": "로그인 성공",
+      "switchAccount": "계정 전환"
     },
     "topRightAd": {
       "ariaLabel": "전역 우측 상단 광고 영역",
@@ -170,7 +178,15 @@
       "title": "우측 상단 광고 영역",
       "desc": "이 영역은 모든 페이지의 우측 상단에 고정되어 캠페인 또는 브랜드 광고 노출에 적합합니다.",
       "action": "자세히 보기"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "접기",
+    "confirmDelete": "삭제 확인",
+    "confirmDeleteTag": "태그 삭제 확인",
+    "deleteTagWarning": "모든 계정에서 이 태그를 삭제하시겠습니까?",
+    "expand": "펼치기",
+    "processing": "처리 중...",
+    "selectAll": "전체 선택"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "모든 인스턴스를 닫았습니다",
       "allAlreadyRunning": "모든 인스턴스가 이미 실행 중입니다",
       "noneRunning": "실행 중인 인스턴스를 찾을 수 없습니다",
-      "syncThreadsNeedTwo": "스레드를 동기화하려면 인스턴스가 두 개 이상 필요합니다"
+      "syncThreadsNeedTwo": "스레드를 동기화하려면 인스턴스가 두 개 이상 필요합니다",
+      "launchPrepared": "실행 명령 준비 완료"
     },
     "runningDialog": {
       "title": "인스턴스가 이미 실행 중입니다",
@@ -436,6 +453,13 @@
       "bindHint": "인스턴스 목록에서 나중에 바인딩할 수 있습니다",
       "pathRequired": "먼저 디렉터리를 선택하세요",
       "submit": "가져오기"
+    },
+    "launchDialog": {
+      "command": "실행 명령",
+      "hint": "명령을 복사하여 수동으로 실행하거나, 아래 버튼을 통해 터미널에서 직접 실행할 수 있습니다.",
+      "runInTerminal": "터미널에서 실행",
+      "terminal": "터미널",
+      "title": "인스턴스 시작"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "autoSwitchAccountScopeAllHint": "현재 범위는 모든 계정입니다. {{total}}개 계정이 자동 전환에 참여합니다.",
       "codexAutoSwitchAccountScope": "Codex 자동 전환 계정 범위",
       "codexAutoSwitchAccountScopeDesc": "현재 Codex 자동 전환 상태: {{status}}. 이 범위의 계정만 고려됩니다.",
-      "currentAccountRefreshRequiresAutoRefresh": "현재 계정 새로 고침을 설정하려면 먼저 \"할당량 자동 새로 고침\"을 활성화하세요."
+      "currentAccountRefreshRequiresAutoRefresh": "현재 계정 새로 고침을 설정하려면 먼저 \"할당량 자동 새로 고침\"을 활성화하세요.",
+      "codebuddyCnAppPath": "CodeBuddy CN 앱 경로",
+      "codebuddyCnAppPathDesc": "비워두면 기본 경로를 사용합니다",
+      "codebuddyCnAppPathPlaceholder": "기본 경로",
+      "codebuddyCnAutoRefresh": "CodeBuddy CN 자동 할당량 갱신",
+      "codebuddyCnAutoRefreshDesc": "백그라운드 자동 갱신 빈도",
+      "codebuddyCnPathReset": "기본값으로 초기화",
+      "codebuddyCnPathSelect": "선택",
+      "codebuddyCnSettingsTitle": "CodeBuddy CN 설정",
+      "qoderAppPath": "Qoder 앱 경로",
+      "qoderAppPathDesc": "비워두면 기본 경로를 사용합니다",
+      "qoderAppPathPlaceholder": "기본 경로",
+      "qoderAutoRefresh": "Qoder 자동 할당량 갱신",
+      "qoderAutoRefreshDesc": "백그라운드 자동 갱신 빈도",
+      "qoderPathSelect": "선택",
+      "workbuddyAutoRefresh": "WorkBuddy 자동 할당량 갱신",
+      "workbuddyAutoRefreshDesc": "백그라운드 자동 갱신 빈도"
     },
     "network": {
       "apiTitle": "반중력 조종석 API",
@@ -685,6 +725,9 @@
       "desc": "{{app}} 애플리케이션 경로를 찾을 수 없습니다. 계속하려면 지금 설정해 주세요.",
       "action": "지금 설정",
       "codexLaunchHint": "끄면 계정 전환과 로그인 덮어쓰기는 계속 실행되지만, Codex 앱은 더 이상 실행되지 않으며 이 실행 경로 안내도 다시 표시되지 않습니다."
+    },
+    "modal": {
+      "desc": "{{app}} 앱 경로를 찾을 수 없습니다. 계속하려면 지금 설정하세요."
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "지문",
       "switch": "계정 전환",
       "switchTo": "이 계정으로 전환",
-      "selectFingerprint": "지문 선택"
+      "selectFingerprint": "지문 선택",
+      "delete": "삭제",
+      "deleteSelected": "선택 항목 삭제",
+      "export": "내보내기",
+      "refreshAll": "전체 새로고침"
     },
     "tabs": {
       "oauth": "OAuth 인증",
@@ -891,7 +938,40 @@
       "clearConfirm": "전환 기록을 모두 삭제하시겠습니까?",
       "loadFailed": "전환 기록을 불러오지 못했습니다: {{error}}",
       "clearFailed": "전환 기록을 삭제하지 못했습니다: {{error}}"
-    }
+    },
+    "clearTagFilter": "태그 필터 지우기",
+    "compact": {
+      "hide": "숨기기",
+      "show": "보기"
+    },
+    "deleteConfirm": {
+      "multi": "선택한 {{count}}개의 계정을 삭제하시겠습니까?",
+      "single": "이 계정을 삭제하시겠습니까?"
+    },
+    "deleteFailed": "삭제 실패: {{error}}",
+    "deleteSuccess": "삭제 성공",
+    "deleteTagFailed": "태그 삭제 실패: {{error}}",
+    "exportError": "내보내기 실패: {{error}}",
+    "exportModal": {
+      "title": "JSON 내보내기"
+    },
+    "importJsonFailed": "JSON 가져오기 실패: {{error}}",
+    "importJsonHint": "이 도구에서 내보낸 Qoder JSON 파일을 가져옵니다.",
+    "importJsonSuccess": "JSON 가져오기 성공",
+    "noTags": "태그 없음",
+    "privacy": {
+      "disable": "개인정보 보호 모드 끄기",
+      "enable": "개인정보 보호 모드 켜기"
+    },
+    "refreshAllFailed": "전체 새로고침 실패: {{error}}",
+    "refreshAllSuccess": "모든 계정을 새로고침했습니다",
+    "refreshFailed": "새로고침 실패: {{error}}",
+    "refreshSuccess": "새로고침 성공",
+    "switchFailed": "전환 실패: {{error}}",
+    "switchSuccess": "전환 성공",
+    "switched": "{{email}}으로 전환했습니다",
+    "tagButton": "태그 수정",
+    "tagUpdated": "태그가 업데이트되었습니다"
   },
   "overview": {
     "title": "계정 개요",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "포트 {{port}}가 사용 중입니다. 이 포트를 사용하는 프로세스를 종료할까요?",
       "portCloseFailed": "포트 종료 실패: {{error}}",
       "portStillInUse": "포트 {{port}}가 여전히 사용 중입니다.",
-      "portInUseAction": "포트 종료 후 다시 시도"
+      "portInUseAction": "포트 종료 후 다시 시도",
+      "timeout": "인증이 시간 초과되었습니다. 클릭하세요",
+      "timeoutRetry": "인증 링크 새로고침"
     },
     "token": {
       "desc": "auth.json 내용 또는 계정 JSON 데이터를 붙여넣으세요",
@@ -1463,7 +1545,10 @@
     "usage": {
       "open": "OpenAI 사용량 열기",
       "hint": "API Key 크레딧은 OpenAI Usage 페이지에서 확인하세요.",
-      "openFailed": "사용량 페이지를 열지 못했습니다: {{error}}"
+      "openFailed": "사용량 페이지를 열지 못했습니다: {{error}}",
+      "search": {
+        "placeholder": "계정 검색..."
+      }
     },
     "wakeup": {
       "tab": "깨우기 작업",
@@ -1813,6 +1898,9 @@
         "providerRequired": "공급자를 선택하세요.",
         "apiKeyRequired": "API 키를 선택하세요."
       }
+    },
+    "groups": {
+      "addToGroup": "그룹에 추가"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "만료 시간: 없음",
       "packageTitle": {
         "base": "기본 체험 패키지",
-        "activity": "활동 증정 패키지"
+        "activity": "활동 증정 패키지",
+        "pro": "Pro 구독"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "Qoder 계정 추가"
     },
     "import": {
-      "localDesc": "로컬 Qoder 클라이언트에서 현재 로그인 상태를 읽어옵니다. 사용자 정보, 플랜, 크레딧 사용량이 포함됩니다."
+      "localDesc": "로컬 Qoder 클라이언트에서 현재 로그인 상태를 읽어옵니다. 사용자 정보, 플랜, 크레딧 사용량이 포함됩니다.",
+      "localFailed": "로컬 가져오기 실패: {{error}}",
+      "localSuccess": "로컬 Qoder에서 계정을 가져왔습니다."
+    },
+    "empty": {
+      "desc": "\"계정 추가\"를 클릭하여 인증 로그인, 로컬 가져오기 또는 JSON 가져오기를 사용하세요."
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "기타",
         "empty": "쿼터 데이터 없음"
       }
-    }
+    },
+    "syncFailed": "동기화 실패: {{error}}",
+    "syncSuccess": "{{count}}개의 계정이 WorkBuddy에 동기화되었습니다",
+    "syncToWorkbuddy": "WorkBuddy에 동기화"
   },
   "workbuddy": {
     "title": "WorkBuddy 계정 관리",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "알 수 없는 상태",
       "overdueField": "연체 여부",
       "overdueYes": "예",
-      "overdueNo": "아니요"
+      "overdueNo": "아니요",
+      "usageUpdatedAt": "업데이트: {{time}}"
     },
     "runtime": {
       "title": "현재 Zed 세션",
@@ -2982,7 +3080,8 @@
       "complete": "로그인 완료",
       "startFailed": "Zed 로그인 시작에 실패했습니다",
       "completeSuccess": "Zed 로그인 완료: {{account}}",
-      "importOnlySuccess": "인증이 완료되었습니다. 계정은 가져오기까지 완료되었습니다. 공식 Zed에서 이 계정을 사용하려면 \"적용 후 재시작\"을 클릭하세요."
+      "importOnlySuccess": "인증이 완료되었습니다. 계정은 가져오기까지 완료되었습니다. 공식 Zed에서 이 계정을 사용하려면 \"적용 후 재시작\"을 클릭하세요.",
+      "desc": "아래 버튼을 클릭하여 브라우저에서 Zed 공식 로그인 인증을 완료하세요."
     },
     "actions": {
       "addAccount": "Zed 로그인",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "적용 후 재시작",
       "reapply": "다시 적용",
       "exportTitle": "Zed 계정 JSON 내보내기"
+    },
+    "sort": {
+      "tokenSpend": "Token 소비 기준 정렬"
     }
   },
   "floatingCard": {

@@ -33,12 +33,16 @@
         "creditPackage": "Gói credit",
         "sharedCreditPackage": "Gói credit dùng chung",
         "account": "Tài khoản",
-        "createdAt": "Thời gian tạo"
+        "createdAt": "Thời gian tạo",
+        "userId": "ID người dùng"
       },
       "empty": {
         "title": "Chưa có tài khoản"
       },
-      "export": "Xuất",
+      "export": {
+        "title": "Xuất",
+        "copyFailed": "Sao chép thất bại, vui lòng sao chép thủ công"
+      },
       "filter": {
         "all": "Tất cả ({{count}})",
         "enterprise": "DOANH NGHIỆP ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "Không có dữ liệu hạn mức",
         "resetDone": "Đã đặt lại",
         "hourly": "Hạn mức 5 giờ",
-        "weekly": "Hạn mức tuần"
+        "weekly": "Hạn mức tuần",
+        "resetAt": "Đặt lại: {{time}}"
       },
       "subtitle": "Quản lý các tài khoản GitHub Copilot",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "Cập nhật {{relative}} trước"
-      }
+      },
+      "clear": "Xóa",
+      "loginSuccess": "Đăng nhập thành công",
+      "switchAccount": "Chuyển tài khoản"
     },
     "topRightAd": {
       "ariaLabel": "Vị trí quảng cáo toàn cục góc trên bên phải",
@@ -170,7 +178,15 @@
       "title": "Vị trí quảng cáo góc trên bên phải",
       "desc": "Khu vực này được cố định ở góc trên bên phải trên mọi trang, phù hợp cho chiến dịch hoặc quảng cáo thương hiệu.",
       "action": "Xem chi tiết"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "Thu gọn",
+    "confirmDelete": "Xác nhận xóa",
+    "confirmDeleteTag": "Xác nhận xóa thẻ",
+    "deleteTagWarning": "Bạn có chắc chắn muốn xóa thẻ này khỏi tất cả tài khoản không?",
+    "expand": "Mở rộng",
+    "processing": "Đang xử lý...",
+    "selectAll": "Chọn tất cả"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "Tất cả các phiên bản đã được dừng",
       "allAlreadyRunning": "Tất cả các phiên bản đã đang chạy",
       "noneRunning": "Không tìm thấy phiên bản nào đang chạy",
-      "syncThreadsNeedTwo": "Cần ít nhất hai phiên bản để đồng bộ luồng"
+      "syncThreadsNeedTwo": "Cần ít nhất hai phiên bản để đồng bộ luồng",
+      "launchPrepared": "Lệnh khởi chạy đã được chuẩn bị"
     },
     "runningDialog": {
       "title": "Phiên bản đã đang chạy",
@@ -436,6 +453,13 @@
       "bindHint": "Bạn có thể liên kết tài khoản sau từ danh sách phiên bản",
       "pathRequired": "Vui lòng chọn thư mục trước",
       "submit": "Nhập"
+    },
+    "launchDialog": {
+      "command": "Lệnh khởi chạy",
+      "hint": "Sao chép lệnh và chạy thủ công, hoặc chạy trực tiếp trong terminal bằng nút bên dưới.",
+      "runInTerminal": "Chạy trong terminal",
+      "terminal": "Terminal",
+      "title": "Khởi động phiên bản"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "autoSwitchAccountScopeAllHint": "Phạm vi hiện tại là tất cả tài khoản. {{total}} tài khoản sẽ tham gia chuyển tự động.",
       "codexAutoSwitchAccountScope": "Phạm vi chuyển tự động tài khoản Codex",
       "codexAutoSwitchAccountScopeDesc": "Trạng thái chuyển tự động Codex hiện tại: {{status}}. Chỉ tài khoản trong phạm vi này mới được xét.",
-      "currentAccountRefreshRequiresAutoRefresh": "Hãy bật \"Tự động làm mới hạn ngạch\" trước để cấu hình làm mới tài khoản hiện tại."
+      "currentAccountRefreshRequiresAutoRefresh": "Hãy bật \"Tự động làm mới hạn ngạch\" trước để cấu hình làm mới tài khoản hiện tại.",
+      "codebuddyCnAppPath": "Đường dẫn ứng dụng CodeBuddy CN",
+      "codebuddyCnAppPathDesc": "Để trống để sử dụng đường dẫn mặc định",
+      "codebuddyCnAppPathPlaceholder": "Đường dẫn mặc định",
+      "codebuddyCnAutoRefresh": "Tự động làm mới hạn ngạch CodeBuddy CN",
+      "codebuddyCnAutoRefreshDesc": "Tần suất tự động làm mới nền",
+      "codebuddyCnPathReset": "Đặt lại mặc định",
+      "codebuddyCnPathSelect": "Chọn",
+      "codebuddyCnSettingsTitle": "Cài đặt CodeBuddy CN",
+      "qoderAppPath": "Đường dẫn ứng dụng Qoder",
+      "qoderAppPathDesc": "Để trống để sử dụng đường dẫn mặc định",
+      "qoderAppPathPlaceholder": "Đường dẫn mặc định",
+      "qoderAutoRefresh": "Tự động làm mới hạn ngạch Qoder",
+      "qoderAutoRefreshDesc": "Tần suất tự động làm mới nền",
+      "qoderPathSelect": "Chọn",
+      "workbuddyAutoRefresh": "Tự động làm mới hạn ngạch WorkBuddy",
+      "workbuddyAutoRefreshDesc": "Tần suất tự động làm mới nền"
     },
     "network": {
       "apiTitle": "API Antigravity Cockpit",
@@ -685,6 +725,9 @@
       "desc": "Không tìm thấy đường dẫn ứng dụng {{app}}. Vui lòng đặt ngay để tiếp tục.",
       "action": "Đặt ngay",
       "codexLaunchHint": "Khi tắt, thao tác chuyển tài khoản và ghi đè đăng nhập vẫn chạy, nhưng ứng dụng Codex sẽ không còn được khởi động và lời nhắc đường dẫn này cũng sẽ không xuất hiện lại."
+    },
+    "modal": {
+      "desc": "Không tìm thấy đường dẫn ứng dụng {{app}}. Vui lòng cấu hình ngay để tiếp tục."
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "Vân tay",
       "switch": "Chuyển tài khoản",
       "switchTo": "Chuyển sang tài khoản này",
-      "selectFingerprint": "Chọn vân tay"
+      "selectFingerprint": "Chọn vân tay",
+      "delete": "Xóa",
+      "deleteSelected": "Xóa mục đã chọn",
+      "export": "Xuất",
+      "refreshAll": "Làm mới tất cả"
     },
     "tabs": {
       "oauth": "Ủy quyền OAuth",
@@ -891,7 +938,40 @@
       "clearConfirm": "Xóa toàn bộ lịch sử chuyển đổi?",
       "loadFailed": "Không thể tải lịch sử chuyển đổi: {{error}}",
       "clearFailed": "Không thể xóa lịch sử chuyển đổi: {{error}}"
-    }
+    },
+    "clearTagFilter": "Xóa bộ lọc thẻ",
+    "compact": {
+      "hide": "Ẩn",
+      "show": "Hiển thị"
+    },
+    "deleteConfirm": {
+      "multi": "Xóa {{count}} tài khoản đã chọn?",
+      "single": "Xóa tài khoản này?"
+    },
+    "deleteFailed": "Xóa thất bại: {{error}}",
+    "deleteSuccess": "Xóa thành công",
+    "deleteTagFailed": "Xóa thẻ thất bại: {{error}}",
+    "exportError": "Xuất thất bại: {{error}}",
+    "exportModal": {
+      "title": "Xuất JSON"
+    },
+    "importJsonFailed": "Nhập JSON thất bại: {{error}}",
+    "importJsonHint": "Nhập file Qoder JSON được xuất từ công cụ này.",
+    "importJsonSuccess": "Nhập JSON thành công",
+    "noTags": "Không có thẻ",
+    "privacy": {
+      "disable": "Tắt chế độ riêng tư",
+      "enable": "Bật chế độ riêng tư"
+    },
+    "refreshAllFailed": "Làm mới tất cả thất bại: {{error}}",
+    "refreshAllSuccess": "Đã làm mới tất cả tài khoản",
+    "refreshFailed": "Làm mới thất bại: {{error}}",
+    "refreshSuccess": "Làm mới thành công",
+    "switchFailed": "Chuyển đổi thất bại: {{error}}",
+    "switchSuccess": "Chuyển đổi thành công",
+    "switched": "Đã chuyển sang {{email}}",
+    "tagButton": "Chỉnh sửa thẻ",
+    "tagUpdated": "Thẻ đã được cập nhật"
   },
   "overview": {
     "title": "Tổng quan tài khoản",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "Cổng {{port}} đang được sử dụng. Bạn có muốn đóng tiến trình dùng cổng này không?",
       "portCloseFailed": "Không thể đóng cổng: {{error}}",
       "portStillInUse": "Cổng {{port}} vẫn đang được sử dụng.",
-      "portInUseAction": "Đóng cổng và thử lại"
+      "portInUseAction": "Đóng cổng và thử lại",
+      "timeout": "Xác thực đã hết thời gian. Vui lòng nhấn",
+      "timeoutRetry": "Làm mới link xác thực"
     },
     "token": {
       "desc": "Dán nội dung auth.json hoặc dữ liệu JSON tài khoản",
@@ -1463,7 +1545,10 @@
     "usage": {
       "open": "Mở trang sử dụng OpenAI",
       "hint": "Với hạn mức API Key, hãy xem trang OpenAI Usage.",
-      "openFailed": "Không thể mở trang sử dụng: {{error}}"
+      "openFailed": "Không thể mở trang sử dụng: {{error}}",
+      "search": {
+        "placeholder": "Tìm kiếm tài khoản..."
+      }
     },
     "wakeup": {
       "tab": "Tác vụ đánh thức",
@@ -1813,6 +1898,9 @@
         "providerRequired": "Vui lòng chọn nhà cung cấp.",
         "apiKeyRequired": "Vui lòng chọn API Key."
       }
+    },
+    "groups": {
+      "addToGroup": "Thêm vào nhóm"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "Hết hạn: chưa có",
       "packageTitle": {
         "base": "Gói trải nghiệm cơ bản",
-        "activity": "Gói quà tặng sự kiện"
+        "activity": "Gói quà tặng sự kiện",
+        "pro": "Đăng ký Pro"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "Thêm tài khoản Qoder"
     },
     "import": {
-      "localDesc": "Đọc trạng thái đăng nhập hiện tại từ ứng dụng Qoder cục bộ, bao gồm thông tin người dùng, gói và mức sử dụng tín dụng."
+      "localDesc": "Đọc trạng thái đăng nhập hiện tại từ ứng dụng Qoder cục bộ, bao gồm thông tin người dùng, gói và mức sử dụng tín dụng.",
+      "localFailed": "Nhập cục bộ thất bại: {{error}}",
+      "localSuccess": "Đã nhập tài khoản từ Qoder cục bộ."
+    },
+    "empty": {
+      "desc": "Nhấp vào \"Thêm tài khoản\" để sử dụng đăng nhập xác thực, nhập cục bộ hoặc nhập JSON."
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "Khác",
         "empty": "Không có dữ liệu hạn mức"
       }
-    }
+    },
+    "syncFailed": "Đồng bộ thất bại: {{error}}",
+    "syncSuccess": "Đã đồng bộ {{count}} tài khoản với WorkBuddy",
+    "syncToWorkbuddy": "Đồng bộ tới WorkBuddy"
   },
   "workbuddy": {
     "title": "Quản lý tài khoản WorkBuddy",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "Trạng thái không xác định",
       "overdueField": "Hóa đơn quá hạn",
       "overdueYes": "Có",
-      "overdueNo": "Không"
+      "overdueNo": "Không",
+      "usageUpdatedAt": "Cập nhật: {{time}}"
     },
     "runtime": {
       "title": "Phiên Zed hiện tại",
@@ -2982,7 +3080,8 @@
       "complete": "Hoàn tất đăng nhập",
       "startFailed": "Không thể bắt đầu đăng nhập Zed",
       "completeSuccess": "Đã hoàn tất đăng nhập Zed: {{account}}",
-      "importOnlySuccess": "Ủy quyền đã hoàn tất thành công. Tài khoản đã được nhập. Để Zed chính thức sử dụng tài khoản này, hãy nhấn \"Áp dụng và khởi động lại\"."
+      "importOnlySuccess": "Ủy quyền đã hoàn tất thành công. Tài khoản đã được nhập. Để Zed chính thức sử dụng tài khoản này, hãy nhấn \"Áp dụng và khởi động lại\".",
+      "desc": "Nhấp vào nút bên dưới để hoàn tất xác thực đăng nhập Zed chính thức trong trình duyệt."
     },
     "actions": {
       "addAccount": "Đăng nhập vào Zed",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "Áp dụng và khởi động lại",
       "reapply": "Áp dụng lại",
       "exportTitle": "Xuất JSON tài khoản Zed"
+    },
+    "sort": {
+      "tokenSpend": "Sắp xếp theo Token Spend"
     }
   },
   "floatingCard": {

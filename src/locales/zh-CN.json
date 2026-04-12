@@ -40,12 +40,16 @@
         "creditPackage": "附加 Credits",
         "sharedCreditPackage": "共享资源包",
         "account": "账号",
-        "createdAt": "创建时间"
+        "createdAt": "创建时间",
+        "userId": "用户 ID"
       },
       "empty": {
         "title": "暂无账号"
       },
-      "export": "导出",
+      "export": {
+        "title": "导出",
+        "copyFailed": "复制失败，请手动复制"
+      },
       "filter": {
         "all": "全部 ({{count}})",
         "enterprise": "企业 ({{count}})",
@@ -137,7 +141,8 @@
         "noData": "暂无配额数据",
         "resetDone": "已重置",
         "hourly": "Inline Suggestions",
-        "weekly": "Chat messages"
+        "weekly": "Chat messages",
+        "resetAt": "Reset: {{time}}"
       },
       "subtitle": "实时监控所有账号的配额状态。",
       "time": {
@@ -169,8 +174,19 @@
       },
       "updated": {
         "label": "更新于 {{relative}}前"
-      }
-    }
+      },
+      "clear": "清除",
+      "loginSuccess": "登录成功",
+      "switchAccount": "切换账号"
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "收起",
+    "confirmDelete": "确认删除",
+    "confirmDeleteTag": "确认删除标签",
+    "deleteTagWarning": "确定要从所有账号中移除标签 ",
+    "expand": "展开",
+    "processing": "处理中...",
+    "selectAll": "全选"
   },
   "floatingCard": {
     "selectPlatform": "切换平台",
@@ -679,7 +695,23 @@
       "ghcpOpencodeRestart": "切换 GitHub Copilot 时自动重启 OpenCode",
       "ghcpLaunchOnSwitch": "切换 GitHub Copilot 时自动启动 GitHub Copilot App",
       "antigravityDualSwitchNoRestart": "无感双通道切号（不重启）",
-      "antigravityDualSwitchNoRestartDesc": "切号时同时执行本地落盘与扩展无感切号，不再自动重启 Antigravity。"
+      "antigravityDualSwitchNoRestartDesc": "切号时同时执行本地落盘与扩展无感切号，不再自动重启 Antigravity。",
+      "codebuddyCnAppPath": "CodeBuddy CN 启动路径",
+      "codebuddyCnAppPathDesc": "留空则使用默认路径",
+      "codebuddyCnAppPathPlaceholder": "默认路径",
+      "codebuddyCnAutoRefresh": "CodeBuddy CN 自动刷新配额",
+      "codebuddyCnAutoRefreshDesc": "后台自动更新频率",
+      "codebuddyCnPathReset": "重置默认",
+      "codebuddyCnPathSelect": "选择",
+      "codebuddyCnSettingsTitle": "CodeBuddy CN 设置",
+      "qoderAppPath": "Qoder 启动路径",
+      "qoderAppPathDesc": "留空则使用默认路径",
+      "qoderAppPathPlaceholder": "默认路径",
+      "qoderAutoRefresh": "Qoder 自动刷新配额",
+      "qoderAutoRefreshDesc": "后台自动更新频率",
+      "qoderPathSelect": "选择",
+      "workbuddyAutoRefresh": "WorkBuddy 自动刷新配额",
+      "workbuddyAutoRefreshDesc": "后台自动更新频率"
     },
     "network": {
       "apiTitle": "反重力驾驶舱 API",
@@ -743,6 +775,9 @@
     "saveSettings": "保存设置"
   },
   "appPath": {
+    "modal": {
+      "desc": "未找到 {{app}} 应用程序路径，请立即设置后继续。"
+    },
     "missing": {
       "title": "未找到应用程序路径",
       "desc": "未找到 {{app}} 应用程序路径，请立即设置后继续启动。",
@@ -857,7 +892,11 @@
       "fingerprint": "指纹",
       "switch": "切换账号",
       "switchTo": "切换到此账号",
-      "selectFingerprint": "点击选择指纹"
+      "selectFingerprint": "点击选择指纹",
+      "delete": "删除",
+      "deleteSelected": "删除选中",
+      "export": "导出",
+      "refreshAll": "刷新全部"
     },
     "switchHistory": {
       "title": "切换记录",
@@ -954,7 +993,40 @@
       "accountPickerEmpty": "没有符合条件的账号",
       "filterHint": "已勾选 {{count}} 个分组做筛选",
       "filterToggle": "勾选以筛选此分组"
-    }
+    },
+    "clearTagFilter": "清空标签",
+    "compact": {
+      "hide": "隐藏",
+      "show": "显示"
+    },
+    "deleteConfirm": {
+      "multi": "确认删除选中的 {{count}} 个账号？",
+      "single": "确认删除该账号？"
+    },
+    "deleteFailed": "删除失败：{{error}}",
+    "deleteSuccess": "删除成功",
+    "deleteTagFailed": "删除标签失败：{{error}}",
+    "exportError": "导出失败：{{error}}",
+    "exportModal": {
+      "title": "导出 JSON"
+    },
+    "importJsonFailed": "JSON 导入失败：{{error}}",
+    "importJsonHint": "导入由本工具导出的 Qoder JSON 文件。",
+    "importJsonSuccess": "JSON 导入成功",
+    "noTags": "暂无标签",
+    "privacy": {
+      "disable": "关闭隐私模式",
+      "enable": "开启隐私模式"
+    },
+    "refreshAllFailed": "批量刷新失败：{{error}}",
+    "refreshAllSuccess": "已刷新全部账号",
+    "refreshFailed": "刷新失败：{{error}}",
+    "refreshSuccess": "刷新成功",
+    "switchFailed": "切换失败：{{error}}",
+    "switchSuccess": "切换成功",
+    "switched": "已切换至 {{email}}",
+    "tagButton": "编辑标签",
+    "tagUpdated": "标签已更新"
   },
   "overview": {
     "title": "账号总览",
@@ -1440,6 +1512,9 @@
       "personal": "个人账户"
     },
     "empty": {
+      "search": {
+        "placeholder": "搜索账号..."
+      },
       "description": "点击\"添加账号\"开始管理您的 Codex 账号"
     },
     "addModal": {
@@ -1457,7 +1532,9 @@
       "portInUseConfirm": "端口 {{port}} 已被占用，是否关闭占用该端口的进程？",
       "portCloseFailed": "关闭端口失败: {{error}}",
       "portStillInUse": "端口 {{port}} 仍被占用。",
-      "portInUseAction": "关闭占用端口并重试"
+      "portInUseAction": "关闭占用端口并重试",
+      "timeout": "授权超时，请点击",
+      "timeoutRetry": "刷新授权链接"
     },
     "token": {
       "desc": "粘贴 auth.json 内容或账号 JSON 数据",
@@ -1656,6 +1733,9 @@
     },
     "usage": {
       "open": "查看 OpenAI 用量",
+      "search": {
+        "placeholder": "搜索账号..."
+      },
       "hint": "API Key 额度请在 OpenAI Usage 页面查看。",
       "openFailed": "打开用量页面失败: {{error}}"
     },
@@ -1910,6 +1990,9 @@
       "updatedAt": "最近更新",
       "locationRunning": "（运行中）",
       "untitled": "未命名会话"
+    },
+    "groups": {
+      "addToGroup": "添加至分组"
     }
   },
   "codebuddy": {
@@ -1991,7 +2074,8 @@
       "expireUnknown": "到期时间：暂无",
       "packageTitle": {
         "base": "基础体验包",
-        "activity": "活动赠送包"
+        "activity": "活动赠送包",
+        "pro": "专业版订阅"
       }
     },
     "extraCredit": {
@@ -2827,7 +2911,12 @@
       "title": "添加 Qoder 账号"
     },
     "import": {
-      "localDesc": "从本机 Qoder 客户端读取当前登录状态（包含用户信息、套餐与 Credits 使用情况）。"
+      "localDesc": "从本机 Qoder 客户端读取当前登录状态（包含用户信息、套餐与 Credits 使用情况）。",
+      "localFailed": "本机导入失败：{{error}}",
+      "localSuccess": "已从本机 Qoder 导入账号。"
+    },
+    "empty": {
+      "desc": "点击“添加账号”，可使用授权登录、本机导入或 JSON 导入。"
     }
   },
   "zed": {
@@ -2859,7 +2948,8 @@
       "unknownStatus": "未知状态",
       "overdueField": "是否欠费",
       "overdueYes": "是",
-      "overdueNo": "否"
+      "overdueNo": "否",
+      "usageUpdatedAt": "Updated: {{time}}"
     },
     "runtime": {
       "title": "当前 Zed 会话",
@@ -2879,7 +2969,8 @@
       "complete": "完成登录",
       "startFailed": "启动 Zed 登录失败",
       "completeSuccess": "Zed 登录完成：{{account}}",
-      "importOnlySuccess": "授权成功，账号已导入；如需让官方 Zed 使用该账号，请点击“应用并重启”。"
+      "importOnlySuccess": "授权成功，账号已导入；如需让官方 Zed 使用该账号，请点击“应用并重启”。",
+      "desc": "点击下方按钮，在浏览器中完成 Zed 官方登录授权。"
     },
     "actions": {
       "addAccount": "登录 Zed",
@@ -2895,6 +2986,9 @@
       "applyAndRestart": "应用并重启",
       "reapply": "重新应用",
       "exportTitle": "导出 Zed 账号 JSON"
+    },
+    "sort": {
+      "tokenSpend": "按 Token Spend"
     }
   },
   "trae": {
@@ -2991,7 +3085,10 @@
         "other": "其他",
         "empty": "暂无配额数据"
       }
-    }
+    },
+    "syncFailed": "同步失败: {{error}}",
+    "syncSuccess": "成功同步 {{count}} 个账号到 WorkBuddy",
+    "syncToWorkbuddy": "同步到 WorkBuddy"
   },
   "workbuddy": {
     "title": "WorkBuddy 账号管理",

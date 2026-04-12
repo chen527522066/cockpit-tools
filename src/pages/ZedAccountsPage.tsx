@@ -787,7 +787,7 @@ export function ZedAccountsPage() {
               <button
                 className="card-action-btn export-btn"
                 onClick={() => handleExportByIds([account.id], resolveSingleExportBaseName(account))}
-                title={t('common.shared.export', '导出')}
+                title={t('common.shared.export.title', '导出')}
               >
                 <Upload size={14} />
               </button>
@@ -896,7 +896,7 @@ export function ZedAccountsPage() {
               <button
                 className="action-btn"
                 onClick={() => handleExportByIds([account.id], resolveSingleExportBaseName(account))}
-                title={t('common.shared.export', '导出')}
+                title={t('common.shared.export.title', '导出')}
               >
                 <Upload size={14} />
               </button>
@@ -1140,8 +1140,8 @@ export function ZedAccountsPage() {
             disabled={exporting || filteredIds.length === 0}
             title={
               exportSelectionCount > 0
-                ? `${t('common.shared.export', '导出')} (${exportSelectionCount})`
-                : t('common.shared.export', '导出')
+                ? `${t('common.shared.export.title', '导出')} (${exportSelectionCount})`
+                : t('common.shared.export.title', '导出')
             }
           >
             <Upload size={14} />

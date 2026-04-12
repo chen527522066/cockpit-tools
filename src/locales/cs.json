@@ -33,12 +33,16 @@
         "creditPackage": "Balíček kreditů",
         "sharedCreditPackage": "Sdílený balíček kreditů",
         "account": "Účet",
-        "createdAt": "Čas vytvoření"
+        "createdAt": "Čas vytvoření",
+        "userId": "ID uživatele"
       },
       "empty": {
         "title": "Žádné účty"
       },
-      "export": "Exportovat",
+      "export": {
+        "title": "Exportovat",
+        "copyFailed": "Kopírování se nezdařilo, zkopírujte prosím ručně"
+      },
       "filter": {
         "all": "Vše ({{count}})",
         "enterprise": "ENTERPRISE ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "Žádná data kvóty",
         "resetDone": "Resetováno",
         "hourly": "Kvóta 5 hodin",
-        "weekly": "Týdenní kvóta"
+        "weekly": "Týdenní kvóta",
+        "resetAt": "Reset: {{time}}"
       },
       "subtitle": "Spravujte své účty GitHub Copilot",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "Aktualizováno před {{relative}}"
-      }
+      },
+      "clear": "Vymazat",
+      "loginSuccess": "Přihlášení úspěšné",
+      "switchAccount": "Přepnout účet"
     },
     "topRightAd": {
       "ariaLabel": "Globální reklamní slot vpravo nahoře",
@@ -170,7 +178,15 @@
       "title": "Reklamní slot vpravo nahoře",
       "desc": "Tato oblast je pevně umístěná vpravo nahoře na všech stránkách pro kampaně nebo brandové reklamy.",
       "action": "Zobrazit podrobnosti"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "Sbalit",
+    "confirmDelete": "Potvrdit smazání",
+    "confirmDeleteTag": "Potvrdit smazání štítku",
+    "deleteTagWarning": "Opravdu chcete odstranit tento štítek ze všech účtů?",
+    "expand": "Rozbalit",
+    "processing": "Zpracovávám...",
+    "selectAll": "Vybrat vše"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "Všechny instance byly zastaveny",
       "allAlreadyRunning": "Všechny instance již běží",
       "noneRunning": "Nebyly nalezeny žádné běžící instance",
-      "syncThreadsNeedTwo": "Pro synchronizaci vláken jsou potřeba alespoň dvě instance"
+      "syncThreadsNeedTwo": "Pro synchronizaci vláken jsou potřeba alespoň dvě instance",
+      "launchPrepared": "Příkaz spuštění je připraven"
     },
     "runningDialog": {
       "title": "Instance již běží",
@@ -436,6 +453,13 @@
       "bindHint": "Účet můžete svázat později ze seznamu instancí",
       "pathRequired": "Nejprve vyberte adresář",
       "submit": "Importovat"
+    },
+    "launchDialog": {
+      "command": "Příkaz spuštění",
+      "hint": "Zkopírujte příkaz a spusťte jej ručně, nebo jej spusťte přímo přes terminál tlačítkem níže.",
+      "runInTerminal": "Spustit v terminálu",
+      "terminal": "Terminál",
+      "title": "Spustit instanci"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "defaultTerminal": "Výchozí terminál",
       "defaultTerminalDesc": "Terminál použitý při otevírání Gemini CLI",
       "terminalSystem": "Systémový výchozí",
-      "currentAccountRefreshRequiresAutoRefresh": "Pro nastavení obnovení aktuálního účtu nejprve zapněte „Automatické obnovení kvóty“."
+      "currentAccountRefreshRequiresAutoRefresh": "Pro nastavení obnovení aktuálního účtu nejprve zapněte „Automatické obnovení kvóty“.",
+      "codebuddyCnAppPath": "Cesta k aplikaci CodeBuddy CN",
+      "codebuddyCnAppPathDesc": "Pokud je prázdné, použije se výchozí cesta",
+      "codebuddyCnAppPathPlaceholder": "Výchozí cesta",
+      "codebuddyCnAutoRefresh": "Automatické obnovení kvóty CodeBuddy CN",
+      "codebuddyCnAutoRefreshDesc": "Frekvence automatického obnovení na pozadí",
+      "codebuddyCnPathReset": "Obnovit výchozí",
+      "codebuddyCnPathSelect": "Vybrat",
+      "codebuddyCnSettingsTitle": "Nastavení CodeBuddy CN",
+      "qoderAppPath": "Cesta k aplikaci Qoder",
+      "qoderAppPathDesc": "Pokud je prázdné, použije se výchozí cesta",
+      "qoderAppPathPlaceholder": "Výchozí cesta",
+      "qoderAutoRefresh": "Automatické obnovení kvóty Qoder",
+      "qoderAutoRefreshDesc": "Frekvence automatického obnovení na pozadí",
+      "qoderPathSelect": "Vybrat",
+      "workbuddyAutoRefresh": "Automatické obnovení kvóty WorkBuddy",
+      "workbuddyAutoRefreshDesc": "Frekvence automatického obnovení na pozadí"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -685,6 +725,9 @@
       "desc": "Nepodařilo se najít cestu k aplikaci {{app}}. Pro pokračování ji nyní nastavte.",
       "action": "Nastavit nyní",
       "codexLaunchHint": "Po vypnutí se přepnutí účtu a přepsání přihlášení stále provede, ale aplikace Codex se už nespustí a tato výzva k cestě se znovu nezobrazí."
+    },
+    "modal": {
+      "desc": "Cesta k aplikaci {{app}} nebyla nalezena. Nastavte ji nyní pro pokračování."
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "Otisk",
       "switch": "Přepnout účet",
       "switchTo": "Přepnout na tento účet",
-      "selectFingerprint": "Vybrat otisk"
+      "selectFingerprint": "Vybrat otisk",
+      "delete": "Smazat",
+      "deleteSelected": "Smazat vybrané",
+      "export": "Exportovat",
+      "refreshAll": "Obnovit vše"
     },
     "tabs": {
       "oauth": "OAuth autorizace",
@@ -891,7 +938,40 @@
       "clearConfirm": "Vymazat celou historii přepnutí?",
       "loadFailed": "Nepodařilo se načíst historii přepnutí: {{error}}",
       "clearFailed": "Nepodařilo se vymazat historii přepnutí: {{error}}"
-    }
+    },
+    "clearTagFilter": "Vymazat filtr štítku",
+    "compact": {
+      "hide": "Skrýt",
+      "show": "Zobrazit"
+    },
+    "deleteConfirm": {
+      "multi": "Opravdu chcete smazat {{count}} vybraných účtů?",
+      "single": "Opravdu chcete smazat tento účet?"
+    },
+    "deleteFailed": "Smazání selhalo: {{error}}",
+    "deleteSuccess": "Smazáno úspěšně",
+    "deleteTagFailed": "Smazání štítku selhalo: {{error}}",
+    "exportError": "Export selhal: {{error}}",
+    "exportModal": {
+      "title": "Exportovat JSON"
+    },
+    "importJsonFailed": "Import JSON selhal: {{error}}",
+    "importJsonHint": "Importujte soubor Qoder JSON exportovaný z tohoto nástroje.",
+    "importJsonSuccess": "Import JSON byl úspěšný",
+    "noTags": "Žádné štítky",
+    "privacy": {
+      "disable": "Vypnout režim soukromí",
+      "enable": "Zapnout režim soukromí"
+    },
+    "refreshAllFailed": "Hromadná aktualizace selhala: {{error}}",
+    "refreshAllSuccess": "Všechny účty byly obnoveny",
+    "refreshFailed": "Aktualizace selhala: {{error}}",
+    "refreshSuccess": "Aktualizováno úspěšně",
+    "switchFailed": "Přepnutí selhalo: {{error}}",
+    "switchSuccess": "Přepnuto úspěšně",
+    "switched": "Přepnuto na {{email}}",
+    "tagButton": "Upravit štítky",
+    "tagUpdated": "Štítek byl aktualizován"
   },
   "overview": {
     "title": "Přehled účtů",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "Port {{port}} je obsazen. Zavřít proces, který jej používá?",
       "portCloseFailed": "Nepodařilo se zavřít port: {{error}}",
       "portStillInUse": "Port {{port}} je stále obsazen.",
-      "portInUseAction": "Zavřít port a zkusit znovu"
+      "portInUseAction": "Zavřít port a zkusit znovu",
+      "timeout": "Autentizace vypršela. Klikněte prosím",
+      "timeoutRetry": "Aktualizovat odkaz pro ověření"
     },
     "token": {
       "desc": "Vložte obsah auth.json nebo JSON dat účtu",
@@ -1463,7 +1545,10 @@
     "usage": {
       "open": "Otevřít využití OpenAI",
       "hint": "Kredit API Key zkontrolujte na stránce OpenAI Usage.",
-      "openFailed": "Nepodařilo se otevřít stránku využití: {{error}}"
+      "openFailed": "Nepodařilo se otevřít stránku využití: {{error}}",
+      "search": {
+        "placeholder": "Hledat účty..."
+      }
     },
     "wakeup": {
       "tab": "Úlohy probuzení",
@@ -1813,6 +1898,9 @@
         "providerRequired": "Vyberte poskytovatele.",
         "apiKeyRequired": "Vyberte API klíč."
       }
+    },
+    "groups": {
+      "addToGroup": "Přidat do skupiny"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "Vyprší: N/A",
       "packageTitle": {
         "base": "Základní balíček zkušeností",
-        "activity": "Balíček dárků z akcí"
+        "activity": "Balíček dárků z akcí",
+        "pro": "Pro předplatné"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "Přidat účet Qoder"
     },
     "import": {
-      "localDesc": "Načte aktuální stav přihlášení z místního klienta Qoder, včetně informací o uživateli, plánu a využití kreditů."
+      "localDesc": "Načte aktuální stav přihlášení z místního klienta Qoder, včetně informací o uživateli, plánu a využití kreditů.",
+      "localFailed": "Lokální import selhal: {{error}}",
+      "localSuccess": "Účet byl importován z lokálního Qoderu."
+    },
+    "empty": {
+      "desc": "Klikněte na Přidat účet a použijte přihlášení, lokální import nebo import JSON."
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "Ostatní",
         "empty": "Žádná data kvóty"
       }
-    }
+    },
+    "syncFailed": "Synchronizace selhala: {{error}}",
+    "syncSuccess": "{{count}} účtů bylo synchronizováno s WorkBuddy",
+    "syncToWorkbuddy": "Synchronizovat s WorkBuddy"
   },
   "workbuddy": {
     "title": "Správa účtů WorkBuddy",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "Neznámý stav",
       "overdueField": "Po splatnosti",
       "overdueYes": "Ano",
-      "overdueNo": "Ne"
+      "overdueNo": "Ne",
+      "usageUpdatedAt": "Aktualizováno: {{time}}"
     },
     "runtime": {
       "title": "Aktuální relace Zed",
@@ -2982,7 +3080,8 @@
       "complete": "Dokončit přihlášení",
       "startFailed": "Nepodařilo se spustit přihlášení do Zed",
       "completeSuccess": "Přihlášení do Zed dokončeno: {{account}}",
-      "importOnlySuccess": "Autorizace byla úspěšná. Účet byl importován. Chcete-li, aby jej oficiální Zed používal, klikněte na „Použít a restartovat“."
+      "importOnlySuccess": "Autorizace byla úspěšná. Účet byl importován. Chcete-li, aby jej oficiální Zed používal, klikněte na „Použít a restartovat“.",
+      "desc": "Klikněte na tlačítko níže a dokončete přihlášení do officiálního Zedu v prohlížeči."
     },
     "actions": {
       "addAccount": "Přihlásit se do Zed",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "Použít a restartovat",
       "reapply": "Použít znovu",
       "exportTitle": "Exportovat JSON účtů Zed"
+    },
+    "sort": {
+      "tokenSpend": "Seřadit podle spotřeby tokenů"
     }
   },
   "floatingCard": {

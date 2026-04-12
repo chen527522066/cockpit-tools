@@ -256,7 +256,7 @@ export function SettingsAccountTransferSection() {
       <div className="settings-group">
         <div className="settings-row">
           <div className="row-label">
-            <div className="row-title">{t('common.shared.export')}</div>
+            <div className="row-title">{t('common.shared.export.title')}</div>
             <div className="row-desc">
               {t('manual.dataPrivacy.outcomes.1')}
             </div>
@@ -264,7 +264,7 @@ export function SettingsAccountTransferSection() {
           <div className="row-control">
             <button className="btn btn-secondary" onClick={() => void handleExport()} disabled={exportModal.preparing}>
               {exportModal.preparing ? <RefreshCw size={16} className="loading-spinner" /> : <Download size={16} />}
-              {t('common.shared.export')}
+              {t('common.shared.export.title')}
             </button>
           </div>
         </div>
@@ -427,7 +427,7 @@ export function SettingsAccountTransferSection() {
         renderToBody(
           <ExportJsonModal
             isOpen={exportModal.showModal}
-            title={`${t('common.shared.export')} JSON`}
+            title={`${t('common.shared.export.title')} JSON`}
             jsonContent={exportModal.jsonContent}
             hidden={exportModal.hidden}
             copied={exportModal.copied}

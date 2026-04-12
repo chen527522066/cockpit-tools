@@ -33,12 +33,16 @@
         "creditPackage": "حزمة الرصيد",
         "sharedCreditPackage": "حزمة الرصيد المشتركة",
         "account": "الحساب",
-        "createdAt": "وقت الإنشاء"
+        "createdAt": "وقت الإنشاء",
+        "userId": "معرف المستخدم"
       },
       "empty": {
         "title": "لا توجد حسابات"
       },
-      "export": "تصدير",
+      "export": {
+        "title": "تصدير",
+        "copyFailed": "فشل النسخ، يُرجى النسخ يدويًا"
+      },
       "filter": {
         "all": "الكل ({{count}})",
         "enterprise": "المؤسسة ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "لا توجد بيانات للحصة",
         "resetDone": "تمت إعادة الضبط",
         "hourly": "الاقتراحات المضمنة",
-        "weekly": "رسائل الدردشة"
+        "weekly": "رسائل الدردشة",
+        "resetAt": "إعادة الضبط: {{time}}"
       },
       "subtitle": "مراقبة حالة الحصة لجميع الحسابات في الوقت الفعلي.",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "تم التحديث قبل {{relative}}"
-      }
+      },
+      "clear": "مسح",
+      "loginSuccess": "تسجيل الدخول ناجح",
+      "switchAccount": "تبديل الحساب"
     },
     "topRightAd": {
       "ariaLabel": "موضع إعلان عام أعلى اليمين",
@@ -170,7 +178,15 @@
       "title": "موضع الإعلان أعلى اليمين",
       "desc": "تُثبَّت هذه المنطقة في أعلى يمين جميع الصفحات لعرض الحملات أو إعلانات العلامة التجارية.",
       "action": "عرض التفاصيل"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "طي",
+    "confirmDelete": "تأكيد الحذف",
+    "confirmDeleteTag": "تأكيد حذف الوسم",
+    "deleteTagWarning": "هل أنت متأكد من حذف هذا الوسم من جميع الحسابات؟",
+    "expand": "توسيع",
+    "processing": "جارٍ المعالجة...",
+    "selectAll": "تحديد الكل"
   },
   "floatingCard": {
     "selectPlatform": "تبديل المنصة",
@@ -419,7 +435,8 @@
       "closedAll": "تم إيقاف جميع المثيلات",
       "allAlreadyRunning": "جميع المثيلات قيد التشغيل بالفعل",
       "noneRunning": "لا توجد مثيلات قيد التشغيل حاليًا",
-      "syncThreadsNeedTwo": "يلزم وجود مثيلين على الأقل لمزامنة السلاسل"
+      "syncThreadsNeedTwo": "يلزم وجود مثيلين على الأقل لمزامنة السلاسل",
+      "launchPrepared": "تم تجهيز أمر التشغيل"
     },
     "runningDialog": {
       "title": "المثيل قيد التشغيل",
@@ -482,6 +499,13 @@
       "bindHint": "يمكنك ربط حساب لاحقاً من قائمة المثيلات",
       "pathRequired": "يرجى اختيار مجلد أولاً",
       "submit": "استيراد"
+    },
+    "launchDialog": {
+      "command": "أمر التشغيل",
+      "hint": "انسخ الأمر وشغّله يدويًا، أو شغّله مباشرةً عبر الطرفية من الزر أدناه.",
+      "runInTerminal": "تشغيل في الطرفية",
+      "terminal": "الطرفية",
+      "title": "تشغيل الحالة"
     }
   },
   "settings": {
@@ -662,7 +686,23 @@
       "defaultTerminal": "المحطة الافتراضية",
       "defaultTerminalDesc": "المحطة المستخدمة عند فتح Gemini CLI",
       "terminalSystem": "افتراضي النظام",
-      "currentAccountRefreshRequiresAutoRefresh": "فعّل أولاً \"التحديث التلقائي للحصة\" حتى تتمكن من إعداد تحديث الحساب الحالي."
+      "currentAccountRefreshRequiresAutoRefresh": "فعّل أولاً \"التحديث التلقائي للحصة\" حتى تتمكن من إعداد تحديث الحساب الحالي.",
+      "codebuddyCnAppPath": "مسار تطبيق CodeBuddy CN",
+      "codebuddyCnAppPathDesc": "يُستخدم المسار الافتراضي إذا تُرك فارغًا",
+      "codebuddyCnAppPathPlaceholder": "المسار الافتراضي",
+      "codebuddyCnAutoRefresh": "تحديث تلقائي لحصة CodeBuddy CN",
+      "codebuddyCnAutoRefreshDesc": "تكرار التحديث التلقائي في الخلفية",
+      "codebuddyCnPathReset": "إعادة تعيين إلى الافتراضي",
+      "codebuddyCnPathSelect": "اختر",
+      "codebuddyCnSettingsTitle": "إعدادات CodeBuddy CN",
+      "qoderAppPath": "مسار تطبيق Qoder",
+      "qoderAppPathDesc": "يُستخدم المسار الافتراضي إذا تُرك فارغًا",
+      "qoderAppPathPlaceholder": "المسار الافتراضي",
+      "qoderAutoRefresh": "تحديث تلقائي لحصة Qoder",
+      "qoderAutoRefreshDesc": "تكرار التحديث التلقائي في الخلفية",
+      "qoderPathSelect": "اختر",
+      "workbuddyAutoRefresh": "تحديث تلقائي لحصة WorkBuddy",
+      "workbuddyAutoRefreshDesc": "تكرار التحديث التلقائي في الخلفية"
     },
     "network": {
       "apiTitle": "واجهة برمجة تطبيقات قمرة القيادة المضادة للجاذبية",
@@ -731,6 +771,9 @@
       "desc": "تعذر العثور على مسار تطبيق {{app}}. الرجاء تعيينه الآن للمتابعة.",
       "action": "تعيين الآن",
       "codexLaunchHint": "عند إيقافه، يستمر تبديل الحساب واستبدال تسجيل الدخول، لكن لن يتم تشغيل تطبيق Codex بعد الآن ولن يظهر هذا التنبيه لمسار التشغيل مرة أخرى."
+    },
+    "modal": {
+      "desc": "لم يتم العثور على مسار تطبيق {{app}}. يرجى الضبط الآن للمتابعة."
     }
   },
   "accounts": {
@@ -840,7 +883,11 @@
       "fingerprint": "البصمة",
       "switch": "تبديل الحساب",
       "switchTo": "التبديل إلى هذا الحساب",
-      "selectFingerprint": "اختيار البصمة"
+      "selectFingerprint": "اختيار البصمة",
+      "delete": "حذف",
+      "deleteSelected": "حذف المحدد",
+      "export": "تصدير",
+      "refreshAll": "تحديث الكل"
     },
     "tabs": {
       "oauth": "تفويض OAuth",
@@ -937,7 +984,40 @@
       "clearConfirm": "هل تريد مسح كل سجلات التبديل؟",
       "loadFailed": "فشل تحميل سجل التبديل: {{error}}",
       "clearFailed": "فشل مسح سجل التبديل: {{error}}"
-    }
+    },
+    "clearTagFilter": "مسح الوسم",
+    "compact": {
+      "hide": "إخفاء",
+      "show": "إظهار"
+    },
+    "deleteConfirm": {
+      "multi": "هل تريد حذف {{count}} حساب/حسابات محددة؟",
+      "single": "هل تريد حذف هذا الحساب؟"
+    },
+    "deleteFailed": "فشل الحذف: {{error}}",
+    "deleteSuccess": "تم الحذف بنجاح",
+    "deleteTagFailed": "فشل حذف الوسم: {{error}}",
+    "exportError": "فشل التصدير: {{error}}",
+    "exportModal": {
+      "title": "تصدير JSON"
+    },
+    "importJsonFailed": "فشل استيراد JSON: {{error}}",
+    "importJsonHint": "استورد ملف JSON الخاص بـ Qoder المُصدَّر من هذه الأداة.",
+    "importJsonSuccess": "تم استيراد JSON بنجاح",
+    "noTags": "لا توجد وسوم",
+    "privacy": {
+      "disable": "تعطيل وضع الخصوصية",
+      "enable": "تفعيل وضع الخصوصية"
+    },
+    "refreshAllFailed": "فشل التحديث الجماعي: {{error}}",
+    "refreshAllSuccess": "تم تحديث جميع الحسابات",
+    "refreshFailed": "فشل التحديث: {{error}}",
+    "refreshSuccess": "تم التحديث بنجاح",
+    "switchFailed": "فشل التبديل: {{error}}",
+    "switchSuccess": "تم التبديل بنجاح",
+    "switched": "تم التبديل إلى {{email}}",
+    "tagButton": "تعديل الوسوم",
+    "tagUpdated": "تم تحديث الوسم"
   },
   "overview": {
     "title": "نظرة عامة على الحسابات",
@@ -1437,7 +1517,9 @@
       "portInUseConfirm": "المنفذ {{port}} قيد الاستخدام. هل تريد إغلاق العملية التي تستخدم هذا المنفذ؟",
       "portCloseFailed": "فشل إغلاق المنفذ: {{error}}",
       "portStillInUse": "المنفذ {{port}} ما يزال قيد الاستخدام.",
-      "portInUseAction": "إغلاق المنفذ وإعادة المحاولة"
+      "portInUseAction": "إغلاق المنفذ وإعادة المحاولة",
+      "timeout": "انتهت مهلة المصادقة. انقر للمحاولة",
+      "timeoutRetry": "تحديث رابط المصادقة"
     },
     "token": {
       "desc": "الصق محتوى auth.json أو بيانات JSON للحساب",
@@ -1509,7 +1591,10 @@
     "usage": {
       "open": "فتح استخدام OpenAI",
       "hint": "لرصيد API Key، راجع صفحة استخدام OpenAI.",
-      "openFailed": "تعذر فتح صفحة الاستخدام: {{error}}"
+      "openFailed": "تعذر فتح صفحة الاستخدام: {{error}}",
+      "search": {
+        "placeholder": "البحث في الحسابات..."
+      }
     },
     "wakeup": {
       "tab": "مهام الإيقاظ",
@@ -1859,6 +1944,9 @@
         "providerRequired": "يرجى اختيار مزوّد.",
         "apiKeyRequired": "يرجى اختيار مفتاح API."
       }
+    },
+    "groups": {
+      "addToGroup": "إضافة إلى المجموعة"
     }
   },
   "githubCopilot": {
@@ -2708,7 +2796,8 @@
       "expireUnknown": "وقت الانتهاء: غير متاح",
       "packageTitle": {
         "base": "حزمة التجربة الأساسية",
-        "activity": "حزمة هدية النشاط"
+        "activity": "حزمة هدية النشاط",
+        "pro": "اشتراك Pro"
       }
     },
     "extraCredit": {
@@ -2776,7 +2865,12 @@
       "title": "إضافة حساب Qoder"
     },
     "import": {
-      "localDesc": "يقرأ حالة تسجيل الدخول الحالية من عميل Qoder المحلي، بما في ذلك معلومات المستخدم والخطة واستخدام الرصيد."
+      "localDesc": "يقرأ حالة تسجيل الدخول الحالية من عميل Qoder المحلي، بما في ذلك معلومات المستخدم والخطة واستخدام الرصيد.",
+      "localFailed": "فشل الاستيراد المحلي: {{error}}",
+      "localSuccess": "تم استيراد الحساب من Qoder المحلي."
+    },
+    "empty": {
+      "desc": "انقر على \"إضافة حساب\" لاستخدام تسجيل الدخول، الاستيراد المحلي، أو استيراد JSON."
     }
   },
   "trae": {
@@ -2873,7 +2967,10 @@
         "other": "أخرى",
         "empty": "لا توجد بيانات حصة"
       }
-    }
+    },
+    "syncFailed": "فشل المزامنة: {{error}}",
+    "syncSuccess": "تمت مزامنة {{count}} حساب/حسابات مع WorkBuddy",
+    "syncToWorkbuddy": "مزامنة مع WorkBuddy"
   },
   "workbuddy": {
     "title": "إدارة حسابات WorkBuddy",
@@ -3008,7 +3105,8 @@
       "unknownStatus": "حالة غير معروفة",
       "overdueField": "هل توجد متأخرات",
       "overdueYes": "نعم",
-      "overdueNo": "لا"
+      "overdueNo": "لا",
+      "usageUpdatedAt": "تحديث: {{time}}"
     },
     "runtime": {
       "title": "جلسة Zed الحالية",
@@ -3028,7 +3126,8 @@
       "complete": "إكمال تسجيل الدخول",
       "startFailed": "فشل بدء تسجيل دخول Zed",
       "completeSuccess": "اكتمل تسجيل دخول Zed: {{account}}",
-      "importOnlySuccess": "تمت المصادقة بنجاح. تم استيراد الحساب. لجعل Zed الرسمي يستخدم هذا الحساب، انقر على \"تطبيق وإعادة التشغيل\"."
+      "importOnlySuccess": "تمت المصادقة بنجاح. تم استيراد الحساب. لجعل Zed الرسمي يستخدم هذا الحساب، انقر على \"تطبيق وإعادة التشغيل\".",
+      "desc": "انقر على الزر أدناه لإكمال مصادقة تسجيل الدخول الرسمي لـ Zed في المتصفح."
     },
     "actions": {
       "addAccount": "تسجيل الدخول إلى Zed",
@@ -3044,6 +3143,9 @@
       "applyAndRestart": "تطبيق وإعادة التشغيل",
       "reapply": "إعادة التطبيق",
       "exportTitle": "تصدير JSON لحسابات Zed"
+    },
+    "sort": {
+      "tokenSpend": "ترتيب حسب إنفاق Token"
     }
   },
   "twoFactorAuth": {

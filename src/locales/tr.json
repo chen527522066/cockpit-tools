@@ -33,12 +33,16 @@
         "creditPackage": "Kredi paketi",
         "sharedCreditPackage": "Paylaşılan kredi paketi",
         "account": "Hesap",
-        "createdAt": "Oluşturulma zamanı"
+        "createdAt": "Oluşturulma zamanı",
+        "userId": "Kullanıcı Kimliği"
       },
       "empty": {
         "title": "Hesap yok"
       },
-      "export": "Dışa aktar",
+      "export": {
+        "title": "Dışa aktar",
+        "copyFailed": "Kopyalama başarısız, lütfen manuel kopyalayın"
+      },
       "filter": {
         "all": "Tümü ({{count}})",
         "enterprise": "KURUMSAL ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "Kota verisi yok",
         "resetDone": "Sıfırlandı",
         "hourly": "5 saatlik kota",
-        "weekly": "Haftalık kota"
+        "weekly": "Haftalık kota",
+        "resetAt": "Sıfırlama: {{time}}"
       },
       "subtitle": "GitHub Copilot hesaplarınızı yönetin",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "{{relative}} önce güncellendi"
-      }
+      },
+      "clear": "Temizle",
+      "loginSuccess": "Giriş başarılı",
+      "switchAccount": "Hesap Değiştir"
     },
     "topRightAd": {
       "ariaLabel": "Genel sağ üst reklam alanı",
@@ -170,7 +178,15 @@
       "title": "Sağ üst reklam alanı",
       "desc": "Bu alan tüm sayfalarda sağ üstte sabitlenir ve kampanya ya da marka reklamları için uygundur.",
       "action": "Ayrıntıları görüntüle"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "Daralt",
+    "confirmDelete": "Silmeyi Onayla",
+    "confirmDeleteTag": "Etiket Silmeyi Onayla",
+    "deleteTagWarning": "Bu etiketi tüm hesaplardan silmek istediğinizden emin misiniz?",
+    "expand": "Genişlet",
+    "processing": "İşleniyor...",
+    "selectAll": "Tümünü Seç"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "Tüm oturumlar durduruldu",
       "allAlreadyRunning": "Tüm oturumlar zaten çalışıyor",
       "noneRunning": "Çalışan oturum bulunamadı",
-      "syncThreadsNeedTwo": "İş parçacıklarını eşitlemek için en az iki örnek gerekir"
+      "syncThreadsNeedTwo": "İş parçacıklarını eşitlemek için en az iki örnek gerekir",
+      "launchPrepared": "Başlatma komutu hazırlandı"
     },
     "runningDialog": {
       "title": "Oturum zaten çalışıyor",
@@ -436,6 +453,13 @@
       "bindHint": "Hesabı daha sonra örnek listesinden bağlayabilirsiniz",
       "pathRequired": "Önce bir dizin seçin",
       "submit": "İçe aktar"
+    },
+    "launchDialog": {
+      "command": "Başlatma Komutu",
+      "hint": "Komutu kopyalayıp manuel olarak çalıştırın veya aşağıdaki düğmeyi kullanarak doğrudan terminalde çalıştırın.",
+      "runInTerminal": "Terminalde çalıştır",
+      "terminal": "Terminal",
+      "title": "Örneği Başlat"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "autoSwitchAccountScopeAllHint": "Geçerli kapsam tüm hesaplardır. {{total}} hesap otomatik geçişe dahil olur.",
       "codexAutoSwitchAccountScope": "Codex otomatik hesap geçiş kapsamı",
       "codexAutoSwitchAccountScopeDesc": "Mevcut Codex otomatik geçiş durumu: {{status}}. Yalnızca bu kapsam içindeki hesaplar dikkate alınır.",
-      "currentAccountRefreshRequiresAutoRefresh": "Mevcut hesap yenilemeyi yapılandırmak için önce \"Kota Otomatik Yenileme\" özelliğini etkinleştirin."
+      "currentAccountRefreshRequiresAutoRefresh": "Mevcut hesap yenilemeyi yapılandırmak için önce \"Kota Otomatik Yenileme\" özelliğini etkinleştirin.",
+      "codebuddyCnAppPath": "CodeBuddy CN Uygulama Yolu",
+      "codebuddyCnAppPathDesc": "Boş bırakırsanız varsayılan yol kullanılır",
+      "codebuddyCnAppPathPlaceholder": "Varsayılan yol",
+      "codebuddyCnAutoRefresh": "CodeBuddy CN Otomatik Kota Yenileme",
+      "codebuddyCnAutoRefreshDesc": "Arka planda otomatik yenileme sıklığı",
+      "codebuddyCnPathReset": "Varsayılana Sıfırla",
+      "codebuddyCnPathSelect": "Seç",
+      "codebuddyCnSettingsTitle": "CodeBuddy CN Ayarları",
+      "qoderAppPath": "Qoder Uygulama Yolu",
+      "qoderAppPathDesc": "Boş bırakırsanız varsayılan yol kullanılır",
+      "qoderAppPathPlaceholder": "Varsayılan yol",
+      "qoderAutoRefresh": "Qoder Otomatik Kota Yenileme",
+      "qoderAutoRefreshDesc": "Arka planda otomatik yenileme sıklığı",
+      "qoderPathSelect": "Seç",
+      "workbuddyAutoRefresh": "WorkBuddy Otomatik Kota Yenileme",
+      "workbuddyAutoRefreshDesc": "Arka planda otomatik yenileme sıklığı"
     },
     "network": {
       "apiTitle": "Yerçekimine Karşı Kokpit API'si",
@@ -685,6 +725,9 @@
       "desc": "{{app}} uygulama yolu bulunamadı. Devam etmek için şimdi ayarlayın.",
       "action": "Şimdi ayarla",
       "codexLaunchHint": "Kapattığınızda hesap değiştirme ve giriş üzerine yazma çalışmaya devam eder, ancak Codex uygulaması artık başlatılmaz ve bu yol istemi tekrar gösterilmez."
+    },
+    "modal": {
+      "desc": "{{app}} uygulama yolu bulunamadı. Devam etmek için lütfen şimdi yapılandırın."
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "Parmak izi",
       "switch": "Hesap değiştir",
       "switchTo": "Bu hesaba geç",
-      "selectFingerprint": "Parmak izi seç"
+      "selectFingerprint": "Parmak izi seç",
+      "delete": "Sil",
+      "deleteSelected": "Seçilenleri Sil",
+      "export": "Dışa Aktar",
+      "refreshAll": "Tümünü Yenile"
     },
     "tabs": {
       "oauth": "OAuth Yetkilendirme",
@@ -891,7 +938,40 @@
       "clearConfirm": "Tüm geçiş geçmişi temizlensin mi?",
       "loadFailed": "Geçiş geçmişi yüklenemedi: {{error}}",
       "clearFailed": "Geçiş geçmişi temizlenemedi: {{error}}"
-    }
+    },
+    "clearTagFilter": "Etiket Filtresini Temizle",
+    "compact": {
+      "hide": "Gizle",
+      "show": "Göster"
+    },
+    "deleteConfirm": {
+      "multi": "{{count}} seçili hesap silinsin mi?",
+      "single": "Bu hesap silinsin mi?"
+    },
+    "deleteFailed": "Silme başarısız: {{error}}",
+    "deleteSuccess": "Başarıyla silindi",
+    "deleteTagFailed": "Etiket silme başarısız: {{error}}",
+    "exportError": "Dışa aktarma başarısız: {{error}}",
+    "exportModal": {
+      "title": "JSON Dışa Aktar"
+    },
+    "importJsonFailed": "JSON içe aktarma başarısız: {{error}}",
+    "importJsonHint": "Bu araçtan dışa aktarılan Qoder JSON dosyasını içe aktarın.",
+    "importJsonSuccess": "JSON içe aktarma başarılı",
+    "noTags": "Etiket yok",
+    "privacy": {
+      "disable": "Gizlilik Modunu Kapat",
+      "enable": "Gizlilik Modunu Aç"
+    },
+    "refreshAllFailed": "Toplu yenileme başarısız: {{error}}",
+    "refreshAllSuccess": "Tüm hesaplar yenilendi",
+    "refreshFailed": "Yenileme başarısız: {{error}}",
+    "refreshSuccess": "Başarıyla yenilendi",
+    "switchFailed": "Geçiş başarısız: {{error}}",
+    "switchSuccess": "Geçiş başarılı",
+    "switched": "{{email}} hesabına geçildi",
+    "tagButton": "Etiketleri Düzenle",
+    "tagUpdated": "Etiket güncellendi"
   },
   "overview": {
     "title": "Hesap Genel Bakışı",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "Port {{port}} kullanımda. Bu portu kullanan işlemi kapatmak ister misiniz?",
       "portCloseFailed": "Port kapatılamadı: {{error}}",
       "portStillInUse": "Port {{port}} hâlâ kullanımda.",
-      "portInUseAction": "Portu kapatıp yeniden dene"
+      "portInUseAction": "Portu kapatıp yeniden dene",
+      "timeout": "Kimlik doğrulama zaman aşımına uğradı. Lütfen tıklayın",
+      "timeoutRetry": "Kimlik Doğrulama Bağlantısını Yenile"
     },
     "token": {
       "desc": "auth.json içeriğini veya hesap JSON verisini yapıştırın",
@@ -1463,7 +1545,10 @@
     "usage": {
       "open": "OpenAI kullanımını aç",
       "hint": "API Key kredileri için OpenAI Usage sayfasını kullanın.",
-      "openFailed": "Kullanım sayfası açılamadı: {{error}}"
+      "openFailed": "Kullanım sayfası açılamadı: {{error}}",
+      "search": {
+        "placeholder": "Hesap ara..."
+      }
     },
     "wakeup": {
       "tab": "Uyandırma görevleri",
@@ -1813,6 +1898,9 @@
         "providerRequired": "Lütfen bir sağlayıcı seçin.",
         "apiKeyRequired": "Lütfen bir API anahtarı seçin."
       }
+    },
+    "groups": {
+      "addToGroup": "Gruba Ekle"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "Bitiş: Yok",
       "packageTitle": {
         "base": "Temel deneyim paketi",
-        "activity": "Etkinlik hediye paketi"
+        "activity": "Etkinlik hediye paketi",
+        "pro": "Pro Aboneliği"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "Qoder hesabı ekle"
     },
     "import": {
-      "localDesc": "Yerel Qoder istemcisinden mevcut oturum durumunu okur; kullanıcı bilgileri, plan ve kredi kullanımı dahildir."
+      "localDesc": "Yerel Qoder istemcisinden mevcut oturum durumunu okur; kullanıcı bilgileri, plan ve kredi kullanımı dahildir.",
+      "localFailed": "Yerel içe aktarma başarısız: {{error}}",
+      "localSuccess": "Hesap yerel Qoder'dan içe aktarıldı."
+    },
+    "empty": {
+      "desc": "Auth girişini, yerel içe aktarmayı veya JSON içe aktarmayı kullanmak için \"Hesap Ekle\"ye tıklayın."
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "Diğer",
         "empty": "Kota verisi yok"
       }
-    }
+    },
+    "syncFailed": "Senkronizasyon başarısız: {{error}}",
+    "syncSuccess": "{{count}} hesap WorkBuddy ile senkronize edildi",
+    "syncToWorkbuddy": "WorkBuddy ile Senkronize Et"
   },
   "workbuddy": {
     "title": "WorkBuddy Hesap Yönetimi",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "Bilinmeyen durum",
       "overdueField": "Gecikmiş faturalar",
       "overdueYes": "Evet",
-      "overdueNo": "Hayır"
+      "overdueNo": "Hayır",
+      "usageUpdatedAt": "Güncellendi: {{time}}"
     },
     "runtime": {
       "title": "Geçerli Zed oturumu",
@@ -2982,7 +3080,8 @@
       "complete": "Girişi tamamla",
       "startFailed": "Zed oturumu başlatılamadı",
       "completeSuccess": "Zed oturumu tamamlandı: {{account}}",
-      "importOnlySuccess": "Yetkilendirme başarıyla tamamlandı. Hesap içe aktarıldı. Resmi Zed'in bu hesabı kullanması için \"Uygula ve Yeniden Başlat\" seçeneğine tıklayın."
+      "importOnlySuccess": "Yetkilendirme başarıyla tamamlandı. Hesap içe aktarıldı. Resmi Zed'in bu hesabı kullanması için \"Uygula ve Yeniden Başlat\" seçeneğine tıklayın.",
+      "desc": "Tarayıcıda resmi Zed giriş kimlik doğrulamasını tamamlamak için aşağıdaki düğmeye tıklayın."
     },
     "actions": {
       "addAccount": "Zed’e giriş yap",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "Uygula ve yeniden başlat",
       "reapply": "Yeniden uygula",
       "exportTitle": "Zed hesaplarını JSON olarak dışa aktar"
+    },
+    "sort": {
+      "tokenSpend": "Token Harcamasına Göre Sırala"
     }
   },
   "floatingCard": {

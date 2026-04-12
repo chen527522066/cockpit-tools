@@ -33,12 +33,16 @@
         "creditPackage": "追加 Credits",
         "sharedCreditPackage": "共有 Credits パッケージ",
         "account": "アカウント",
-        "createdAt": "作成日時"
+        "createdAt": "作成日時",
+        "userId": "ユーザー ID"
       },
       "empty": {
         "title": "アカウントなし"
       },
-      "export": "エクスポート",
+      "export": {
+        "title": "エクスポート",
+        "copyFailed": "コピーに失敗しました。手動でコピーしてください"
+      },
       "filter": {
         "all": "すべて ({{count}})",
         "enterprise": "エンタープライズ ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "クォータデータなし",
         "resetDone": "リセット済み",
         "hourly": "5 時間クォータ",
-        "weekly": "週次クォータ"
+        "weekly": "週次クォータ",
+        "resetAt": "リセット: {{time}}"
       },
       "subtitle": "GitHub Copilot アカウントを管理します",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "{{relative}}前に更新"
-      }
+      },
+      "clear": "クリア",
+      "loginSuccess": "ログイン成功",
+      "switchAccount": "アカウント切替"
     },
     "topRightAd": {
       "ariaLabel": "全ページ共通の右上広告枠",
@@ -170,7 +178,15 @@
       "title": "右上広告枠",
       "desc": "このエリアは全ページの右上に固定表示され、キャンペーン情報やブランド広告の掲載に適しています。",
       "action": "詳細を見る"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "折りたたむ",
+    "confirmDelete": "削除を確認",
+    "confirmDeleteTag": "タグ削除の確認",
+    "deleteTagWarning": "すべてのアカウントからタグを削除してもよろしいですか？",
+    "expand": "展開",
+    "processing": "処理中...",
+    "selectAll": "すべて選択"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "すべてのインスタンスを閉じました",
       "allAlreadyRunning": "すべてのインスタンスが既に実行中です",
       "noneRunning": "実行中のインスタンスが見つかりません",
-      "syncThreadsNeedTwo": "スレッドを同期するには少なくとも2つのインスタンスが必要です"
+      "syncThreadsNeedTwo": "スレッドを同期するには少なくとも2つのインスタンスが必要です",
+      "launchPrepared": "起動コマンドを準備しました"
     },
     "runningDialog": {
       "title": "インスタンスは既に実行中です",
@@ -436,6 +453,13 @@
       "bindHint": "インスタンス一覧から後で紐付けることもできます",
       "pathRequired": "先にディレクトリを選択してください",
       "submit": "インポート"
+    },
+    "launchDialog": {
+      "command": "起動コマンド",
+      "hint": "コマンドをコピーして手動実行するか、下のボタンから直接ターミナルで実行できます。",
+      "runInTerminal": "ターミナルで実行",
+      "terminal": "ターミナル",
+      "title": "インスタンスを起動"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "autoSwitchAccountScopeAllHint": "現在の範囲はすべてのアカウントです。{{total}} 件が自動切替対象になります。",
       "codexAutoSwitchAccountScope": "Codex 自動切替アカウント範囲",
       "codexAutoSwitchAccountScopeDesc": "現在の Codex 自動切替ステータス：{{status}}。この範囲内のアカウントのみ対象になります。",
-      "currentAccountRefreshRequiresAutoRefresh": "現在のアカウントの更新を設定するには、先に「クォータ自動更新」を有効にしてください。"
+      "currentAccountRefreshRequiresAutoRefresh": "現在のアカウントの更新を設定するには、先に「クォータ自動更新」を有効にしてください。",
+      "codebuddyCnAppPath": "CodeBuddy CN 起動パス",
+      "codebuddyCnAppPathDesc": "空欄の場合はデフォルトパスを使用",
+      "codebuddyCnAppPathPlaceholder": "デフォルトパス",
+      "codebuddyCnAutoRefresh": "CodeBuddy CN 自動配額更新",
+      "codebuddyCnAutoRefreshDesc": "バックグラウンド自動更新頻度",
+      "codebuddyCnPathReset": "デフォルトにリセット",
+      "codebuddyCnPathSelect": "選択",
+      "codebuddyCnSettingsTitle": "CodeBuddy CN 設定",
+      "qoderAppPath": "Qoder 起動パス",
+      "qoderAppPathDesc": "空欄の場合はデフォルトパスを使用",
+      "qoderAppPathPlaceholder": "デフォルトパス",
+      "qoderAutoRefresh": "Qoder 自動配額更新",
+      "qoderAutoRefreshDesc": "バックグラウンド自動更新頻度",
+      "qoderPathSelect": "選択",
+      "workbuddyAutoRefresh": "WorkBuddy 自動配額更新",
+      "workbuddyAutoRefreshDesc": "バックグラウンド自動更新頻度"
     },
     "network": {
       "apiTitle": "反重力コックピット API",
@@ -685,6 +725,9 @@
       "desc": "{{app}} のアプリパスが見つかりません。続行するには今すぐ設定してください。",
       "action": "今すぐ設定",
       "codexLaunchHint": "オフにすると、アカウント切替とログイン上書きは引き続き実行されますが、Codex アプリは起動されず、この起動パスの案内も再表示されません。"
+    },
+    "modal": {
+      "desc": "{{app}} のアプリパスが見つかりません。続行するには今すぐ設定してください。"
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "指紋",
       "switch": "アカウント切替",
       "switchTo": "このアカウントに切替",
-      "selectFingerprint": "指紋を選択"
+      "selectFingerprint": "指紋を選択",
+      "delete": "削除",
+      "deleteSelected": "選択項目を削除",
+      "export": "エクスポート",
+      "refreshAll": "すべて更新"
     },
     "tabs": {
       "oauth": "OAuth 認証",
@@ -891,7 +938,40 @@
       "clearConfirm": "すべての切替履歴をクリアしますか？",
       "loadFailed": "切替履歴の読み込みに失敗しました: {{error}}",
       "clearFailed": "切替履歴のクリアに失敗しました: {{error}}"
-    }
+    },
+    "clearTagFilter": "タグをクリア",
+    "compact": {
+      "hide": "非表示",
+      "show": "表示"
+    },
+    "deleteConfirm": {
+      "multi": "選択した {{count}} 件のアカウントを削除しますか？",
+      "single": "このアカウントを削除しますか？"
+    },
+    "deleteFailed": "削除に失敗: {{error}}",
+    "deleteSuccess": "削除成功",
+    "deleteTagFailed": "タグの削除に失敗: {{error}}",
+    "exportError": "エクスポートに失敗: {{error}}",
+    "exportModal": {
+      "title": "JSON をエクスポート"
+    },
+    "importJsonFailed": "JSON インポートに失敗: {{error}}",
+    "importJsonHint": "本ツールでエクスポートした Qoder JSON ファイルをインポートします。",
+    "importJsonSuccess": "JSON インポート成功",
+    "noTags": "タグなし",
+    "privacy": {
+      "disable": "プライバシーモードをオフ",
+      "enable": "プライバシーモードをオン"
+    },
+    "refreshAllFailed": "一括更新に失敗: {{error}}",
+    "refreshAllSuccess": "すべてのアカウントを更新しました",
+    "refreshFailed": "更新に失敗: {{error}}",
+    "refreshSuccess": "更新成功",
+    "switchFailed": "切替に失敗: {{error}}",
+    "switchSuccess": "切替成功",
+    "switched": "{{email}} に切り替えました",
+    "tagButton": "タグを編集",
+    "tagUpdated": "タグを更新しました"
   },
   "overview": {
     "title": "アカウント概要",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "ポート {{port}} が使用中です。このポートを使用しているプロセスを終了しますか？",
       "portCloseFailed": "ポートの終了に失敗しました: {{error}}",
       "portStillInUse": "ポート {{port}} はまだ使用中です。",
-      "portInUseAction": "ポートを閉じて再試行"
+      "portInUseAction": "ポートを閉じて再試行",
+      "timeout": "認証がタイムアウトしました。クリックしてください",
+      "timeoutRetry": "認証リンクを更新"
     },
     "token": {
       "desc": "auth.json の内容またはアカウント JSON を貼り付けてください",
@@ -1461,6 +1543,9 @@
       "personal": "個人アカウント"
     },
     "usage": {
+      "search": {
+        "placeholder": "アカウントを検索..."
+      },
       "open": "OpenAI使用量を開く",
       "hint": "API Key のクレジットは OpenAI Usage ページで確認してください。",
       "openFailed": "使用量ページを開けませんでした: {{error}}"
@@ -1813,6 +1898,9 @@
         "providerRequired": "プロバイダーを選択してください。",
         "apiKeyRequired": "API キーを選択してください。"
       }
+    },
+    "groups": {
+      "addToGroup": "グループに追加"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "有効期限：なし",
       "packageTitle": {
         "base": "基本体験パッケージ",
-        "activity": "アクティビティ特典パッケージ"
+        "activity": "アクティビティ特典パッケージ",
+        "pro": "Pro版サブスクリプション"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "Qoder アカウントを追加"
     },
     "import": {
-      "localDesc": "ローカルの Qoder クライアントから現在のログイン状態を読み込みます。ユーザー情報、プラン、クレジットの利用状況を含みます。"
+      "localDesc": "ローカルの Qoder クライアントから現在のログイン状態を読み込みます。ユーザー情報、プラン、クレジットの利用状況を含みます。",
+      "localFailed": "ローカルインポートに失敗: {{error}}",
+      "localSuccess": "ローカルの Qoder からアカウントをインポートしました。"
+    },
+    "empty": {
+      "desc": "「アカウントを追加」をクリックすると、認証ログイン、ローカルインポート、または JSON インポートを利用できます。"
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "その他",
         "empty": "クォータデータがありません"
       }
-    }
+    },
+    "syncFailed": "同期に失敗: {{error}}",
+    "syncSuccess": "{{count}} 件のアカウントを WorkBuddy に同期しました",
+    "syncToWorkbuddy": "WorkBuddyに同期"
   },
   "workbuddy": {
     "title": "WorkBuddyアカウント管理",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "不明な状態",
       "overdueField": "未払い請求",
       "overdueYes": "はい",
-      "overdueNo": "いいえ"
+      "overdueNo": "いいえ",
+      "usageUpdatedAt": "更新: {{time}}"
     },
     "runtime": {
       "title": "現在の Zed セッション",
@@ -2982,7 +3080,8 @@
       "complete": "ログインを完了",
       "startFailed": "Zed ログインの開始に失敗しました",
       "completeSuccess": "Zed ログインが完了しました: {{account}}",
-      "importOnlySuccess": "認証に成功しました。アカウントは取り込み済みです。公式 Zed でこのアカウントを使うには、「適用して再起動」をクリックしてください。"
+      "importOnlySuccess": "認証に成功しました。アカウントは取り込み済みです。公式 Zed でこのアカウントを使うには、「適用して再起動」をクリックしてください。",
+      "desc": "下のボタンをクリックして、ブラウザで Zed 公式ログイン認証を完了してください。"
     },
     "actions": {
       "addAccount": "Zed にログイン",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "適用して再起動",
       "reapply": "再適用",
       "exportTitle": "Zed アカウント JSON をエクスポート"
+    },
+    "sort": {
+      "tokenSpend": "Token Spend 順"
     }
   },
   "floatingCard": {

@@ -33,12 +33,16 @@
         "creditPackage": "Pack de crédits",
         "sharedCreditPackage": "Pack de crédits partagé",
         "account": "Compte",
-        "createdAt": "Date de création"
+        "createdAt": "Date de création",
+        "userId": "ID utilisateur"
       },
       "empty": {
         "title": "Aucun compte"
       },
-      "export": "Exporter",
+      "export": {
+        "title": "Exporter",
+        "copyFailed": "Échec de la copie, veuillez copier manuellement"
+      },
       "filter": {
         "all": "Tous ({{count}})",
         "enterprise": "ENTREPRISE ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "Aucune donnée de quota",
         "resetDone": "Réinitialisé",
         "hourly": "Quota de 5 heures",
-        "weekly": "Quota hebdomadaire"
+        "weekly": "Quota hebdomadaire",
+        "resetAt": "Réinitialisation: {{time}}"
       },
       "subtitle": "Gérez vos comptes GitHub Copilot",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "Mis à jour il y a {{relative}}"
-      }
+      },
+      "clear": "Effacer",
+      "loginSuccess": "Connexion réussie",
+      "switchAccount": "Changer de compte"
     },
     "topRightAd": {
       "ariaLabel": "Emplacement publicitaire global en haut à droite",
@@ -170,7 +178,15 @@
       "title": "Emplacement publicitaire en haut à droite",
       "desc": "Cette zone est fixée en haut à droite sur toutes les pages pour les campagnes ou publicités de marque.",
       "action": "Voir les détails"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "Réduire",
+    "confirmDelete": "Confirmer la suppression",
+    "confirmDeleteTag": "Confirmer la suppression du tag",
+    "deleteTagWarning": "Voulez-vous vraiment supprimer ce tag de tous les comptes ?",
+    "expand": "Développer",
+    "processing": "Traitement en cours...",
+    "selectAll": "Tout sélectionner"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "Toutes les instances ont été arrêtées",
       "allAlreadyRunning": "Toutes les instances sont déjà en cours d'exécution",
       "noneRunning": "Aucune instance en cours d'exécution trouvée",
-      "syncThreadsNeedTwo": "Au moins deux instances sont nécessaires pour synchroniser les threads"
+      "syncThreadsNeedTwo": "Au moins deux instances sont nécessaires pour synchroniser les threads",
+      "launchPrepared": "Commande de lancement préparée"
     },
     "runningDialog": {
       "title": "L'instance est déjà en cours d'exécution",
@@ -436,6 +453,13 @@
       "bindHint": "Vous pouvez lier un compte plus tard depuis la liste des instances",
       "pathRequired": "Veuillez d'abord sélectionner un répertoire",
       "submit": "Importer"
+    },
+    "launchDialog": {
+      "command": "Commande de lancement",
+      "hint": "Copiez la commande et exécutez-la manuellement, ou exécutez-la directement dans le terminal via le bouton ci-dessous.",
+      "runInTerminal": "Exécuter dans le terminal",
+      "terminal": "Terminal",
+      "title": "Lancer l'instance"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "defaultTerminal": "Terminal par défaut",
       "defaultTerminalDesc": "Le terminal utilisé lors de l'ouverture de Gemini CLI",
       "terminalSystem": "Système par défaut",
-      "currentAccountRefreshRequiresAutoRefresh": "Activez d'abord « Actualisation automatique du quota » pour configurer l'actualisation du compte actuel."
+      "currentAccountRefreshRequiresAutoRefresh": "Activez d'abord « Actualisation automatique du quota » pour configurer l'actualisation du compte actuel.",
+      "codebuddyCnAppPath": "Chemin de l'application CodeBuddy CN",
+      "codebuddyCnAppPathDesc": "Laisser vide pour utiliser le chemin par défaut",
+      "codebuddyCnAppPathPlaceholder": "Chemin par défaut",
+      "codebuddyCnAutoRefresh": "Actualisation automatique du quota CodeBuddy CN",
+      "codebuddyCnAutoRefreshDesc": "Fréquence de l'actualisation automatique en arrière-plan",
+      "codebuddyCnPathReset": "Réinitialiser par défaut",
+      "codebuddyCnPathSelect": "Sélectionner",
+      "codebuddyCnSettingsTitle": "Paramètres CodeBuddy CN",
+      "qoderAppPath": "Chemin de l'application Qoder",
+      "qoderAppPathDesc": "Laisser vide pour utiliser le chemin par défaut",
+      "qoderAppPathPlaceholder": "Chemin par défaut",
+      "qoderAutoRefresh": "Actualisation automatique du quota Qoder",
+      "qoderAutoRefreshDesc": "Fréquence de l'actualisation automatique en arrière-plan",
+      "qoderPathSelect": "Sélectionner",
+      "workbuddyAutoRefresh": "Actualisation automatique du quota WorkBuddy",
+      "workbuddyAutoRefreshDesc": "Fréquence de l'actualisation automatique en arrière-plan"
     },
     "network": {
       "apiTitle": "API du cockpit antigravité",
@@ -685,6 +725,9 @@
       "desc": "Impossible de trouver le chemin de l’application {{app}}. Veuillez le définir maintenant pour continuer.",
       "action": "Définir maintenant",
       "codexLaunchHint": "Une fois désactivé, le changement de compte et l'écrasement de connexion continuent de s'exécuter, mais l'application Codex ne sera plus lancée et cette invite de chemin ne réapparaîtra pas."
+    },
+    "modal": {
+      "desc": "Le chemin de l'application {{app}} est introuvable. Veuillez le configurer maintenant pour continuer."
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "Empreinte",
       "switch": "Changer de compte",
       "switchTo": "Basculer vers ce compte",
-      "selectFingerprint": "Sélectionner l'empreinte"
+      "selectFingerprint": "Sélectionner l'empreinte",
+      "delete": "Supprimer",
+      "deleteSelected": "Supprimer la sélection",
+      "export": "Exporter",
+      "refreshAll": "Tout actualiser"
     },
     "tabs": {
       "oauth": "Autorisation OAuth",
@@ -891,7 +938,40 @@
       "clearConfirm": "Effacer tout l’historique des bascules ?",
       "loadFailed": "Échec du chargement de l’historique des bascules : {{error}}",
       "clearFailed": "Échec de l’effacement de l’historique des bascules : {{error}}"
-    }
+    },
+    "clearTagFilter": "Effacer le filtre de tag",
+    "compact": {
+      "hide": "Masquer",
+      "show": "Afficher"
+    },
+    "deleteConfirm": {
+      "multi": "Supprimer {{count}} compte(s) sélectionné(s) ?",
+      "single": "Supprimer ce compte ?"
+    },
+    "deleteFailed": "Échec de la suppression: {{error}}",
+    "deleteSuccess": "Suppression réussie",
+    "deleteTagFailed": "Échec de la suppression du tag: {{error}}",
+    "exportError": "Échec de l'export: {{error}}",
+    "exportModal": {
+      "title": "Exporter en JSON"
+    },
+    "importJsonFailed": "Échec de l'import JSON: {{error}}",
+    "importJsonHint": "Importez un fichier Qoder JSON exporté depuis cet outil.",
+    "importJsonSuccess": "Import JSON réussi",
+    "noTags": "Aucun tag",
+    "privacy": {
+      "disable": "Désactiver le mode confidentialité",
+      "enable": "Activer le mode confidentialité"
+    },
+    "refreshAllFailed": "Échec de la mise à jour globale: {{error}}",
+    "refreshAllSuccess": "Tous les comptes mis à jour",
+    "refreshFailed": "Échec de l'actualisation: {{error}}",
+    "refreshSuccess": "Actualisation réussie",
+    "switchFailed": "Échec du changement: {{error}}",
+    "switchSuccess": "Changement réussi",
+    "switched": "Basculé vers {{email}}",
+    "tagButton": "Modifier les tags",
+    "tagUpdated": "Tag mis à jour"
   },
   "overview": {
     "title": "Aperçu des comptes",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "Le port {{port}} est utilisé. Fermer le processus qui l'utilise ?",
       "portCloseFailed": "Échec de fermeture du port : {{error}}",
       "portStillInUse": "Le port {{port}} est toujours utilisé.",
-      "portInUseAction": "Fermer le port et réessayer"
+      "portInUseAction": "Fermer le port et réessayer",
+      "timeout": "L'authentification a expiré. Cliquez",
+      "timeoutRetry": "Actualiser le lien d'authentification"
     },
     "token": {
       "desc": "Collez le contenu auth.json ou les données JSON du compte",
@@ -1463,7 +1545,10 @@
     "usage": {
       "open": "Ouvrir l'utilisation OpenAI",
       "hint": "Pour les crédits API Key, consultez la page d'utilisation OpenAI.",
-      "openFailed": "Impossible d'ouvrir la page d'utilisation : {{error}}"
+      "openFailed": "Impossible d'ouvrir la page d'utilisation : {{error}}",
+      "search": {
+        "placeholder": "Rechercher des comptes..."
+      }
     },
     "wakeup": {
       "tab": "Tâches de réveil",
@@ -1813,6 +1898,9 @@
         "providerRequired": "Veuillez sélectionner un fournisseur.",
         "apiKeyRequired": "Veuillez sélectionner une clé API."
       }
+    },
+    "groups": {
+      "addToGroup": "Ajouter au groupe"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "Expiration : N/A",
       "packageTitle": {
         "base": "Pack d’expérience de base",
-        "activity": "Pack cadeau d’activité"
+        "activity": "Pack cadeau d’activité",
+        "pro": "Abonnement Pro"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "Ajouter un compte Qoder"
     },
     "import": {
-      "localDesc": "Lit l’état de connexion actuel depuis le client Qoder local, y compris les informations utilisateur, le forfait et l’utilisation des crédits."
+      "localDesc": "Lit l’état de connexion actuel depuis le client Qoder local, y compris les informations utilisateur, le forfait et l’utilisation des crédits.",
+      "localFailed": "Échec de l'import local: {{error}}",
+      "localSuccess": "Compte importé depuis Qoder local."
+    },
+    "empty": {
+      "desc": "Cliquez sur Ajouter un compte pour utiliser la connexion, l'import local ou l'import JSON."
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "Autre",
         "empty": "Aucune donnée de quota"
       }
-    }
+    },
+    "syncFailed": "Échec de la synchronisation: {{error}}",
+    "syncSuccess": "{{count}} compte(s) synchronisé(s) avec WorkBuddy",
+    "syncToWorkbuddy": "Synchroniser avec WorkBuddy"
   },
   "workbuddy": {
     "title": "Gestion des comptes WorkBuddy",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "Statut inconnu",
       "overdueField": "Factures en retard",
       "overdueYes": "Oui",
-      "overdueNo": "Non"
+      "overdueNo": "Non",
+      "usageUpdatedAt": "Mise à jour: {{time}}"
     },
     "runtime": {
       "title": "Session Zed actuelle",
@@ -2982,7 +3080,8 @@
       "complete": "Terminer la connexion",
       "startFailed": "Impossible de démarrer la connexion Zed",
       "completeSuccess": "Connexion Zed terminée : {{account}}",
-      "importOnlySuccess": "L'autorisation a réussi. Le compte a été importé. Pour que Zed officiel utilise ce compte, cliquez sur « Appliquer et redémarrer »."
+      "importOnlySuccess": "L'autorisation a réussi. Le compte a été importé. Pour que Zed officiel utilise ce compte, cliquez sur « Appliquer et redémarrer ».",
+      "desc": "Cliquez sur le bouton ci-dessous pour finaliser l'authentification de connexion Zed officielle dans votre navigateur."
     },
     "actions": {
       "addAccount": "Se connecter à Zed",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "Appliquer et redémarrer",
       "reapply": "Réappliquer",
       "exportTitle": "Exporter les comptes Zed en JSON"
+    },
+    "sort": {
+      "tokenSpend": "Trier par dépense de tokens"
     }
   },
   "floatingCard": {

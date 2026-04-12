@@ -33,12 +33,16 @@
         "creditPackage": "附加 Credits",
         "sharedCreditPackage": "共享資源包",
         "account": "帳號",
-        "createdAt": "建立時間"
+        "createdAt": "建立時間",
+        "userId": "使用者 ID"
       },
       "empty": {
         "title": "暫無帳號"
       },
-      "export": "匯出",
+      "export": {
+        "title": "匯出",
+        "copyFailed": "複製失敗，請手動複製"
+      },
       "filter": {
         "all": "全部 ({{count}})",
         "enterprise": "企業 ({{count}})",
@@ -130,7 +134,8 @@
         "noData": "暫無配額資料",
         "resetDone": "已重置",
         "hourly": "5 小時配額",
-        "weekly": "週配額"
+        "weekly": "週配額",
+        "resetAt": "重置: {{time}}"
       },
       "subtitle": "管理您的 GitHub Copilot 帳號",
       "time": {
@@ -162,7 +167,10 @@
       },
       "updated": {
         "label": "更新於 {{relative}}前"
-      }
+      },
+      "clear": "清除",
+      "loginSuccess": "登入成功",
+      "switchAccount": "切換帳號"
     },
     "topRightAd": {
       "ariaLabel": "全域右上角廣告位",
@@ -170,7 +178,15 @@
       "title": "右上角廣告位",
       "desc": "此區域會固定顯示於所有頁面的右上角，適合投放活動資訊或品牌廣告。",
       "action": "查看詳情"
-    }
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "收合",
+    "confirmDelete": "確認刪除",
+    "confirmDeleteTag": "確認刪除標籤",
+    "deleteTagWarning": "確定要從所有帳號刪除此標籤嗎？",
+    "expand": "展開",
+    "processing": "處理中...",
+    "selectAll": "全選"
   },
   "nav": {
     "overview": "Antigravity",
@@ -373,7 +389,8 @@
       "closedAll": "已停止所有實例",
       "allAlreadyRunning": "所有實例均已在運行中",
       "noneRunning": "未找到正在運行的實例",
-      "syncThreadsNeedTwo": "至少需要兩個實例才能同步執行緒"
+      "syncThreadsNeedTwo": "至少需要兩個實例才能同步執行緒",
+      "launchPrepared": "啟動指令已準備好"
     },
     "runningDialog": {
       "title": "實例已在運行",
@@ -436,6 +453,13 @@
       "bindHint": "可稍後在實例列表中綁定",
       "pathRequired": "請先選擇目錄",
       "submit": "匯入"
+    },
+    "launchDialog": {
+      "command": "啟動指令",
+      "hint": "複製指令手動執行，或點擊下方按鈕直接在終端機執行。",
+      "runInTerminal": "在終端機執行",
+      "terminal": "終端機",
+      "title": "啟動執行個體"
     }
   },
   "settings": {
@@ -616,7 +640,23 @@
       "defaultTerminal": "預設終端機",
       "defaultTerminalDesc": "啟動 Gemini CLI 時使用的終端機",
       "terminalSystem": "跟隨系統",
-      "currentAccountRefreshRequiresAutoRefresh": "請先啟用「配額自動刷新」，才能設定目前帳號刷新。"
+      "currentAccountRefreshRequiresAutoRefresh": "請先啟用「配額自動刷新」，才能設定目前帳號刷新。",
+      "codebuddyCnAppPath": "CodeBuddy CN 應用程式路徑",
+      "codebuddyCnAppPathDesc": "留白則使用預設路徑",
+      "codebuddyCnAppPathPlaceholder": "預設路徑",
+      "codebuddyCnAutoRefresh": "CodeBuddy CN 自動刷新配額",
+      "codebuddyCnAutoRefreshDesc": "背景自動更新頻率",
+      "codebuddyCnPathReset": "重設為預設",
+      "codebuddyCnPathSelect": "選擇",
+      "codebuddyCnSettingsTitle": "CodeBuddy CN 設定",
+      "qoderAppPath": "Qoder 應用程式路徑",
+      "qoderAppPathDesc": "留白則使用預設路徑",
+      "qoderAppPathPlaceholder": "預設路徑",
+      "qoderAutoRefresh": "Qoder 自動刷新配額",
+      "qoderAutoRefreshDesc": "背景自動更新頻率",
+      "qoderPathSelect": "選擇",
+      "workbuddyAutoRefresh": "WorkBuddy 自動刷新配額",
+      "workbuddyAutoRefreshDesc": "背景自動更新頻率"
     },
     "network": {
       "apiTitle": "反重力駕駛艙 API",
@@ -685,6 +725,9 @@
       "desc": "找不到 {{app}} 的應用程式路徑。請立即設定以繼續。",
       "codexLaunchHint": "關閉後僅執行切號與登入覆蓋，不再嘗試啟動 Codex App，也不會再次要求設定啟動路徑。",
       "action": "立即設定"
+    },
+    "modal": {
+      "desc": "找不到 {{app}} 的應用程式路徑，請立即設定以繼續。"
     }
   },
   "accounts": {
@@ -794,7 +837,11 @@
       "fingerprint": "指紋",
       "switch": "切換帳號",
       "switchTo": "切換到此帳號",
-      "selectFingerprint": "點擊選擇指紋"
+      "selectFingerprint": "點擊選擇指紋",
+      "delete": "刪除",
+      "deleteSelected": "刪除所選",
+      "export": "匯出",
+      "refreshAll": "全部重新整理"
     },
     "tabs": {
       "oauth": "OAuth 授權",
@@ -891,7 +938,40 @@
       "clearConfirm": "確定清空全部切換記錄嗎？",
       "loadFailed": "載入切換記錄失敗：{{error}}",
       "clearFailed": "清空切換記錄失敗：{{error}}"
-    }
+    },
+    "clearTagFilter": "清除標籤篩選",
+    "compact": {
+      "hide": "隱藏",
+      "show": "顯示"
+    },
+    "deleteConfirm": {
+      "multi": "刪除已選取的 {{count}} 個帳號？",
+      "single": "刪除此帳號？"
+    },
+    "deleteFailed": "刪除失敗：{{error}}",
+    "deleteSuccess": "刪除成功",
+    "deleteTagFailed": "刪除標籤失敗：{{error}}",
+    "exportError": "匯出失敗：{{error}}",
+    "exportModal": {
+      "title": "匯出 JSON"
+    },
+    "importJsonFailed": "JSON 匯入失敗：{{error}}",
+    "importJsonHint": "匯入從此工具匯出的 Qoder JSON 檔案。",
+    "importJsonSuccess": "JSON 匯入成功",
+    "noTags": "無標籤",
+    "privacy": {
+      "disable": "關閉隱私模式",
+      "enable": "開啟隱私模式"
+    },
+    "refreshAllFailed": "批次重新整理失敗：{{error}}",
+    "refreshAllSuccess": "已重新整理所有帳號",
+    "refreshFailed": "重新整理失敗：{{error}}",
+    "refreshSuccess": "重新整理成功",
+    "switchFailed": "切換失敗：{{error}}",
+    "switchSuccess": "切換成功",
+    "switched": "已切換至 {{email}}",
+    "tagButton": "編輯標籤",
+    "tagUpdated": "標籤已更新"
   },
   "overview": {
     "title": "帳號總覽",
@@ -1391,7 +1471,9 @@
       "portInUseConfirm": "連接埠 {{port}} 已被佔用，是否關閉佔用該連接埠的程式？",
       "portCloseFailed": "關閉連接埠失敗: {{error}}",
       "portStillInUse": "連接埠 {{port}} 仍被佔用。",
-      "portInUseAction": "關閉佔用連接埠並重試"
+      "portInUseAction": "關閉佔用連接埠並重試",
+      "timeout": "驗證逾時，請點擊",
+      "timeoutRetry": "更新驗證連結"
     },
     "token": {
       "desc": "貼上 auth.json 內容或帳號 JSON 資料",
@@ -1546,7 +1628,10 @@
     "usage": {
       "open": "查看 OpenAI 用量",
       "hint": "API Key 額度請到 OpenAI Usage 頁面查看。",
-      "openFailed": "開啟用量頁面失敗：{{error}}"
+      "openFailed": "開啟用量頁面失敗：{{error}}",
+      "search": {
+        "placeholder": "搜尋帳號..."
+      }
     },
     "wakeup": {
       "tab": "喚醒任務",
@@ -1813,6 +1898,9 @@
         "providerRequired": "請選擇供應商",
         "apiKeyRequired": "請選擇 API Key"
       }
+    },
+    "groups": {
+      "addToGroup": "加入群組"
     }
   },
   "githubCopilot": {
@@ -2662,7 +2750,8 @@
       "expireUnknown": "到期時間：暫無",
       "packageTitle": {
         "base": "基礎體驗包",
-        "activity": "活動贈送包"
+        "activity": "活動贈送包",
+        "pro": "Pro 版訂閱"
       }
     },
     "extraCredit": {
@@ -2730,7 +2819,12 @@
       "title": "新增 Qoder 帳號"
     },
     "import": {
-      "localDesc": "從本機 Qoder 用戶端讀取目前登入狀態（包含使用者資訊、方案與 Credits 使用情況）。"
+      "localDesc": "從本機 Qoder 用戶端讀取目前登入狀態（包含使用者資訊、方案與 Credits 使用情況）。",
+      "localFailed": "本機匯入失敗：{{error}}",
+      "localSuccess": "已從本機 Qoder 匯入帳號。"
+    },
+    "empty": {
+      "desc": "點擊「新增帳號」以使用驗證登入、本機匯入或 JSON 匯入。"
     }
   },
   "trae": {
@@ -2827,7 +2921,10 @@
         "other": "其他",
         "empty": "暫無配額資料"
       }
-    }
+    },
+    "syncFailed": "同步失敗：{{error}}",
+    "syncSuccess": "已將 {{count}} 個帳號同步至 WorkBuddy",
+    "syncToWorkbuddy": "同步至 WorkBuddy"
   },
   "workbuddy": {
     "title": "WorkBuddy 帳號管理",
@@ -2962,7 +3059,8 @@
       "unknownStatus": "未知狀態",
       "overdueField": "是否欠費",
       "overdueYes": "是",
-      "overdueNo": "否"
+      "overdueNo": "否",
+      "usageUpdatedAt": "更新：{{time}}"
     },
     "runtime": {
       "title": "目前的 Zed 工作階段",
@@ -2982,7 +3080,8 @@
       "complete": "完成登入",
       "startFailed": "啟動 Zed 登入失敗",
       "completeSuccess": "Zed 登入完成：{{account}}",
-      "importOnlySuccess": "授權成功，帳號已匯入；如需讓官方 Zed 使用此帳號，請點擊「套用並重新啟動」。"
+      "importOnlySuccess": "授權成功，帳號已匯入；如需讓官方 Zed 使用此帳號，請點擊「套用並重新啟動」。",
+      "desc": "點擊下方按鈕，在瀏覽器中完成 Zed 官方登入驗證。"
     },
     "actions": {
       "addAccount": "登入 Zed",
@@ -2998,6 +3097,9 @@
       "applyAndRestart": "套用並重新啟動",
       "reapply": "重新套用",
       "exportTitle": "匯出 Zed 帳號 JSON"
+    },
+    "sort": {
+      "tokenSpend": "依 Token 消耗排序"
     }
   },
   "floatingCard": {

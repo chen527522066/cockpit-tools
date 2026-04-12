@@ -809,7 +809,7 @@ export function GeminiAccountsPage() {
                     resolveSingleExportBaseName(account),
                   )
                 }
-                title={t("common.shared.export", "导出")}
+                title={t("common.shared.export.title", "导出")}
               >
                 <Upload size={14} />
               </button>
@@ -963,7 +963,7 @@ export function GeminiAccountsPage() {
                     resolveSingleExportBaseName(account),
                   )
                 }
-                title={t("common.shared.export", "导出")}
+                title={t("common.shared.export.title", "导出")}
               >
                 <Upload size={14} />
               </button>
@@ -1249,13 +1249,13 @@ export function GeminiAccountsPage() {
                 disabled={exporting || filteredIds.length === 0}
                 title={
                   exportSelectionCount > 0
-                    ? `${t("common.shared.export", "导出")} (${exportSelectionCount})`
-                    : t("common.shared.export", "导出")
+                    ? `${t("common.shared.export.title", "导出")} (${exportSelectionCount})`
+                    : t("common.shared.export.title", "导出")
                 }
                 aria-label={
                   exportSelectionCount > 0
-                    ? `${t("common.shared.export", "导出")} (${exportSelectionCount})`
-                    : t("common.shared.export", "导出")
+                    ? `${t("common.shared.export.title", "导出")} (${exportSelectionCount})`
+                    : t("common.shared.export.title", "导出")
                 }
               >
                 <Upload size={14} />
@@ -1822,7 +1822,7 @@ export function GeminiAccountsPage() {
 
           <ExportJsonModal
             isOpen={showExportModal}
-            title={`${t("common.shared.export", "导出")} JSON`}
+            title={`${t("common.shared.export.title", "导出")} JSON`}
             jsonContent={exportJsonContent}
             hidden={exportJsonHidden}
             copied={exportJsonCopied}

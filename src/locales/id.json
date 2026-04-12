@@ -40,12 +40,16 @@
         "creditPackage": "Paket Kredit",
         "sharedCreditPackage": "Paket Kredit Bersama",
         "account": "Akun",
-        "createdAt": "Waktu Dibuat"
+        "createdAt": "Waktu Dibuat",
+        "userId": "ID Pengguna"
       },
       "empty": {
         "title": "Belum Ada Akun"
       },
-      "export": "Ekspor",
+      "export": {
+        "title": "Ekspor",
+        "copyFailed": "Gagal menyalin, silakan salin secara manual"
+      },
       "filter": {
         "all": "Semua ({{count}})",
         "enterprise": "ENTERPRISE ({{count}})",
@@ -137,7 +141,8 @@
         "noData": "Tidak ada data kuota",
         "resetDone": "Direset",
         "hourly": "Saran Inline",
-        "weekly": "Pesan obrolan"
+        "weekly": "Pesan obrolan",
+        "resetAt": "Reset: {{time}}"
       },
       "subtitle": "Pantau status kuota seluruh akun secara real-time.",
       "time": {
@@ -169,8 +174,19 @@
       },
       "updated": {
         "label": "Diperbarui {{relative}} yang lalu"
-      }
-    }
+      },
+      "clear": "Hapus",
+      "loginSuccess": "Login berhasil",
+      "switchAccount": "Ganti Akun"
+    },
+    "appName": "Cockpit Tools",
+    "collapse": "Ciutkan",
+    "confirmDelete": "Konfirmasi Hapus",
+    "confirmDeleteTag": "Konfirmasi Hapus Tag",
+    "deleteTagWarning": "Apakah Anda yakin ingin menghapus tag ini dari semua akun?",
+    "expand": "Perluas",
+    "processing": "Memproses...",
+    "selectAll": "Pilih Semua"
   },
   "floatingCard": {
     "selectPlatform": "Ganti platform",
@@ -431,7 +447,8 @@
       "closedAll": "Semua instansi telah ditutup",
       "allAlreadyRunning": "Semua instansi sudah berjalan",
       "noneRunning": "Tidak ditemukan instansi yang sedang berjalan",
-      "syncThreadsNeedTwo": "Diperlukan setidaknya dua instansi untuk menyinkronkan thread"
+      "syncThreadsNeedTwo": "Diperlukan setidaknya dua instansi untuk menyinkronkan thread",
+      "launchPrepared": "Perintah peluncuran telah disiapkan"
     },
     "runningDialog": {
       "title": "Instansi sudah berjalan",
@@ -482,6 +499,13 @@
     "delete": {
       "title": "Hapus Instansi",
       "message": "Hapus instansi {{name}}? Tindakan ini akan menghapus konfigurasi dan folder instansi."
+    },
+    "launchDialog": {
+      "command": "Perintah Peluncuran",
+      "hint": "Salin perintah dan jalankan secara manual, atau jalankan langsung di terminal menggunakan tombol di bawah.",
+      "runInTerminal": "Jalankan di Terminal",
+      "terminal": "Terminal",
+      "title": "Jalankan Instans"
     }
   },
   "settings": {
@@ -662,7 +686,23 @@
       "defaultTerminal": "Terminal default",
       "defaultTerminalDesc": "Terminal yang digunakan saat membuka Gemini CLI.",
       "terminalSystem": "Ikuti sistem",
-      "currentAccountRefreshRequiresAutoRefresh": "Aktifkan terlebih dahulu \"Penyegaran Kuota Otomatis\" untuk mengatur penyegaran akun saat ini."
+      "currentAccountRefreshRequiresAutoRefresh": "Aktifkan terlebih dahulu \"Penyegaran Kuota Otomatis\" untuk mengatur penyegaran akun saat ini.",
+      "codebuddyCnAppPath": "Path Aplikasi CodeBuddy CN",
+      "codebuddyCnAppPathDesc": "Kosongkan untuk menggunakan path default",
+      "codebuddyCnAppPathPlaceholder": "Path default",
+      "codebuddyCnAutoRefresh": "Auto Refresh Kuota CodeBuddy CN",
+      "codebuddyCnAutoRefreshDesc": "Frekuensi auto-refresh di latar belakang",
+      "codebuddyCnPathReset": "Reset ke Default",
+      "codebuddyCnPathSelect": "Pilih",
+      "codebuddyCnSettingsTitle": "Pengaturan CodeBuddy CN",
+      "qoderAppPath": "Path Aplikasi Qoder",
+      "qoderAppPathDesc": "Kosongkan untuk menggunakan path default",
+      "qoderAppPathPlaceholder": "Path default",
+      "qoderAutoRefresh": "Auto Refresh Kuota Qoder",
+      "qoderAutoRefreshDesc": "Frekuensi auto-refresh di latar belakang",
+      "qoderPathSelect": "Pilih",
+      "workbuddyAutoRefresh": "Auto Refresh Kuota WorkBuddy",
+      "workbuddyAutoRefreshDesc": "Frekuensi auto-refresh di latar belakang"
     },
     "network": {
       "apiTitle": "API Antigravity Cockpit",
@@ -731,6 +771,9 @@
       "desc": "Tidak dapat menemukan jalur aplikasi {{app}}. Silakan atur sekarang untuk melanjutkan.",
       "codexLaunchHint": "Jika dinonaktifkan, penggantian akun dan penimpaan login tetap berjalan, tetapi Aplikasi Codex tidak akan diluncurkan lagi dan perintah jalur ini tidak akan muncul kembali.",
       "action": "Atur sekarang"
+    },
+    "modal": {
+      "desc": "Path aplikasi {{app}} tidak ditemukan. Silakan konfigurasi sekarang untuk melanjutkan."
     }
   },
   "accounts": {
@@ -840,7 +883,11 @@
       "fingerprint": "Sidik Jari",
       "switch": "Ganti akun",
       "switchTo": "Ganti ke akun ini",
-      "selectFingerprint": "Pilih sidik jari"
+      "selectFingerprint": "Pilih sidik jari",
+      "delete": "Hapus",
+      "deleteSelected": "Hapus yang Dipilih",
+      "export": "Ekspor",
+      "refreshAll": "Refresh Semua"
     },
     "switchHistory": {
       "title": "Riwayat Penggantian",
@@ -937,7 +984,40 @@
       "accountPickerEmpty": "Tidak ada akun yang cocok",
       "filterHint": "{{count}} grup dipilih untuk penyaringan",
       "filterToggle": "Centang untuk menyaring berdasarkan grup ini"
-    }
+    },
+    "clearTagFilter": "Hapus Filter Tag",
+    "compact": {
+      "hide": "Sembunyikan",
+      "show": "Tampilkan"
+    },
+    "deleteConfirm": {
+      "multi": "Hapus {{count}} akun yang dipilih?",
+      "single": "Hapus akun ini?"
+    },
+    "deleteFailed": "Hapus gagal: {{error}}",
+    "deleteSuccess": "Berhasil dihapus",
+    "deleteTagFailed": "Hapus tag gagal: {{error}}",
+    "exportError": "Ekspor gagal: {{error}}",
+    "exportModal": {
+      "title": "Ekspor JSON"
+    },
+    "importJsonFailed": "Import JSON gagal: {{error}}",
+    "importJsonHint": "Impor file Qoder JSON yang diekspor dari alat ini.",
+    "importJsonSuccess": "Import JSON berhasil",
+    "noTags": "Tidak ada tag",
+    "privacy": {
+      "disable": "Nonaktifkan Mode Privasi",
+      "enable": "Aktifkan Mode Privasi"
+    },
+    "refreshAllFailed": "Refresh semua gagal: {{error}}",
+    "refreshAllSuccess": "Semua akun berhasil diperbarui",
+    "refreshFailed": "Refresh gagal: {{error}}",
+    "refreshSuccess": "Berhasil diperbarui",
+    "switchFailed": "Ganti akun gagal: {{error}}",
+    "switchSuccess": "Berhasil beralih",
+    "switched": "Beralih ke {{email}}",
+    "tagButton": "Edit Tag",
+    "tagUpdated": "Tag diperbarui"
   },
   "overview": {
     "title": "Ringkasan",
@@ -1440,7 +1520,9 @@
       "portInUseConfirm": "Port {{port}} sedang digunakan. Tutup proses yang menggunakan port ini?",
       "portCloseFailed": "Gagal menutup port: {{error}}",
       "portStillInUse": "Port {{port}} masih digunakan.",
-      "portInUseAction": "Tutup port dan coba lagi"
+      "portInUseAction": "Tutup port dan coba lagi",
+      "timeout": "Autentikasi habis waktu. Silakan klik",
+      "timeoutRetry": "Perbarui Link Auth"
     },
     "token": {
       "desc": "Tempel konten auth.json atau data JSON akun",
@@ -1546,7 +1628,10 @@
     "usage": {
       "open": "Buka penggunaan OpenAI",
       "hint": "Untuk kredit kunci API, gunakan halaman Penggunaan OpenAI.",
-      "openFailed": "Gagal membuka halaman penggunaan: {{error}}"
+      "openFailed": "Gagal membuka halaman penggunaan: {{error}}",
+      "search": {
+        "placeholder": "Cari akun..."
+      }
     },
     "quotaError": {
       "badge": "Kesalahan kuota",
@@ -1859,6 +1944,9 @@
         "providerRequired": "Pilih penyedia.",
         "apiKeyRequired": "Pilih API Key."
       }
+    },
+    "groups": {
+      "addToGroup": "Tambahkan ke Grup"
     }
   },
   "codebuddy": {
@@ -1940,7 +2028,8 @@
       "expireUnknown": "Expires at: N/A",
       "packageTitle": {
         "base": "Base Experience Package",
-        "activity": "Activity Gift Package"
+        "activity": "Activity Gift Package",
+        "pro": "Langganan Pro"
       }
     },
     "extraCredit": {
@@ -2776,7 +2865,12 @@
       "title": "Tambah Akun Qoder"
     },
     "import": {
-      "localDesc": "Baca status masuk saat ini dari klien Qoder lokal, termasuk info pengguna, paket, dan penggunaan kredit."
+      "localDesc": "Baca status masuk saat ini dari klien Qoder lokal, termasuk info pengguna, paket, dan penggunaan kredit.",
+      "localFailed": "Import lokal gagal: {{error}}",
+      "localSuccess": "Akun berhasil diimpor dari Qoder lokal."
+    },
+    "empty": {
+      "desc": "Klik \"Tambah Akun\" untuk menggunakan login auth, import lokal, atau import JSON."
     }
   },
   "zed": {
@@ -2808,7 +2902,8 @@
       "unknownStatus": "Status tidak diketahui",
       "overdueField": "Terlambat",
       "overdueYes": "Ya",
-      "overdueNo": "Tidak"
+      "overdueNo": "Tidak",
+      "usageUpdatedAt": "Diperbarui: {{time}}"
     },
     "runtime": {
       "title": "Sesi Zed Saat Ini",
@@ -2828,7 +2923,8 @@
       "complete": "Selesaikan Login",
       "startFailed": "Gagal memulai login Zed",
       "completeSuccess": "Login Zed selesai: {{account}}",
-      "importOnlySuccess": "Otorisasi berhasil. Akun telah diimpor. Untuk membuat Zed resmi menggunakannya, klik \"Terapkan dan Mulai Ulang\"."
+      "importOnlySuccess": "Otorisasi berhasil. Akun telah diimpor. Untuk membuat Zed resmi menggunakannya, klik \"Terapkan dan Mulai Ulang\".",
+      "desc": "Klik tombol di bawah untuk menyelesaikan autentikasi login resmi Zed di browser."
     },
     "actions": {
       "addAccount": "Masuk ke Zed",
@@ -2844,6 +2940,9 @@
       "applyAndRestart": "Terapkan dan Mulai Ulang",
       "reapply": "Terapkan Ulang",
       "exportTitle": "Ekspor JSON Akun Zed"
+    },
+    "sort": {
+      "tokenSpend": "Urutkan berdasarkan Token Spend"
     }
   },
   "trae": {
@@ -2940,7 +3039,10 @@
         "other": "Lainnya",
         "empty": "Tidak ada data kuota"
       }
-    }
+    },
+    "syncFailed": "Sinkronisasi gagal: {{error}}",
+    "syncSuccess": "{{count}} akun berhasil disinkronkan ke WorkBuddy",
+    "syncToWorkbuddy": "Sinkronkan ke WorkBuddy"
   },
   "workbuddy": {
     "title": "Akun WorkBuddy",
