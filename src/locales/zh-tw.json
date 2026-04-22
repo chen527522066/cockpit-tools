@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "服務未啟用",
       "enableBeforeActivateMessage": "API 服務目前未啟用，需要先啟用服務。是否啟用並切號？",
-      "enableAndActivateAction": "啟用並切號"
+      "enableAndActivateAction": "啟用並切號",
+      "apiPortUrl": "API 連接埠 URL",
+      "modelId": "模型 ID",
+      "modelIdPlaceholder": "選擇模型 ID"
     },
     "api": {
       "baseUrl": "基礎網址",

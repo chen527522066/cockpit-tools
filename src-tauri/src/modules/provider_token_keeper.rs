@@ -10,16 +10,19 @@ use tauri::AppHandle;
 use crate::modules::{
     codebuddy_account, codebuddy_cn_account, codex_account, codex_oauth, cursor_account,
     gemini_account, github_copilot_account, kiro_account, kiro_instance, logger, trae_account,
-    windsurf_account, windsurf_instance, workbuddy_account,
+    process, windsurf_account, windsurf_instance, workbuddy_account,
 };
 
 const TOKEN_KEEPER_TICK_SECONDS: u64 = 60;
 const TOKEN_REFRESH_LEAD_SECONDS: i64 = 5 * 60;
 const TOKEN_REFRESH_LEAD_MILLISECONDS: i64 = TOKEN_REFRESH_LEAD_SECONDS * 1000;
 const REFRESH_FAILURE_BACKOFF_SECONDS: i64 = 15 * 60;
+const TRAE_STRICT_CHECK_INTERVAL_SECONDS: i64 = 10 * 60;
 
 static TOKEN_KEEPER_STARTED: AtomicBool = AtomicBool::new(false);
 static NEXT_ALLOWED_ATTEMPT_AT: LazyLock<Mutex<HashMap<String, i64>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static NEXT_TRAE_STRICT_CHECK_AT: LazyLock<Mutex<HashMap<String, i64>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub fn ensure_started(app_handle: AppHandle) {
@@ -105,6 +108,26 @@ fn clear_attempt_backoff(key: &str) {
 fn mark_attempt_failure(key: &str) {
     if let Ok(mut state) = NEXT_ALLOWED_ATTEMPT_AT.lock() {
         state.insert(key.to_string(), now_ts() + REFRESH_FAILURE_BACKOFF_SECONDS);
+    }
+}
+
+fn should_run_trae_strict_check(account_id: &str) -> bool {
+    let now = now_ts();
+    let Ok(state) = NEXT_TRAE_STRICT_CHECK_AT.lock() else {
+        return true;
+    };
+    state
+        .get(account_id)
+        .map(|next| *next <= now)
+        .unwrap_or(true)
+}
+
+fn mark_trae_strict_check_done(account_id: &str) {
+    if let Ok(mut state) = NEXT_TRAE_STRICT_CHECK_AT.lock() {
+        state.insert(
+            account_id.to_string(),
+            now_ts() + TRAE_STRICT_CHECK_INTERVAL_SECONDS,
+        );
     }
 }
 
@@ -629,39 +652,124 @@ async fn refresh_due_trae_accounts() -> bool {
     };
 
     let current_id = trae_account::resolve_current_account_id(&accounts);
+    let protection_map = trae_account::resolve_running_account_refresh_protection_map(&accounts);
     let mut refreshed_any = false;
 
     for account in accounts {
-        if !expires_at_seconds_due(account.expires_at) {
-            continue;
-        }
+        let refresh_due = trae_account::should_refresh_token_by_official_window(&account);
 
-        let key = format!("trae:{}", account.id);
-        if !allow_attempt(&key) {
-            continue;
-        }
+        if refresh_due {
+            let key = format!("trae_refresh:{}", account.id);
+            if !allow_attempt(&key) {
+                continue;
+            }
 
-        match trae_account::refresh_account_async(&account.id).await {
-            Ok(updated) => {
-                clear_attempt_backoff(&key);
-                refreshed_any = true;
-                if current_id.as_deref() == Some(updated.id.as_str()) {
-                    if let Err(err) = trae_account::inject_to_trae(&updated.id) {
+            if let Some(storage_path) = protection_map.get(account.id.as_str()) {
+                logger::log_info(&format!(
+                    "[TokenKeeper][Trae] 账号正在运行中的 Trae 客户端实例中使用，改为仅额度刷新: account_id={}, storage_path={}",
+                    account.id,
+                    storage_path
+                        .as_ref()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "-".to_string())
+                ));
+                match trae_account::refresh_account_usage_only_async(
+                    &account.id,
+                    storage_path.as_deref(),
+                )
+                .await
+                {
+                    Ok(updated) => {
+                        clear_attempt_backoff(&key);
+                        mark_trae_strict_check_done(updated.id.as_str());
+                        refreshed_any = true;
+                        logger::log_info(&format!(
+                            "[TokenKeeper][Trae] 仅额度刷新成功: account_id={}, email={}",
+                            updated.id, updated.email
+                        ));
+                    }
+                    Err(err) => {
+                        mark_attempt_failure(&key);
                         logger::log_warn(&format!(
-                            "[TokenKeeper][Trae] 当前本地登录回写失败: account_id={}, error={}",
-                            updated.id, err
+                            "[TokenKeeper][Trae] 仅额度刷新失败，进入退避: account_id={}, error={}",
+                            account.id, err
                         ));
                     }
                 }
-                logger::log_info(&format!(
-                    "[TokenKeeper][Trae] Token 保活成功: account_id={}, email={}",
-                    updated.id, updated.email
-                ));
+                continue;
+            }
+
+            match trae_account::refresh_account_async(&account.id).await {
+                Ok(updated) => {
+                    clear_attempt_backoff(&key);
+                    mark_trae_strict_check_done(updated.id.as_str());
+                    refreshed_any = true;
+                    if current_id.as_deref() == Some(updated.id.as_str()) {
+                        if process::is_trae_running() {
+                            logger::log_info(&format!(
+                                "[TokenKeeper][Trae] Trae 运行中，跳过当前账号本地回写: account_id={}",
+                                updated.id
+                            ));
+                        } else if let Err(err) = trae_account::inject_to_trae(&updated.id) {
+                            logger::log_warn(&format!(
+                                "[TokenKeeper][Trae] 当前本地登录回写失败: account_id={}, error={}",
+                                updated.id, err
+                            ));
+                        }
+                    }
+                    logger::log_info(&format!(
+                        "[TokenKeeper][Trae] Token 保活成功: account_id={}, email={}",
+                        updated.id, updated.email
+                    ));
+                }
+                Err(err) => {
+                    mark_attempt_failure(&key);
+                    logger::log_warn(&format!(
+                        "[TokenKeeper][Trae] Token 保活失败，进入退避: account_id={}, error={}",
+                        account.id, err
+                    ));
+                }
+            }
+            continue;
+        }
+
+        if current_id.as_deref() != Some(account.id.as_str()) {
+            continue;
+        }
+        if !should_run_trae_strict_check(account.id.as_str()) {
+            continue;
+        }
+
+        let strict_key = format!("trae_strict:{}", account.id);
+        if !allow_attempt(&strict_key) {
+            continue;
+        }
+
+        match trae_account::check_login_token(&account.id).await {
+            Ok(verdict) => {
+                clear_attempt_backoff(&strict_key);
+                mark_trae_strict_check_done(account.id.as_str());
+                if verdict.is_valid {
+                    logger::log_info(&format!(
+                        "[TokenKeeper][Trae] 严格校验通过: account_id={}",
+                        account.id
+                    ));
+                } else {
+                    logger::log_warn(&format!(
+                        "[TokenKeeper][Trae] 严格校验未通过: account_id={}, error_code={}, is_login={}",
+                        account.id,
+                        verdict.error_code.as_deref().unwrap_or("-"),
+                        verdict
+                            .is_login
+                            .map(|value| if value { "true" } else { "false" })
+                            .unwrap_or("-")
+                    ));
+                }
             }
             Err(err) => {
-                mark_attempt_failure(&key);
+                mark_attempt_failure(&strict_key);
                 logger::log_warn(&format!(
-                    "[TokenKeeper][Trae] Token 保活失败，进入退避: account_id={}, error={}",
+                    "[TokenKeeper][Trae] 严格校验失败，进入退避: account_id={}, error={}",
                     account.id, err
                 ));
             }

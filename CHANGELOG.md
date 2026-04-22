@@ -7,6 +7,20 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.22.7] - 2026-04-22
+
+### Added
+- **Codex API Service now exposes an OpenAI-compatible `/v1/chat/completions` entry that is translated to the official Responses protocol internally**: model snapshot aliases, tools/tool_choice, response_format, and streaming tool-call deltas are normalized in both directions so third-party clients can call the local gateway directly.
+- **Codex API Service management now shows `API Port URL` and selectable `Model ID` values**: the modal supports one-click copy and reads model options from backend runtime state.
+- **Desktop startup now includes an `AppRuntimeGuard` fallback layer**: render crashes and chunk-load failures show an in-app error panel with details and a refresh action.
+
+### Changed
+- **Codex API Service upstream dispatch now retries transient failures more predictably**: request-send errors and single-account transient 5xx/timeout statuses now use bounded backoff retries, while 429 usage-limit responses continue to honor model-level cooldown.
+- **Trae refresh flow now protects accounts bound to running clients/instances**: manual refresh, batch refresh, and token keeper switch to usage-only refresh for protected accounts, while still updating quota/usage snapshots.
+- **Trae switch/start flow now uses stricter pre/post account validation**: account is refreshed before inject/start, post-start performs strict check-login with silent remediation when needed, and switch now aborts if existing Trae process cannot be closed cleanly.
+- **Codex account switching now always runs session-visibility repair checks**: provider changes are explicitly logged while non-provider changes still run consistency checks.
+
+---
 ## [0.22.6] - 2026-04-21
 
 ### Added

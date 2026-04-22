@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "Serviço desativado",
       "enableBeforeActivateMessage": "O serviço de API está desativado no momento e precisa ser ativado primeiro. Ativar e alternar agora?",
-      "enableAndActivateAction": "Ativar e alternar"
+      "enableAndActivateAction": "Ativar e alternar",
+      "apiPortUrl": "URL da porta API",
+      "modelId": "ID do modelo",
+      "modelIdPlaceholder": "Selecione o ID do modelo"
     },
     "local": {
       "desc": "Importe a conta atual de ~/.codex/auth.json",

@@ -6902,6 +6902,10 @@ fn get_trae_pids() -> Vec<u32> {
     pids
 }
 
+pub fn is_trae_running() -> bool {
+    !get_trae_pids().is_empty()
+}
+
 pub fn close_trae(timeout_secs: u64) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let _ = timeout_secs;

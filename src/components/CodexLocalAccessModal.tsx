@@ -69,6 +69,7 @@ interface CodexLocalAccessModalProps {
 }
 
 type StatsRangeKey = 'daily' | 'weekly' | 'monthly';
+type CopyableField = 'apiPortUrl' | 'baseUrl' | 'apiKey' | 'modelId';
 
 function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat('en', {
@@ -123,13 +124,16 @@ export function CodexLocalAccessModal({
   const [notice, setNotice] = useState('');
   const [portInput, setPortInput] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);
-  const [copiedField, setCopiedField] = useState<'baseUrl' | 'apiKey' | null>(null);
+  const [copiedField, setCopiedField] = useState<CopyableField | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState('');
   const [statsRange, setStatsRange] = useState<StatsRangeKey>('daily');
   const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const collection = state?.collection ?? null;
-  const baseUrl = state?.baseUrl || (collection ? `http://127.0.0.1:${collection.port}/v1` : '');
+  const apiPortUrl = state?.apiPortUrl ?? '';
+  const baseUrl = state?.baseUrl ?? '';
+  const modelIds = state?.modelIds ?? [];
   const stats = state?.stats;
   const statsRangeOptions = useMemo(
     () =>
@@ -146,6 +150,10 @@ export function CodexLocalAccessModal({
   }, [stats, statsRange]);
   const selectedTotals = selectedStatsWindow?.totals;
   const routingStrategy = collection?.routingStrategy ?? 'auto';
+  const modelIdOptions = useMemo(
+    () => modelIds.map((modelId) => ({ value: modelId, label: modelId })),
+    [modelIds],
+  );
   const avgLatencyMs =
     selectedTotals && selectedTotals.requestCount > 0
       ? selectedTotals.totalLatencyMs / selectedTotals.requestCount
@@ -235,6 +243,14 @@ export function CodexLocalAccessModal({
       }, 0);
     }
   }, [collection?.port, collection?.restrictFreeAccounts, isOpen, mode, normalizedInitialSelectedIds]);
+
+  useEffect(() => {
+    if (modelIds.length === 0) {
+      setSelectedModelId('');
+      return;
+    }
+    setSelectedModelId((current) => (modelIds.includes(current) ? current : modelIds[0]));
+  }, [modelIds]);
 
   const normalizeTag = (value: string) => value.trim().toLowerCase();
 
@@ -492,7 +508,7 @@ export function CodexLocalAccessModal({
     [oauthAccounts],
   );
 
-  const handleCopy = async (field: 'baseUrl' | 'apiKey', value: string) => {
+  const handleCopy = async (field: CopyableField, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedField(field);
@@ -944,7 +960,11 @@ export function CodexLocalAccessModal({
                             onClick={() => void handleResetKey()}
                             disabled={saving || testing || starting}
                           >
-                            {saving ? <RefreshCw size={14} className="loading-spinner" /> : <RefreshCw size={14} />}
+                            {saving ? (
+                              <RefreshCw size={14} className="loading-spinner" />
+                            ) : (
+                              <RefreshCw size={14} />
+                            )}
                             {t('codex.localAccess.rotateKey', '重置密钥')}
                           </button>
                         </div>
@@ -958,7 +978,10 @@ export function CodexLocalAccessModal({
 
                     <div className="codex-local-access-config-card codex-local-access-config-card-port codex-local-access-port-card">
                       <div className="codex-local-access-config-head">
-                        <label className="codex-local-access-config-label" htmlFor="codex-local-access-port">
+                        <label
+                          className="codex-local-access-config-label"
+                          htmlFor="codex-local-access-port"
+                        >
                           {t('codex.localAccess.portLabel', '服务端口')}
                         </label>
                         <div className="codex-local-access-config-actions">
@@ -968,7 +991,11 @@ export function CodexLocalAccessModal({
                             onClick={() => void handleSavePort()}
                             disabled={saving || testing || starting}
                           >
-                            {saving ? <RefreshCw size={14} className="loading-spinner" /> : <Gauge size={14} />}
+                            {saving ? (
+                              <RefreshCw size={14} className="loading-spinner" />
+                            ) : (
+                              <Gauge size={14} />
+                            )}
                             {t('codex.localAccess.portSave', '保存端口')}
                           </button>
                         </div>
@@ -994,6 +1021,65 @@ export function CodexLocalAccessModal({
                     )}
                   </div>
                 )}
+                {collection || modelIdOptions.length > 0 ? (
+                  <div className="codex-local-access-config-extra-grid">
+                    {collection ? (
+                      <div className="codex-local-access-config-card codex-local-access-config-card-root">
+                        <div className="codex-local-access-config-head">
+                          <span className="codex-local-access-config-label">
+                            {t('codex.localAccess.apiPortUrl', 'API端口URL')}
+                          </span>
+                          <div className="codex-local-access-config-actions">
+                            <button
+                              type="button"
+                              className="folder-icon-btn"
+                              onClick={() => void handleCopy('apiPortUrl', apiPortUrl)}
+                              title={t('common.copy', '复制')}
+                            >
+                              {copiedField === 'apiPortUrl' ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        </div>
+                        <code className="codex-local-access-code" title={apiPortUrl}>
+                          {apiPortUrl}
+                        </code>
+                      </div>
+                    ) : null}
+
+                    {modelIdOptions.length > 0 ? (
+                      <div className="codex-local-access-config-card codex-local-access-config-card-model">
+                        <div className="codex-local-access-config-head">
+                          <span className="codex-local-access-config-label">
+                            {t('codex.localAccess.modelId', '模型 ID')}
+                          </span>
+                          <div className="codex-local-access-config-actions">
+                            <button
+                              type="button"
+                              className="folder-icon-btn"
+                              onClick={() => void handleCopy('modelId', selectedModelId)}
+                              title={t('common.copy', '复制')}
+                              disabled={!selectedModelId}
+                            >
+                              {copiedField === 'modelId' ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="codex-local-access-model-row">
+                          <SingleSelectDropdown
+                            value={selectedModelId}
+                            options={modelIdOptions}
+                            onChange={setSelectedModelId}
+                            disabled={modelIdOptions.length === 0}
+                            ariaLabel={t('codex.localAccess.modelId', '模型 ID')}
+                            placeholder={t('codex.localAccess.modelIdPlaceholder', '选择模型 ID')}
+                            menuPlacement="up"
+                            menuMaxHeight={240}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               <section className="codex-local-access-section codex-local-access-section-surface codex-local-access-account-stats-section">

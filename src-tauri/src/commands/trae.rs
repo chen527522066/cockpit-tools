@@ -1,8 +1,15 @@
+use std::collections::BTreeMap;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter};
 
 use crate::models::trae::{TraeAccount, TraeOAuthStartResponse};
 use crate::modules::{logger, trae_account, trae_oauth};
+
+fn resolve_trae_refresh_protection_map(
+    accounts: &[TraeAccount],
+) -> BTreeMap<String, Option<std::path::PathBuf>> {
+    trae_account::resolve_running_account_refresh_protection_map(accounts)
+}
 
 #[tauri::command]
 pub fn list_trae_accounts() -> Result<Vec<TraeAccount>, String> {
@@ -104,6 +111,45 @@ pub async fn refresh_trae_token(app: AppHandle, account_id: String) -> Result<Tr
         account_id
     ));
 
+    if let Ok(accounts) = trae_account::list_accounts_checked() {
+        let protection_map = resolve_trae_refresh_protection_map(&accounts);
+        if let Some(storage_path) = protection_map.get(account_id.as_str()) {
+            logger::log_info(&format!(
+                "[Trae Command] 命中运行中实例账号，改为仅额度刷新: account_id={}, storage_path={}",
+                account_id,
+                storage_path
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "-".to_string())
+            ));
+            let result = trae_account::refresh_account_usage_only_async(
+                &account_id,
+                storage_path.as_deref(),
+            )
+            .await;
+            match &result {
+                Ok(account) => {
+                    let _ = crate::modules::tray::update_tray_menu(&app);
+                    logger::log_info(&format!(
+                        "[Trae Command] 仅额度刷新完成: account_id={}, email={}, elapsed={}ms",
+                        account.id,
+                        account.email,
+                        started_at.elapsed().as_millis()
+                    ));
+                }
+                Err(err) => {
+                    logger::log_warn(&format!(
+                        "[Trae Command] 仅额度刷新失败: account_id={}, elapsed={}ms, error={}",
+                        account_id,
+                        started_at.elapsed().as_millis(),
+                        err
+                    ));
+                }
+            }
+            return result;
+        }
+    }
+
     match trae_account::refresh_account_async(&account_id).await {
         Ok(account) => {
             let _ = crate::modules::tray::update_tray_menu(&app);
@@ -132,8 +178,52 @@ pub async fn refresh_all_trae_tokens(app: AppHandle) -> Result<i32, String> {
     let started_at = Instant::now();
     logger::log_info("[Trae Command] 批量刷新开始");
 
-    let results = trae_account::refresh_all_tokens().await?;
-    let success_count = results.iter().filter(|(_, result)| result.is_ok()).count();
+    let accounts = trae_account::list_accounts_checked()?;
+    let protection_map = resolve_trae_refresh_protection_map(&accounts);
+    let mut success_count = 0;
+
+    for account in accounts {
+        if let Some(storage_path) = protection_map.get(account.id.as_str()) {
+            logger::log_info(&format!(
+                "[Trae Command] 批量刷新命中运行中实例账号，改为仅额度刷新: account_id={}, storage_path={}",
+                account.id,
+                storage_path
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "-".to_string())
+            ));
+            match trae_account::refresh_account_usage_only_async(
+                account.id.as_str(),
+                storage_path.as_deref(),
+            )
+            .await
+            {
+                Ok(_) => {
+                    success_count += 1;
+                }
+                Err(err) => {
+                    logger::log_warn(&format!(
+                        "[Trae Command] 批量仅额度刷新失败: account_id={}, error={}",
+                        account.id, err
+                    ));
+                }
+            }
+            continue;
+        }
+
+        match trae_account::refresh_account_async(account.id.as_str()).await {
+            Ok(_) => {
+                success_count += 1;
+            }
+            Err(err) => {
+                logger::log_warn(&format!(
+                    "[Trae Command] 批量刷新失败: account_id={}, error={}",
+                    account.id, err
+                ));
+            }
+        }
+    }
+
     let _ = crate::modules::tray::update_tray_menu(&app);
 
     logger::log_info(&format!(
@@ -194,12 +284,23 @@ pub async fn inject_trae_account(app: AppHandle, account_id: String) -> Result<S
         account_id
     ));
 
-    let account = trae_account::load_account(&account_id)
+    let existing = trae_account::load_account(&account_id)
         .ok_or_else(|| format!("Trae account not found: {}", account_id))?;
+    logger::log_info(&format!(
+        "[Trae Switch] 切号前刷新账号: account_id={}, email={}",
+        existing.id, existing.email
+    ));
+    let account = trae_account::refresh_account_async(&account_id)
+        .await
+        .map_err(|err| format!("Trae 切号前刷新失败: {}", err))?;
 
     if let Err(err) = crate::modules::process::close_trae(20) {
         logger::log_warn(&format!(
-            "[Trae Switch] 关闭 Trae 旧进程失败，将继续注入: {}",
+            "[Trae Switch] 关闭 Trae 旧进程失败，切号中止: {}",
+            err
+        ));
+        return Err(format!(
+            "Trae 正在运行且未能正常关闭（{}）。请先关闭 Trae 后重试切号。",
             err
         ));
     }

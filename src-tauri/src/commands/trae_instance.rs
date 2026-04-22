@@ -25,15 +25,61 @@ fn resolve_running_pid(last_pid: Option<u32>) -> Option<u32> {
     }
 }
 
-fn inject_bound_account(user_data_dir: &str, bind_account_id: Option<&str>) -> Result<(), String> {
+async fn inject_bound_account(
+    user_data_dir: &str,
+    bind_account_id: Option<&str>,
+) -> Result<(), String> {
     let Some(account_id) = bind_account_id
         .map(str::trim)
         .filter(|value| !value.is_empty())
     else {
         return Ok(());
     };
+    modules::trae_account::refresh_account_async(account_id)
+        .await
+        .map_err(|err| format!("Trae 实例启动前刷新账号失败({}): {}", account_id, err))?;
     let storage_path = modules::trae_instance::build_storage_json_path(user_data_dir);
     modules::trae_account::inject_to_trae_at_path(storage_path.as_path(), account_id)
+}
+
+async fn verify_bound_account_after_start(user_data_dir: &str, bind_account_id: Option<&str>) {
+    let Some(account_id) = bind_account_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+
+    match modules::trae_account::check_login_then_refresh_if_needed(account_id).await {
+        Ok(true) => {
+            let storage_path = modules::trae_instance::build_storage_json_path(user_data_dir);
+            if let Err(err) =
+                modules::trae_account::inject_to_trae_at_path(storage_path.as_path(), account_id)
+            {
+                modules::logger::log_warn(&format!(
+                    "[Trae Instance] 启动后静默刷新成功，但账号回写实例失败: account_id={}, error={}",
+                    account_id, err
+                ));
+            } else {
+                modules::logger::log_info(&format!(
+                    "[Trae Instance] 启动后严格校验触发静默刷新并回写: account_id={}",
+                    account_id
+                ));
+            }
+        }
+        Ok(false) => {
+            modules::logger::log_info(&format!(
+                "[Trae Instance] 启动后无需执行 Token 静默刷新: account_id={}",
+                account_id
+            ));
+        }
+        Err(err) => {
+            modules::logger::log_warn(&format!(
+                "[Trae Instance] 启动后严格校验失败，跳过静默刷新: account_id={}, error={}",
+                account_id, err
+            ));
+        }
+    }
 }
 
 #[tauri::command]
@@ -185,12 +231,18 @@ pub async fn trae_start_instance(instance_id: String) -> Result<InstanceProfileV
         inject_bound_account(
             default_dir_str.as_str(),
             default_settings.bind_account_id.as_deref(),
-        )?;
+        )
+        .await?;
 
         let extra_args = modules::process::parse_extra_args(&default_settings.extra_args);
         let pid =
             modules::process::start_trae_default_with_args_with_new_window(&extra_args, true)?;
         let _ = modules::trae_instance::update_default_pid(Some(pid))?;
+        verify_bound_account_after_start(
+            default_dir_str.as_str(),
+            default_settings.bind_account_id.as_deref(),
+        )
+        .await;
         let running_pid = resolve_running_pid(Some(pid));
 
         return Ok(InstanceProfileView {
@@ -222,7 +274,7 @@ pub async fn trae_start_instance(instance_id: String) -> Result<InstanceProfileV
         let _ = modules::trae_instance::update_instance_pid(&instance.id, None)?;
     }
 
-    inject_bound_account(&instance.user_data_dir, instance.bind_account_id.as_deref())?;
+    inject_bound_account(&instance.user_data_dir, instance.bind_account_id.as_deref()).await?;
 
     let extra_args = modules::process::parse_extra_args(&instance.extra_args);
     let pid = modules::process::start_trae_with_args_with_new_window(
@@ -230,6 +282,8 @@ pub async fn trae_start_instance(instance_id: String) -> Result<InstanceProfileV
         &extra_args,
         true,
     )?;
+    verify_bound_account_after_start(&instance.user_data_dir, instance.bind_account_id.as_deref())
+        .await;
 
     let updated = modules::trae_instance::update_instance_after_start(&instance.id, pid)?;
     let running_pid = resolve_running_pid(Some(pid));

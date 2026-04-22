@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "Služba není zapnutá",
       "enableBeforeActivateMessage": "Služba API je momentálně vypnutá a je potřeba ji nejdříve zapnout. Zapnout a přepnout nyní?",
-      "enableAndActivateAction": "Zapnout a přepnout"
+      "enableAndActivateAction": "Zapnout a přepnout",
+      "apiPortUrl": "URL portu API",
+      "modelId": "ID modelu",
+      "modelIdPlaceholder": "Vyberte ID modelu"
     },
     "local": {
       "desc": "Importovat aktuální účet z ~/.codex/auth.json",

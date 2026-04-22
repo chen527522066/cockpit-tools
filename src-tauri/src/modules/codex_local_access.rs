@@ -10,7 +10,7 @@ use futures_util::StreamExt;
 use rand::{distributions::Alphanumeric, Rng};
 use reqwest::header::{HeaderName, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_TYPE, USER_AGENT};
 use reqwest::{Method, StatusCode};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use std::collections::{HashMap, HashSet};
 use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
@@ -28,6 +28,12 @@ const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024 * 1024;
 const REQUEST_READ_TIMEOUT: Duration = Duration::from_secs(15);
 const MAX_REQUEST_RETRY_WAIT: Duration = Duration::from_secs(3);
 const MAX_REQUEST_RETRY_ATTEMPTS: usize = 1;
+const UPSTREAM_SEND_RETRY_ATTEMPTS: usize = 3;
+const UPSTREAM_SEND_RETRY_BASE_DELAY: Duration = Duration::from_millis(200);
+const UPSTREAM_SEND_RETRY_MAX_DELAY: Duration = Duration::from_millis(1200);
+const SINGLE_ACCOUNT_STATUS_RETRY_ATTEMPTS: usize = 2;
+const SINGLE_ACCOUNT_STATUS_RETRY_BASE_DELAY: Duration = Duration::from_millis(300);
+const SINGLE_ACCOUNT_STATUS_RETRY_MAX_DELAY: Duration = Duration::from_millis(1500);
 const MAX_RETRY_CREDENTIALS_PER_REQUEST: usize = 8;
 const RESPONSE_AFFINITY_TTL_MS: i64 = 24 * 60 * 60 * 1000;
 const MAX_RESPONSE_AFFINITY_BINDINGS: usize = 4096;
@@ -52,7 +58,8 @@ const DEFAULT_CODEX_MODELS: &[&str] = &[
     "gpt-5.1-codex-max",
     "gpt-5.1-codex-mini",
 ];
-
+const CHAT_COMPLETIONS_PATH: &str = "/v1/chat/completions";
+const RESPONSES_PATH: &str = "/v1/responses";
 static GATEWAY_RUNTIME: OnceLock<TokioMutex<GatewayRuntime>> = OnceLock::new();
 static GATEWAY_ROUND_ROBIN_CURSOR: AtomicUsize = AtomicUsize::new(0);
 
@@ -127,6 +134,16 @@ struct ParsedRequest {
     body: Vec<u8>,
 }
 
+#[derive(Debug, Clone)]
+enum GatewayResponseAdapter {
+    Passthrough { request_is_stream: bool },
+    ChatCompletions {
+        stream: bool,
+        requested_model: String,
+        original_request_body: Vec<u8>,
+    },
+}
+
 #[derive(Debug, Clone, Default)]
 struct RequestRoutingHint {
     model_key: String,
@@ -166,6 +183,60 @@ fn normalize_model_key(model: &str) -> String {
     model.trim().to_ascii_lowercase()
 }
 
+fn has_date_snapshot_suffix(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 11
+        && bytes[0] == b'-'
+        && bytes[5] == b'-'
+        && bytes[8] == b'-'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 0 | 5 | 8) || byte.is_ascii_digit())
+}
+
+fn resolve_supported_model_alias(model: &str) -> String {
+    let trimmed = model.trim();
+    let normalized = trimmed.to_ascii_lowercase();
+
+    for alias in DEFAULT_CODEX_MODELS {
+        if normalized == *alias {
+            return (*alias).to_string();
+        }
+
+        if let Some(suffix) = normalized.strip_prefix(alias) {
+            if has_date_snapshot_suffix(suffix) {
+                return (*alias).to_string();
+            }
+        }
+    }
+
+    trimmed.to_string()
+}
+
+fn rewrite_request_model_alias(body: &[u8]) -> Result<Option<Vec<u8>>, String> {
+    let Some(mut body_value) = parse_request_body_json(body) else {
+        return Ok(None);
+    };
+
+    let Some(body_obj) = body_value.as_object_mut() else {
+        return Ok(None);
+    };
+    let Some(model) = body_obj.get("model").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+
+    let resolved_model = resolve_supported_model_alias(model);
+    if resolved_model == model {
+        return Ok(None);
+    }
+
+    body_obj.insert("model".to_string(), Value::String(resolved_model));
+    serde_json::to_vec(&body_value)
+        .map(Some)
+        .map_err(|e| format!("重写请求 model 失败: {}", e))
+}
+
 fn parse_request_body_json(body: &[u8]) -> Option<Value> {
     if body.is_empty() {
         return None;
@@ -182,7 +253,8 @@ fn build_request_routing_hint(request: &ParsedRequest) -> RequestRoutingHint {
         model_key: body
             .get("model")
             .and_then(Value::as_str)
-            .map(normalize_model_key)
+            .map(resolve_supported_model_alias)
+            .map(|model| normalize_model_key(&model))
             .unwrap_or_default(),
         previous_response_id: body
             .get("previous_response_id")
@@ -191,6 +263,1099 @@ fn build_request_routing_hint(request: &ParsedRequest) -> RequestRoutingHint {
             .filter(|value| !value.is_empty())
             .map(str::to_string),
     }
+}
+
+fn is_chat_completions_request(target: &str) -> bool {
+    let path = target.split('?').next().unwrap_or(target).trim();
+    path == CHAT_COMPLETIONS_PATH || path.ends_with("/chat/completions")
+}
+
+fn response_text_type_for_role(role: &str) -> &'static str {
+    if role.eq_ignore_ascii_case("assistant") {
+        "output_text"
+    } else {
+        "input_text"
+    }
+}
+
+fn truncate_to_byte_limit(value: &str, limit: usize) -> String {
+    if value.len() <= limit {
+        return value.to_string();
+    }
+
+    let mut end = 0usize;
+    for (index, ch) in value.char_indices() {
+        let next = index + ch.len_utf8();
+        if next > limit {
+            break;
+        }
+        end = next;
+    }
+    value[..end].to_string()
+}
+
+fn shorten_tool_name_if_needed(name: &str) -> String {
+    const LIMIT: usize = 64;
+    if name.len() <= LIMIT {
+        return name.to_string();
+    }
+    if name.starts_with("mcp__") {
+        if let Some(index) = name.rfind("__") {
+            if index > 0 {
+                let candidate = format!("mcp__{}", &name[index + 2..]);
+                return truncate_to_byte_limit(&candidate, LIMIT);
+            }
+        }
+    }
+    truncate_to_byte_limit(name, LIMIT)
+}
+
+fn build_short_tool_name_map(body: &Value) -> HashMap<String, String> {
+    const LIMIT: usize = 64;
+
+    let mut names = Vec::new();
+    if let Some(tools) = body.get("tools").and_then(Value::as_array) {
+        for tool in tools {
+            if tool.get("type").and_then(Value::as_str) != Some("function") {
+                continue;
+            }
+            if let Some(name) = tool
+                .get("function")
+                .and_then(Value::as_object)
+                .and_then(|function| function.get("name"))
+                .and_then(Value::as_str)
+            {
+                names.push(name.to_string());
+            }
+        }
+    }
+
+    let mut used = HashSet::new();
+    let mut short_name_map = HashMap::new();
+    for name in names {
+        let base_candidate = shorten_tool_name_if_needed(&name);
+        let unique = if used.insert(base_candidate.clone()) {
+            base_candidate
+        } else {
+            let mut suffix_index = 1usize;
+            loop {
+                let suffix = format!("_{}", suffix_index);
+                let allowed = LIMIT.saturating_sub(suffix.len());
+                let candidate =
+                    format!("{}{}", truncate_to_byte_limit(&base_candidate, allowed), suffix);
+                if used.insert(candidate.clone()) {
+                    break candidate;
+                }
+                suffix_index += 1;
+            }
+        };
+        short_name_map.insert(name, unique);
+    }
+
+    short_name_map
+}
+
+fn build_reverse_tool_name_map_from_request(original_request_body: &[u8]) -> HashMap<String, String> {
+    let Some(body) = parse_request_body_json(original_request_body) else {
+        return HashMap::new();
+    };
+
+    build_short_tool_name_map(&body)
+        .into_iter()
+        .map(|(original, shortened)| (shortened, original))
+        .collect()
+}
+
+fn map_tool_name(name: &str, short_name_map: &HashMap<String, String>) -> String {
+    short_name_map
+        .get(name)
+        .cloned()
+        .unwrap_or_else(|| shorten_tool_name_if_needed(name))
+}
+
+fn normalize_chat_content_part(part: &Value, role: &str) -> Option<Value> {
+    match part {
+        Value::String(text) => Some(json!({
+            "type": response_text_type_for_role(role),
+            "text": text,
+        })),
+        Value::Object(obj) => {
+            let part_type = obj.get("type").and_then(Value::as_str).unwrap_or("");
+            match part_type {
+                "" | "text" => {
+                    let text = obj
+                        .get("text")
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    Some(json!({
+                        "type": response_text_type_for_role(role),
+                        "text": text,
+                    }))
+                }
+                "image_url" => {
+                    if !role.eq_ignore_ascii_case("user") {
+                        return None;
+                    }
+                    let image_url_value = obj.get("image_url")?;
+                    match image_url_value {
+                        Value::Object(image_url_obj) => {
+                            let url = image_url_obj.get("url").and_then(Value::as_str)?;
+                            Some(json!({
+                                "type": "input_image",
+                                "image_url": url,
+                            }))
+                        }
+                        _ => None,
+                    }
+                }
+                "file" => {
+                    if !role.eq_ignore_ascii_case("user") {
+                        return None;
+                    }
+                    let file_data = obj
+                        .get("file")
+                        .and_then(Value::as_object)
+                        .and_then(|file| file.get("file_data"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    if file_data.is_empty() {
+                        return None;
+                    }
+                    let filename = obj
+                        .get("file")
+                        .and_then(Value::as_object)
+                        .and_then(|file| file.get("filename"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    let mut next = Map::new();
+                    next.insert("type".to_string(), Value::String("input_file".to_string()));
+                    next.insert("file_data".to_string(), Value::String(file_data.to_string()));
+                    if !filename.is_empty() {
+                        next.insert("filename".to_string(), Value::String(filename.to_string()));
+                    }
+                    Some(Value::Object(next))
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+fn normalize_chat_content_parts(content: &Value, role: &str) -> Vec<Value> {
+    match content {
+        Value::Array(parts) => parts
+            .iter()
+            .filter_map(|part| normalize_chat_content_part(part, role))
+            .collect(),
+        other => normalize_chat_content_part(other, role)
+            .map(|part| vec![part])
+            .unwrap_or_default(),
+    }
+}
+
+fn normalize_chat_tool_call(
+    tool_call: &Value,
+    short_name_map: &HashMap<String, String>,
+) -> Option<Value> {
+    let tool_call_obj = tool_call.as_object()?;
+    let tool_type = tool_call_obj
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or("function");
+    if tool_type != "function" {
+        return None;
+    }
+
+    let function_obj = tool_call_obj.get("function").and_then(Value::as_object);
+    let name = function_obj
+        .and_then(|function| function.get("name"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?;
+    let arguments = function_obj
+        .and_then(|function| function.get("arguments"))
+        .and_then(Value::as_str)
+        .unwrap_or("{}");
+    let call_id = tool_call_obj
+        .get("id")
+        .or_else(|| tool_call_obj.get("call_id"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+
+    Some(json!({
+        "type": "function_call",
+        "call_id": call_id,
+        "name": map_tool_name(name, short_name_map),
+        "arguments": arguments,
+    }))
+}
+
+fn normalize_chat_tool_calls(
+    tool_calls: &Value,
+    short_name_map: &HashMap<String, String>,
+) -> Vec<Value> {
+    tool_calls
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|tool_call| normalize_chat_tool_call(tool_call, short_name_map))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn normalize_chat_message_for_responses(
+    message_obj: &Map<String, Value>,
+    short_name_map: &HashMap<String, String>,
+) -> Vec<Value> {
+    let role = message_obj
+        .get("role")
+        .and_then(Value::as_str)
+        .unwrap_or("user");
+
+    if role.eq_ignore_ascii_case("tool") {
+        let output = message_obj
+            .get("content")
+            .map(extract_message_content_text)
+            .unwrap_or_default();
+        let call_id = message_obj
+            .get("tool_call_id")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        return vec![json!({
+            "type": "function_call_output",
+            "call_id": call_id,
+            "output": output,
+        })];
+    }
+
+    let normalized_content = message_obj
+        .get("content")
+        .map(|content| normalize_chat_content_parts(content, role))
+        .unwrap_or_default();
+    let mut items = Vec::new();
+
+    if !normalized_content.is_empty() {
+        let mapped_role = if role.eq_ignore_ascii_case("system") {
+            "developer"
+        } else {
+            role
+        };
+        let next = json!({
+            "type": "message",
+            "role": mapped_role,
+            "content": normalized_content,
+        });
+        items.push(next);
+    }
+
+    if role.eq_ignore_ascii_case("assistant") {
+        if let Some(tool_calls) = message_obj.get("tool_calls") {
+            items.extend(normalize_chat_tool_calls(tool_calls, short_name_map));
+        }
+    }
+
+    items
+}
+
+fn normalize_chat_messages_for_responses(
+    messages: &Value,
+    short_name_map: &HashMap<String, String>,
+) -> Value {
+    let Some(message_items) = messages.as_array() else {
+        return messages.clone();
+    };
+
+    let mut normalized = Vec::new();
+    for item in message_items {
+        let Some(message_obj) = item.as_object() else {
+            normalized.push(item.clone());
+            continue;
+        };
+        normalized.extend(normalize_chat_message_for_responses(message_obj, short_name_map));
+    }
+
+    Value::Array(normalized)
+}
+
+fn normalize_chat_tool(
+    tool: &Value,
+    short_name_map: &HashMap<String, String>,
+) -> Option<Value> {
+    let tool_obj = tool.as_object()?;
+    let tool_type = tool_obj
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or("function");
+
+    if tool_type != "function" {
+        return Some(Value::Object(tool_obj.clone()));
+    }
+
+    let function_obj = tool_obj.get("function").and_then(Value::as_object);
+    let name = function_obj
+        .and_then(|function| function.get("name"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?;
+
+    let mut normalized = Map::new();
+    normalized.insert("type".to_string(), Value::String("function".to_string()));
+    normalized.insert(
+        "name".to_string(),
+        Value::String(map_tool_name(name, short_name_map)),
+    );
+
+    if let Some(description) = function_obj
+        .and_then(|function| function.get("description"))
+    {
+        normalized.insert("description".to_string(), description.clone());
+    }
+    if let Some(parameters) = function_obj
+        .and_then(|function| function.get("parameters"))
+    {
+        normalized.insert("parameters".to_string(), parameters.clone());
+    }
+
+    if let Some(strict) = function_obj
+        .and_then(|function| function.get("strict"))
+        .and_then(Value::as_bool)
+    {
+        normalized.insert("strict".to_string(), Value::Bool(strict));
+    }
+
+    Some(Value::Object(normalized))
+}
+
+fn normalize_chat_tools(tools: &Value, short_name_map: &HashMap<String, String>) -> Value {
+    Value::Array(
+        tools
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|tool| normalize_chat_tool(tool, short_name_map))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default(),
+    )
+}
+
+fn normalize_chat_tool_choice(
+    tool_choice: &Value,
+    short_name_map: &HashMap<String, String>,
+) -> Option<Value> {
+    if let Some(mode) = tool_choice.as_str() {
+        return Some(Value::String(mode.to_string()));
+    }
+
+    let Some(choice_obj) = tool_choice.as_object() else {
+        return None;
+    };
+    let choice_type = choice_obj
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or("function");
+    if choice_type != "function" {
+        return Some(Value::Object(choice_obj.clone()));
+    }
+
+    let name = choice_obj
+        .get("function")
+        .and_then(Value::as_object)
+        .and_then(|function| function.get("name"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    name.map(|name| {
+        json!({
+            "type": "function",
+            "name": map_tool_name(name, short_name_map),
+        })
+    })
+}
+
+fn extract_message_content_text(content: &Value) -> String {
+    match content {
+        Value::String(raw) => raw.to_string(),
+        Value::Array(parts) => {
+            let mut text = String::new();
+            for part in parts {
+                if let Some(part_text) = part.get("text").and_then(Value::as_str) {
+                    append_non_empty_text(&mut text, part_text);
+                    continue;
+                }
+                if let Some(part_text) = part.get("content").and_then(Value::as_str) {
+                    append_non_empty_text(&mut text, part_text);
+                }
+            }
+            text
+        }
+        _ => String::new(),
+    }
+}
+
+fn build_responses_body_from_chat_completions(
+    body: &Value,
+) -> Result<(Value, bool, String), String> {
+    let request_obj = body
+        .as_object()
+        .ok_or("chat/completions 请求体必须是 JSON 对象".to_string())?;
+    let model = request_obj
+        .get("model")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(resolve_supported_model_alias)
+        .ok_or("chat/completions 请求缺少 model".to_string())?;
+    let messages = request_obj
+        .get("messages")
+        .ok_or("chat/completions 请求缺少 messages".to_string())?;
+    let short_name_map = build_short_tool_name_map(body);
+    let input = normalize_chat_messages_for_responses(messages, &short_name_map);
+    let stream = request_obj
+        .get("stream")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
+    let mut responses_obj = Map::new();
+    responses_obj.insert("instructions".to_string(), Value::String(String::new()));
+    responses_obj.insert("stream".to_string(), Value::Bool(true));
+    responses_obj.insert("store".to_string(), Value::Bool(false));
+    responses_obj.insert("model".to_string(), Value::String(model.clone()));
+    responses_obj.insert("input".to_string(), input);
+    responses_obj.insert("parallel_tool_calls".to_string(), Value::Bool(true));
+    responses_obj.insert(
+        "reasoning".to_string(),
+        json!({
+            "effort": request_obj
+                .get("reasoning_effort")
+                .cloned()
+                .unwrap_or_else(|| Value::String("medium".to_string())),
+            "summary": "auto",
+        }),
+    );
+    responses_obj.insert(
+        "include".to_string(),
+        Value::Array(vec![Value::String("reasoning.encrypted_content".to_string())]),
+    );
+
+    if let Some(tools) = request_obj.get("tools") {
+        responses_obj.insert(
+            "tools".to_string(),
+            normalize_chat_tools(tools, &short_name_map),
+        );
+    }
+
+    if let Some(tool_choice) = request_obj.get("tool_choice") {
+        if let Some(choice) = normalize_chat_tool_choice(tool_choice, &short_name_map) {
+            responses_obj.insert(
+                "tool_choice".to_string(),
+                choice,
+            );
+        }
+    }
+
+    let mut text_obj = Map::new();
+    if let Some(response_format) = request_obj.get("response_format").and_then(Value::as_object) {
+        match response_format
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+        {
+            "text" => {
+                text_obj.insert("format".to_string(), json!({ "type": "text" }));
+            }
+            "json_schema" => {
+                if let Some(json_schema) =
+                    response_format.get("json_schema").and_then(Value::as_object)
+                {
+                    let mut format_obj = Map::new();
+                    format_obj.insert(
+                        "type".to_string(),
+                        Value::String("json_schema".to_string()),
+                    );
+                    if let Some(name) = json_schema.get("name") {
+                        format_obj.insert("name".to_string(), name.clone());
+                    }
+                    if let Some(strict) = json_schema.get("strict") {
+                        format_obj.insert("strict".to_string(), strict.clone());
+                    }
+                    if let Some(schema) = json_schema.get("schema") {
+                        format_obj.insert("schema".to_string(), schema.clone());
+                    }
+                    text_obj.insert("format".to_string(), Value::Object(format_obj));
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(text_value) = request_obj.get("text").and_then(Value::as_object) {
+        if let Some(verbosity) = text_value.get("verbosity") {
+            text_obj.insert("verbosity".to_string(), verbosity.clone());
+        }
+    }
+    if !text_obj.is_empty() {
+        responses_obj.insert("text".to_string(), Value::Object(text_obj));
+    }
+
+    Ok((Value::Object(responses_obj), stream, model))
+}
+
+fn prepare_gateway_request(
+    mut request: ParsedRequest,
+) -> Result<(ParsedRequest, GatewayResponseAdapter), String> {
+    if !is_chat_completions_request(&request.target) {
+        if let Some(rewritten_body) = rewrite_request_model_alias(&request.body)? {
+            request.body = rewritten_body;
+        }
+        let request_is_stream = is_stream_request(&request.headers, &request.body);
+        return Ok((
+            request,
+            GatewayResponseAdapter::Passthrough { request_is_stream },
+        ));
+    }
+
+    if !request.method.eq_ignore_ascii_case("POST") {
+        return Err("chat/completions 仅支持 POST".to_string());
+    }
+
+    let body_value = parse_request_body_json(&request.body)
+        .ok_or("chat/completions 请求体必须是合法 JSON".to_string())?;
+    let original_request_body = request.body.clone();
+    let (responses_body, stream, requested_model) =
+        build_responses_body_from_chat_completions(&body_value)?;
+    request.target = RESPONSES_PATH.to_string();
+    request.body = serde_json::to_vec(&responses_body)
+        .map_err(|e| format!("序列化 responses 请求体失败: {}", e))?;
+    request
+        .headers
+        .insert("accept".to_string(), "text/event-stream".to_string());
+    request
+        .headers
+        .insert("content-type".to_string(), "application/json".to_string());
+
+    Ok((
+        request,
+        GatewayResponseAdapter::ChatCompletions {
+            stream,
+            requested_model,
+            original_request_body,
+        },
+    ))
+}
+
+fn response_payload_root(value: &Value) -> &Value {
+    value
+        .get("response")
+        .filter(|item| item.is_object())
+        .unwrap_or(value)
+}
+
+fn append_non_empty_text(buffer: &mut String, text: &str) {
+    if text.trim().is_empty() {
+        return;
+    }
+    buffer.push_str(text);
+}
+
+fn extract_output_text_from_response(response_body: &Value) -> String {
+    let root = response_payload_root(response_body);
+    let mut text = String::new();
+    if let Some(output_items) = root.get("output").and_then(Value::as_array) {
+        for item in output_items {
+            if item.get("type").and_then(Value::as_str) != Some("message") {
+                continue;
+            }
+            if let Some(content) = item.get("content").and_then(Value::as_array) {
+                for part in content {
+                    if part.get("type").and_then(Value::as_str) != Some("output_text") {
+                        continue;
+                    }
+                    if let Some(part_text) = part.get("text").and_then(Value::as_str) {
+                        append_non_empty_text(&mut text, part_text);
+                    }
+                }
+            }
+        }
+    }
+    text
+}
+
+fn extract_reasoning_text_from_response(response_body: &Value) -> String {
+    let root = response_payload_root(response_body);
+    let mut reasoning_text = String::new();
+    if let Some(output_items) = root.get("output").and_then(Value::as_array) {
+        for item in output_items {
+            if item.get("type").and_then(Value::as_str) != Some("reasoning") {
+                continue;
+            }
+            if let Some(summary_items) = item.get("summary").and_then(Value::as_array) {
+                for summary_item in summary_items {
+                    if summary_item.get("type").and_then(Value::as_str) != Some("summary_text") {
+                        continue;
+                    }
+                    if let Some(text) = summary_item.get("text").and_then(Value::as_str) {
+                        append_non_empty_text(&mut reasoning_text, text);
+                    }
+                }
+            }
+        }
+    }
+    reasoning_text
+}
+
+fn extract_response_tool_calls(
+    response_body: &Value,
+    reverse_tool_name_map: &HashMap<String, String>,
+) -> Vec<Value> {
+    let root = response_payload_root(response_body);
+    root.get("output")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    let item_obj = item.as_object()?;
+                    if item_obj.get("type").and_then(Value::as_str) != Some("function_call") {
+                        return None;
+                    }
+                    let name = item_obj
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())?;
+                    let restored_name = reverse_tool_name_map
+                        .get(name)
+                        .cloned()
+                        .unwrap_or_else(|| name.to_string());
+                    let arguments = item_obj
+                        .get("arguments")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string();
+                    let call_id = item_obj
+                        .get("call_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string();
+                    Some(json!({
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": restored_name,
+                            "arguments": arguments,
+                        },
+                    }))
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn build_chat_completion_message(
+    response_body: &Value,
+    reverse_tool_name_map: &HashMap<String, String>,
+) -> Value {
+    let content = extract_output_text_from_response(response_body);
+    let reasoning_content = extract_reasoning_text_from_response(response_body);
+    let tool_calls = extract_response_tool_calls(response_body, reverse_tool_name_map);
+    let mut message = Map::new();
+    message.insert("role".to_string(), Value::String("assistant".to_string()));
+    message.insert("content".to_string(), Value::Null);
+    message.insert("reasoning_content".to_string(), Value::Null);
+    message.insert("tool_calls".to_string(), Value::Null);
+
+    if !content.is_empty() {
+        message.insert("content".to_string(), Value::String(content));
+    }
+    if !reasoning_content.is_empty() {
+        message.insert(
+            "reasoning_content".to_string(),
+            Value::String(reasoning_content),
+        );
+    }
+    if !tool_calls.is_empty() {
+        message.insert("tool_calls".to_string(), Value::Array(tool_calls));
+    }
+
+    Value::Object(message)
+}
+
+fn resolve_chat_finish_reason(response_body: &Value, has_tool_calls: bool) -> String {
+    let root = response_payload_root(response_body);
+    if root.get("status").and_then(Value::as_str) == Some("completed") {
+        if has_tool_calls {
+            "tool_calls".to_string()
+        } else {
+            "stop".to_string()
+        }
+    } else {
+        "stop".to_string()
+    }
+}
+
+fn build_chat_completion_payload(
+    response_body: &Value,
+    requested_model: &str,
+    original_request_body: &[u8],
+) -> Value {
+    let root = response_payload_root(response_body);
+    let reverse_tool_name_map = build_reverse_tool_name_map_from_request(original_request_body);
+    let id = root
+        .get("id")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("chatcmpl-local-{}", now_ms()));
+    let created = root
+        .get("created_at")
+        .or_else(|| root.get("created"))
+        .and_then(Value::as_i64)
+        .unwrap_or_else(|| chrono::Utc::now().timestamp());
+    let model = root
+        .get("model")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| requested_model.to_string());
+    let message = build_chat_completion_message(response_body, &reverse_tool_name_map);
+    let has_tool_calls = message
+        .get("tool_calls")
+        .and_then(Value::as_array)
+        .map(|tool_calls| !tool_calls.is_empty())
+        .unwrap_or(false);
+    let finish_reason = resolve_chat_finish_reason(response_body, has_tool_calls);
+    let usage = extract_usage_capture(response_body).unwrap_or_default();
+
+    json!({
+        "id": id,
+        "object": "chat.completion",
+        "created": created,
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "message": message,
+            "finish_reason": finish_reason,
+            "native_finish_reason": finish_reason,
+        }],
+        "usage": {
+            "prompt_tokens": usage.input_tokens,
+            "completion_tokens": usage.output_tokens,
+            "total_tokens": usage.total_tokens,
+            "prompt_tokens_details": {
+                "cached_tokens": usage.cached_tokens,
+            },
+            "completion_tokens_details": {
+                "reasoning_tokens": usage.reasoning_tokens,
+            },
+        },
+    })
+}
+
+#[derive(Debug, Default)]
+struct ChatCompletionStreamState {
+    response_id: String,
+    created_at: i64,
+    model: String,
+    function_call_index: i64,
+    has_received_arguments_delta: bool,
+    has_tool_call_announced: bool,
+}
+
+fn push_sse_payload(stream_body: &mut String, payload: Value) {
+    stream_body.push_str("data: ");
+    stream_body.push_str(
+        serde_json::to_string(&payload)
+            .unwrap_or_else(|_| "{\"error\":\"failed to encode stream payload\"}".to_string())
+            .as_str(),
+    );
+    stream_body.push_str("\n\n");
+}
+
+fn build_chat_chunk_template(
+    state: &ChatCompletionStreamState,
+    requested_model: &str,
+    event: &Value,
+) -> Value {
+    let model = event
+        .get("model")
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            if state.model.trim().is_empty() {
+                None
+            } else {
+                Some(state.model.clone())
+            }
+        })
+        .unwrap_or_else(|| requested_model.to_string());
+    let id = if state.response_id.trim().is_empty() {
+        format!("chatcmpl-local-{}", now_ms())
+    } else {
+        state.response_id.clone()
+    };
+    let created = if state.created_at > 0 {
+        state.created_at
+    } else {
+        chrono::Utc::now().timestamp()
+    };
+
+    let usage = event
+        .get("response")
+        .and_then(|response| response.get("usage"))
+        .cloned()
+        .or_else(|| event.get("usage").cloned());
+
+    let mut template = json!({
+        "id": id,
+        "object": "chat.completion.chunk",
+        "created": created,
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": {},
+            "finish_reason": Value::Null,
+            "native_finish_reason": Value::Null,
+        }],
+    });
+    if let Some(usage) = usage {
+        let parsed_usage = extract_usage_capture(&json!({ "response": { "usage": usage } }))
+            .or_else(|| extract_usage_capture(&json!({ "usage": usage })))
+            .unwrap_or_default();
+        template["usage"] = json!({
+            "prompt_tokens": parsed_usage.input_tokens,
+            "completion_tokens": parsed_usage.output_tokens,
+            "total_tokens": parsed_usage.total_tokens,
+            "prompt_tokens_details": {
+                "cached_tokens": parsed_usage.cached_tokens,
+            },
+            "completion_tokens_details": {
+                "reasoning_tokens": parsed_usage.reasoning_tokens,
+            },
+        });
+    }
+    template
+}
+
+fn build_chat_completion_stream_body(
+    upstream_body: &[u8],
+    original_request_body: &[u8],
+    requested_model: &str,
+) -> String {
+    let reverse_tool_name_map = build_reverse_tool_name_map_from_request(original_request_body);
+    let mut stream_buffer = upstream_body.to_vec();
+    let mut stream_body = String::new();
+    let mut state = ChatCompletionStreamState {
+        model: requested_model.to_string(),
+        function_call_index: -1,
+        ..Default::default()
+    };
+
+    let mut process_frame = |frame: &[u8]| {
+        if frame.is_empty() {
+            return;
+        }
+        let text = String::from_utf8_lossy(frame);
+        let mut data_lines = Vec::new();
+        for raw_line in text.lines() {
+            let line = raw_line.trim();
+            if let Some(rest) = line.strip_prefix("data:") {
+                let payload = rest.trim();
+                if !payload.is_empty() {
+                    data_lines.push(payload.to_string());
+                }
+            }
+        }
+
+        let payload = if data_lines.is_empty() {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                return;
+            }
+            trimmed.to_string()
+        } else {
+            data_lines.join("\n")
+        };
+
+        if payload == "[DONE]" {
+            return;
+        }
+
+        let Ok(event) = serde_json::from_str::<Value>(&payload) else {
+            return;
+        };
+        let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
+
+        if event_type == "response.created" {
+            if let Some(response) = event.get("response").and_then(Value::as_object) {
+                state.response_id = response
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
+                state.created_at = response
+                    .get("created_at")
+                    .and_then(Value::as_i64)
+                    .unwrap_or_else(|| chrono::Utc::now().timestamp());
+                state.model = response
+                    .get("model")
+                    .and_then(Value::as_str)
+                    .unwrap_or(requested_model)
+                    .to_string();
+            }
+            return;
+        }
+
+        let mut template = build_chat_chunk_template(&state, requested_model, &event);
+
+        match event_type {
+            "response.reasoning_summary_text.delta" => {
+                if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                    template["choices"][0]["delta"]["role"] = Value::String("assistant".to_string());
+                    template["choices"][0]["delta"]["reasoning_content"] =
+                        Value::String(delta.to_string());
+                    push_sse_payload(&mut stream_body, template);
+                }
+            }
+            "response.reasoning_summary_text.done" => {
+                template["choices"][0]["delta"]["role"] = Value::String("assistant".to_string());
+                template["choices"][0]["delta"]["reasoning_content"] =
+                    Value::String("\n\n".to_string());
+                push_sse_payload(&mut stream_body, template);
+            }
+            "response.output_text.delta" => {
+                if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                    template["choices"][0]["delta"]["role"] = Value::String("assistant".to_string());
+                    template["choices"][0]["delta"]["content"] = Value::String(delta.to_string());
+                    push_sse_payload(&mut stream_body, template);
+                }
+            }
+            "response.output_item.added" => {
+                let Some(item) = event.get("item").and_then(Value::as_object) else {
+                    return;
+                };
+                if item.get("type").and_then(Value::as_str) != Some("function_call") {
+                    return;
+                }
+
+                state.function_call_index += 1;
+                state.has_received_arguments_delta = false;
+                state.has_tool_call_announced = true;
+
+                let name = item.get("name").and_then(Value::as_str).unwrap_or("");
+                let restored_name = reverse_tool_name_map
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| name.to_string());
+                template["choices"][0]["delta"]["role"] = Value::String("assistant".to_string());
+                template["choices"][0]["delta"]["tool_calls"] = json!([{
+                    "index": state.function_call_index,
+                    "id": item.get("call_id").cloned().unwrap_or(Value::String(String::new())),
+                    "type": "function",
+                    "function": {
+                        "name": restored_name,
+                        "arguments": "",
+                    }
+                }]);
+                push_sse_payload(&mut stream_body, template);
+            }
+            "response.function_call_arguments.delta" => {
+                state.has_received_arguments_delta = true;
+                if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                    template["choices"][0]["delta"]["tool_calls"] = json!([{
+                        "index": state.function_call_index,
+                        "function": {
+                            "arguments": delta,
+                        }
+                    }]);
+                    push_sse_payload(&mut stream_body, template);
+                }
+            }
+            "response.function_call_arguments.done" => {
+                if state.has_received_arguments_delta {
+                    return;
+                }
+                if let Some(arguments) = event.get("arguments").and_then(Value::as_str) {
+                    template["choices"][0]["delta"]["tool_calls"] = json!([{
+                        "index": state.function_call_index,
+                        "function": {
+                            "arguments": arguments,
+                        }
+                    }]);
+                    push_sse_payload(&mut stream_body, template);
+                }
+            }
+            "response.output_item.done" => {
+                let Some(item) = event.get("item").and_then(Value::as_object) else {
+                    return;
+                };
+                if item.get("type").and_then(Value::as_str) != Some("function_call") {
+                    return;
+                }
+
+                if state.has_tool_call_announced {
+                    state.has_tool_call_announced = false;
+                    return;
+                }
+
+                state.function_call_index += 1;
+                let name = item.get("name").and_then(Value::as_str).unwrap_or("");
+                let restored_name = reverse_tool_name_map
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| name.to_string());
+                template["choices"][0]["delta"]["role"] = Value::String("assistant".to_string());
+                template["choices"][0]["delta"]["tool_calls"] = json!([{
+                    "index": state.function_call_index,
+                    "id": item.get("call_id").cloned().unwrap_or(Value::String(String::new())),
+                    "type": "function",
+                    "function": {
+                        "name": restored_name,
+                        "arguments": item
+                            .get("arguments")
+                            .cloned()
+                            .unwrap_or(Value::String(String::new())),
+                    }
+                }]);
+                push_sse_payload(&mut stream_body, template);
+            }
+            "response.completed" => {
+                let finish_reason = if state.function_call_index >= 0 {
+                    "tool_calls"
+                } else {
+                    "stop"
+                };
+                template["choices"][0]["finish_reason"] =
+                    Value::String(finish_reason.to_string());
+                template["choices"][0]["native_finish_reason"] =
+                    Value::String(finish_reason.to_string());
+                push_sse_payload(&mut stream_body, template);
+            }
+            _ => {}
+        }
+    };
+
+    loop {
+        let Some((boundary_index, separator_len)) = find_sse_frame_boundary(&stream_buffer) else {
+            break;
+        };
+        let frame = stream_buffer[..boundary_index].to_vec();
+        stream_buffer.drain(..boundary_index + separator_len);
+        process_frame(&frame);
+    }
+    if !stream_buffer.is_empty() {
+        process_frame(&stream_buffer);
+    }
+
+    stream_body.push_str("data: [DONE]\n\n");
+    stream_body
 }
 
 fn build_cooldown_key(account_id: &str, model_key: &str) -> Option<String> {
@@ -617,8 +1782,12 @@ fn recompute_time_windows(stats: &mut CodexLocalAccessStats, now: i64) {
     stats.monthly = monthly;
 }
 
+fn build_api_port_url(port: u16) -> String {
+    format!("http://127.0.0.1:{port}{CHAT_COMPLETIONS_PATH}")
+}
+
 fn build_base_url(port: u16) -> String {
-    format!("http://127.0.0.1:{}/v1", port)
+    format!("http://127.0.0.1:{port}/v1")
 }
 
 fn build_runtime_account(base_url: String, api_key: String) -> CodexAccount {
@@ -1179,14 +2348,21 @@ fn build_state_snapshot(runtime: &GatewayRuntime) -> CodexLocalAccessState {
         .as_ref()
         .map(|item| item.account_ids.len())
         .unwrap_or(0);
+    let api_port_url = collection.as_ref().map(|item| build_api_port_url(item.port));
     let base_url = collection.as_ref().map(|item| build_base_url(item.port));
+    let model_ids = DEFAULT_CODEX_MODELS
+        .iter()
+        .map(|model| (*model).to_string())
+        .collect();
     let mut stats = runtime.stats.clone();
     stats.events.clear();
 
     CodexLocalAccessState {
         collection,
         running: runtime.running,
+        api_port_url,
         base_url,
+        model_ids,
         last_error: runtime.last_error.clone(),
         member_count,
         stats,
@@ -1965,6 +3141,16 @@ fn should_try_next_account(status: StatusCode, body: &str) -> bool {
     if status == StatusCode::UNAUTHORIZED {
         return true;
     }
+    if matches!(
+        status,
+        StatusCode::REQUEST_TIMEOUT
+            | StatusCode::INTERNAL_SERVER_ERROR
+            | StatusCode::BAD_GATEWAY
+            | StatusCode::SERVICE_UNAVAILABLE
+            | StatusCode::GATEWAY_TIMEOUT
+    ) {
+        return true;
+    }
 
     let lower = body.to_ascii_lowercase();
     let quota_exhausted = lower.contains("usage_limit_reached")
@@ -2001,6 +3187,224 @@ fn options_response() -> Vec<u8> {
         CORS_ALLOW_HEADERS
     );
     headers.into_bytes()
+}
+
+async fn write_http_response(
+    stream: &mut TcpStream,
+    status: u16,
+    status_text: &str,
+    content_type: &str,
+    body: &[u8],
+) -> Result<(), String> {
+    let headers = format!(
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: {}\r\n\r\n",
+        status,
+        status_text,
+        content_type,
+        body.len(),
+        CORS_ALLOW_HEADERS
+    );
+    stream
+        .write_all(headers.as_bytes())
+        .await
+        .map_err(|e| format!("写入响应头失败: {}", e))?;
+    stream
+        .write_all(body)
+        .await
+        .map_err(|e| format!("写入响应体失败: {}", e))?;
+    Ok(())
+}
+
+fn parse_responses_payload_from_upstream(body_bytes: &[u8]) -> Result<Value, String> {
+    if let Ok(parsed) = serde_json::from_slice::<Value>(body_bytes) {
+        return Ok(parsed);
+    }
+
+    let mut stream_buffer = body_bytes.to_vec();
+    let mut completed_response: Option<Value> = None;
+    let mut output_text = String::new();
+    let mut output_items: Vec<Value> = Vec::new();
+
+    let mut process_frame = |frame: &[u8]| {
+        if frame.is_empty() {
+            return;
+        }
+        let text = String::from_utf8_lossy(frame);
+        let mut data_lines = Vec::new();
+        for raw_line in text.lines() {
+            let line = raw_line.trim();
+            if let Some(rest) = line.strip_prefix("data:") {
+                let payload = rest.trim();
+                if !payload.is_empty() {
+                    data_lines.push(payload.to_string());
+                }
+            }
+        }
+
+        let payload = if data_lines.is_empty() {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                return;
+            }
+            trimmed.to_string()
+        } else {
+            data_lines.join("\n")
+        };
+        if payload == "[DONE]" {
+            return;
+        }
+
+        let Ok(value) = serde_json::from_str::<Value>(&payload) else {
+            return;
+        };
+        match value.get("type").and_then(Value::as_str).unwrap_or("") {
+            "response.output_text.delta" => {
+                if let Some(delta) = value.get("delta").and_then(Value::as_str) {
+                    output_text.push_str(delta);
+                }
+            }
+            "response.output_text.done" => {
+                if output_text.trim().is_empty() {
+                    if let Some(done_text) = value.get("text").and_then(Value::as_str) {
+                        output_text.push_str(done_text);
+                    }
+                }
+            }
+            "response.output_item.done" => {
+                if let Some(item) = value.get("item") {
+                    output_items.push(item.clone());
+                }
+            }
+            "response.completed" => {
+                if let Some(response) = value.get("response") {
+                    completed_response = Some(response.clone());
+                } else {
+                    completed_response = Some(value.clone());
+                }
+            }
+            _ => {}
+        }
+    };
+
+    loop {
+        let Some((boundary_index, separator_len)) = find_sse_frame_boundary(&stream_buffer) else {
+            break;
+        };
+        let frame = stream_buffer[..boundary_index].to_vec();
+        stream_buffer.drain(..boundary_index + separator_len);
+        process_frame(&frame);
+    }
+    if !stream_buffer.is_empty() {
+        process_frame(&stream_buffer);
+    }
+
+    let Some(response_value) = completed_response else {
+        return Err("解析上游 responses 响应失败: 非 JSON 且未捕获 response.completed".to_string());
+    };
+
+    let mut root = Map::new();
+    match response_value {
+        Value::Object(mut response_object) => {
+            if response_object
+                .get("output")
+                .and_then(Value::as_array)
+                .map(|items| items.is_empty())
+                .unwrap_or(true)
+                && !output_items.is_empty()
+            {
+                response_object.insert("output".to_string(), Value::Array(output_items));
+            }
+            if !output_text.trim().is_empty() {
+                response_object.insert("output_text".to_string(), Value::String(output_text));
+            }
+            root.insert("response".to_string(), Value::Object(response_object));
+        }
+        other => {
+            root.insert("response".to_string(), other);
+            if !output_items.is_empty() {
+                root.insert("output".to_string(), Value::Array(output_items));
+            }
+            if !output_text.trim().is_empty() {
+                root.insert("output_text".to_string(), Value::String(output_text));
+            }
+        }
+    }
+
+    Ok(Value::Object(root))
+}
+
+async fn write_chat_completions_compatible_response(
+    stream: &mut TcpStream,
+    upstream: reqwest::Response,
+    stream_mode: bool,
+    requested_model: &str,
+    original_request_body: &[u8],
+) -> Result<ResponseCapture, String> {
+    let status = upstream.status();
+    let status_text = status.canonical_reason().unwrap_or("OK");
+    let body_bytes = upstream
+        .bytes()
+        .await
+        .map_err(|e| format!("读取上游 responses 响应失败: {}", e))?;
+    let parsed = parse_responses_payload_from_upstream(&body_bytes)?;
+    let response_capture = ResponseCapture {
+        usage: extract_usage_capture(&parsed),
+        response_id: extract_response_id(&parsed),
+    };
+    let chat_payload =
+        build_chat_completion_payload(&parsed, requested_model, original_request_body);
+
+    if stream_mode {
+        let stream_body =
+            build_chat_completion_stream_body(&body_bytes, original_request_body, requested_model);
+        write_http_response(
+            stream,
+            status.as_u16(),
+            status_text,
+            "text/event-stream; charset=utf-8",
+            stream_body.as_bytes(),
+        )
+        .await?;
+    } else {
+        let payload_bytes = serde_json::to_vec(&chat_payload)
+            .map_err(|e| format!("序列化 chat/completions 响应失败: {}", e))?;
+        write_http_response(
+            stream,
+            status.as_u16(),
+            status_text,
+            "application/json; charset=utf-8",
+            &payload_bytes,
+        )
+        .await?;
+    }
+
+    Ok(response_capture)
+}
+
+async fn write_gateway_response(
+    stream: &mut TcpStream,
+    upstream: reqwest::Response,
+    response_adapter: GatewayResponseAdapter,
+) -> Result<ResponseCapture, String> {
+    match response_adapter {
+        GatewayResponseAdapter::Passthrough { request_is_stream } => {
+            write_upstream_response(stream, upstream, request_is_stream).await
+        }
+        GatewayResponseAdapter::ChatCompletions {
+            stream: stream_mode,
+            requested_model,
+            original_request_body,
+        } => {
+            write_chat_completions_compatible_response(
+                stream,
+                upstream,
+                stream_mode,
+                requested_model.as_str(),
+                original_request_body.as_slice(),
+            )
+            .await
+        }
+    }
 }
 
 async fn write_upstream_response(
@@ -2086,6 +3490,49 @@ async fn force_refresh_gateway_account(account_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn should_retry_upstream_send_error(error: &reqwest::Error) -> bool {
+    error.is_timeout() || error.is_connect() || error.is_request()
+}
+
+fn upstream_send_retry_delay(retry_attempt: usize) -> Duration {
+    let multiplier = match retry_attempt {
+        0 | 1 => 1u32,
+        2 => 2u32,
+        _ => 4u32,
+    };
+    let delay = UPSTREAM_SEND_RETRY_BASE_DELAY.saturating_mul(multiplier);
+    if delay > UPSTREAM_SEND_RETRY_MAX_DELAY {
+        UPSTREAM_SEND_RETRY_MAX_DELAY
+    } else {
+        delay
+    }
+}
+
+fn should_retry_single_account_upstream_status(status: StatusCode) -> bool {
+    matches!(
+        status,
+        StatusCode::REQUEST_TIMEOUT
+            | StatusCode::INTERNAL_SERVER_ERROR
+            | StatusCode::BAD_GATEWAY
+            | StatusCode::SERVICE_UNAVAILABLE
+            | StatusCode::GATEWAY_TIMEOUT
+    )
+}
+
+fn single_account_status_retry_delay(retry_attempt: usize) -> Duration {
+    let multiplier = match retry_attempt {
+        0 | 1 => 1u32,
+        2 => 2u32,
+        _ => 4u32,
+    };
+    let delay = SINGLE_ACCOUNT_STATUS_RETRY_BASE_DELAY.saturating_mul(multiplier);
+    if delay > SINGLE_ACCOUNT_STATUS_RETRY_MAX_DELAY {
+        SINGLE_ACCOUNT_STATUS_RETRY_MAX_DELAY
+    } else {
+        delay
+    }
+}
+
 async fn send_upstream_request(
     method: &str,
     target: &str,
@@ -2097,62 +3544,73 @@ async fn send_upstream_request(
         Method::from_bytes(method.as_bytes()).map_err(|e| format!("不支持的请求方法: {}", e))?;
     let url = format!("{}{}", UPSTREAM_CODEX_BASE_URL, target);
     let client = reqwest::Client::new();
-    let mut request = client.request(method, &url);
+    for retry_attempt in 0..=UPSTREAM_SEND_RETRY_ATTEMPTS {
+        let mut request = client.request(method.clone(), &url);
 
-    for (name, value) in headers {
-        if matches!(
-            name.as_str(),
-            "authorization"
-                | "host"
-                | "content-length"
-                | "connection"
-                | "accept-encoding"
-                | "x-api-key"
-        ) {
-            continue;
+        for (name, value) in headers {
+            if matches!(
+                name.as_str(),
+                "authorization"
+                    | "host"
+                    | "content-length"
+                    | "connection"
+                    | "accept-encoding"
+                    | "x-api-key"
+            ) {
+                continue;
+            }
+            let header_name = HeaderName::from_bytes(name.as_bytes())
+                .map_err(|e| format!("无效请求头 {}: {}", name, e))?;
+            let header_value = HeaderValue::from_str(value)
+                .map_err(|e| format!("无效请求头值 {}: {}", name, e))?;
+            request = request.header(header_name, header_value);
         }
-        let header_name = HeaderName::from_bytes(name.as_bytes())
-            .map_err(|e| format!("无效请求头 {}: {}", name, e))?;
-        let header_value =
-            HeaderValue::from_str(value).map_err(|e| format!("无效请求头值 {}: {}", name, e))?;
-        request = request.header(header_name, header_value);
-    }
 
-    request = request.header(
-        AUTHORIZATION,
-        format!("Bearer {}", account.tokens.access_token.trim()),
-    );
-    if !headers.contains_key("user-agent") {
-        request = request.header(USER_AGENT, DEFAULT_CODEX_USER_AGENT);
-    }
-    if !headers.contains_key("originator") {
-        request = request.header("Originator", DEFAULT_CODEX_ORIGINATOR);
-    }
-    if let Some(account_id) = resolve_upstream_account_id(account) {
-        request = request.header("ChatGPT-Account-Id", account_id);
-    }
-    if !headers.contains_key("accept") {
         request = request.header(
-            ACCEPT,
-            if is_stream_request(headers, body) {
-                "text/event-stream"
-            } else {
-                "application/json"
-            },
+            AUTHORIZATION,
+            format!("Bearer {}", account.tokens.access_token.trim()),
         );
-    }
-    request = request.header("Connection", "Keep-Alive");
-    if !headers.contains_key("content-type") && !body.is_empty() {
-        request = request.header(CONTENT_TYPE, "application/json");
-    }
-    if !body.is_empty() {
-        request = request.body(body.to_vec());
+        if !headers.contains_key("user-agent") {
+            request = request.header(USER_AGENT, DEFAULT_CODEX_USER_AGENT);
+        }
+        if !headers.contains_key("originator") {
+            request = request.header("Originator", DEFAULT_CODEX_ORIGINATOR);
+        }
+        if let Some(account_id) = resolve_upstream_account_id(account) {
+            request = request.header("ChatGPT-Account-Id", account_id);
+        }
+        if !headers.contains_key("accept") {
+            request = request.header(
+                ACCEPT,
+                if is_stream_request(headers, body) {
+                    "text/event-stream"
+                } else {
+                    "application/json"
+                },
+            );
+        }
+        request = request.header("Connection", "Keep-Alive");
+        if !headers.contains_key("content-type") && !body.is_empty() {
+            request = request.header(CONTENT_TYPE, "application/json");
+        }
+        if !body.is_empty() {
+            request = request.body(body.to_vec());
+        }
+
+        match request.send().await {
+            Ok(response) => return Ok(response),
+            Err(error) => {
+                let should_retry = retry_attempt < UPSTREAM_SEND_RETRY_ATTEMPTS
+                    && should_retry_upstream_send_error(&error);
+                if !should_retry {
+                    return Err(format!("请求 Codex 上游失败: {}", error));
+                }
+                tokio::time::sleep(upstream_send_retry_delay(retry_attempt + 1)).await;
+            }
+        }
     }
 
-    request
-        .send()
-        .await
-        .map_err(|e| format!("请求 Codex 上游失败: {}", e))
+    Err("请求 Codex 上游失败: 未知错误".to_string())
 }
 
 async fn proxy_request_with_account_pool(
@@ -2243,96 +3701,111 @@ async fn proxy_request_with_account_pool(
             last_account_id = Some(account.id.clone());
             last_account_email = Some(account.email.clone());
 
-            let first_response = send_upstream_request(
-                &request.method,
-                &upstream_target,
-                &request.headers,
-                &request.body,
-                &account,
-            )
-            .await;
+            let mut single_account_status_retry_attempt = 0usize;
+            loop {
+                let first_response = send_upstream_request(
+                    &request.method,
+                    &upstream_target,
+                    &request.headers,
+                    &request.body,
+                    &account,
+                )
+                .await;
 
-            let mut response = match first_response {
-                Ok(response) => response,
-                Err(err) => {
-                    last_error = err;
-                    continue;
-                }
-            };
-
-            if response.status() == StatusCode::UNAUTHORIZED {
-                match force_refresh_gateway_account(&account_id).await {
-                    Ok(()) => {
-                        let refreshed_account = match codex_account::load_account(&account_id) {
-                            Some(account) => account,
-                            None => {
-                                last_error = format!("账号不存在: {}", account_id);
-                                continue;
-                            }
-                        };
-
-                        response = match send_upstream_request(
-                            &request.method,
-                            &upstream_target,
-                            &request.headers,
-                            &request.body,
-                            &refreshed_account,
-                        )
-                        .await
-                        {
-                            Ok(response) => response,
-                            Err(err) => {
-                                last_error = err;
-                                continue;
-                            }
-                        };
-
-                        if response.status() == StatusCode::UNAUTHORIZED {
-                            last_status = StatusCode::UNAUTHORIZED.as_u16();
-                            last_error = format!("账号 {} 鉴权失败", refreshed_account.email);
-                            continue;
-                        }
-                    }
+                let mut response = match first_response {
+                    Ok(response) => response,
                     Err(err) => {
                         last_error = err;
-                        continue;
+                        break;
+                    }
+                };
+
+                if response.status() == StatusCode::UNAUTHORIZED {
+                    match force_refresh_gateway_account(&account_id).await {
+                        Ok(()) => {
+                            let refreshed_account = match codex_account::load_account(&account_id) {
+                                Some(account) => account,
+                                None => {
+                                    last_error = format!("账号不存在: {}", account_id);
+                                    break;
+                                }
+                            };
+
+                            response = match send_upstream_request(
+                                &request.method,
+                                &upstream_target,
+                                &request.headers,
+                                &request.body,
+                                &refreshed_account,
+                            )
+                            .await
+                            {
+                                Ok(response) => response,
+                                Err(err) => {
+                                    last_error = err;
+                                    break;
+                                }
+                            };
+
+                            if response.status() == StatusCode::UNAUTHORIZED {
+                                last_status = StatusCode::UNAUTHORIZED.as_u16();
+                                last_error = format!("账号 {} 鉴权失败", refreshed_account.email);
+                                break;
+                            }
+                        }
+                        Err(err) => {
+                            last_error = err;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if response.status().is_success() {
-                clear_model_cooldown(&account.id, &routing_hint.model_key).await;
-                return Ok(ProxyDispatchSuccess {
-                    upstream: response,
-                    account_id: account.id.clone(),
-                    account_email: account.email.clone(),
+                if response.status().is_success() {
+                    clear_model_cooldown(&account.id, &routing_hint.model_key).await;
+                    return Ok(ProxyDispatchSuccess {
+                        upstream: response,
+                        account_id: account.id.clone(),
+                        account_email: account.email.clone(),
+                    });
+                }
+
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                let message = summarize_upstream_error(status, &body);
+
+                if let Some(retry_after) = parse_codex_retry_after(status, &body) {
+                    set_model_cooldown(&account.id, &routing_hint.model_key, retry_after).await;
+                    round_cooldown_wait = Some(match round_cooldown_wait {
+                        Some(current) if current <= retry_after => current,
+                        _ => retry_after,
+                    });
+                }
+
+                let can_retry_single_account = total == 1
+                    && single_account_status_retry_attempt < SINGLE_ACCOUNT_STATUS_RETRY_ATTEMPTS
+                    && should_retry_single_account_upstream_status(status);
+                if can_retry_single_account {
+                    single_account_status_retry_attempt += 1;
+                    tokio::time::sleep(single_account_status_retry_delay(
+                        single_account_status_retry_attempt,
+                    ))
+                    .await;
+                    continue;
+                }
+
+                if should_try_next_account(status, &body) {
+                    last_status = status.as_u16();
+                    last_error = format!("账号 {} 当前不可用，已尝试轮转: {}", account.email, message);
+                    break;
+                }
+
+                return Err(ProxyDispatchError {
+                    status: status.as_u16(),
+                    message,
+                    account_id: Some(account.id.clone()),
+                    account_email: Some(account.email.clone()),
                 });
             }
-
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            let message = summarize_upstream_error(status, &body);
-
-            if let Some(retry_after) = parse_codex_retry_after(status, &body) {
-                set_model_cooldown(&account.id, &routing_hint.model_key, retry_after).await;
-                round_cooldown_wait = Some(match round_cooldown_wait {
-                    Some(current) if current <= retry_after => current,
-                    _ => retry_after,
-                });
-            }
-
-            if should_try_next_account(status, &body) {
-                last_status = status.as_u16();
-                last_error = format!("账号 {} 当前不可用，已尝试轮转: {}", account.email, message);
-                continue;
-            }
-
-            return Err(ProxyDispatchError {
-                status: status.as_u16(),
-                message,
-                account_id: Some(account.id.clone()),
-                account_email: Some(account.email.clone()),
-            });
         }
 
         earliest_cooldown_wait = round_cooldown_wait;
@@ -2488,12 +3961,22 @@ async fn handle_connection(mut stream: TcpStream) -> Result<(), String> {
     }
 
     let started_at = Instant::now();
-    let request_is_stream = is_stream_request(&parsed.headers, &parsed.body);
+    let (prepared_request, response_adapter) = match prepare_gateway_request(parsed) {
+        Ok(prepared) => prepared,
+        Err(err) => {
+            let response = json_response(400, "Bad Request", &json!({ "error": err }));
+            stream
+                .write_all(&response)
+                .await
+                .map_err(|e| format!("写入错误响应失败: {}", e))?;
+            return Ok(());
+        }
+    };
 
-    match proxy_request_with_account_pool(&parsed, &collection).await {
+    match proxy_request_with_account_pool(&prepared_request, &collection).await {
         Ok(success) => {
             let response_capture =
-                write_upstream_response(&mut stream, success.upstream, request_is_stream).await?;
+                write_gateway_response(&mut stream, success.upstream, response_adapter).await?;
             if let Some(response_id) = response_capture.response_id.as_deref() {
                 bind_response_affinity(response_id, &success.account_id).await;
             }
@@ -2552,12 +4035,15 @@ async fn handle_connection(mut stream: TcpStream) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_ordered_account_ids, build_request_routing_hint, extract_usage_capture,
-        parse_codex_retry_after, should_treat_response_as_stream, ParsedRequest,
-        ResponseUsageCollector,
+        build_chat_completion_payload, build_chat_completion_stream_body, build_ordered_account_ids,
+        build_request_routing_hint, extract_usage_capture, parse_codex_retry_after,
+        parse_responses_payload_from_upstream, prepare_gateway_request,
+        resolve_supported_model_alias,
+        should_retry_single_account_upstream_status, should_treat_response_as_stream,
+        should_try_next_account, GatewayResponseAdapter, ParsedRequest, ResponseUsageCollector,
     };
     use reqwest::StatusCode;
-    use serde_json::json;
+    use serde_json::{json, Value};
     use std::collections::HashMap;
     use tokio::time::Duration;
 
@@ -2646,6 +4132,42 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
     }
 
     #[test]
+    fn retries_next_account_for_transient_upstream_status() {
+        assert!(should_try_next_account(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "upstream temporarily unavailable"
+        ));
+        assert!(should_try_next_account(
+            StatusCode::BAD_GATEWAY,
+            "gateway error"
+        ));
+    }
+
+    #[test]
+    fn retries_single_account_for_transient_upstream_status() {
+        assert!(should_retry_single_account_upstream_status(
+            StatusCode::SERVICE_UNAVAILABLE
+        ));
+        assert!(should_retry_single_account_upstream_status(
+            StatusCode::GATEWAY_TIMEOUT
+        ));
+        assert!(!should_retry_single_account_upstream_status(
+            StatusCode::TOO_MANY_REQUESTS
+        ));
+        assert!(!should_retry_single_account_upstream_status(
+            StatusCode::FORBIDDEN
+        ));
+    }
+
+    #[test]
+    fn does_not_retry_forbidden_without_quota_or_capacity_markers() {
+        assert!(!should_try_next_account(
+            StatusCode::FORBIDDEN,
+            r#"{"error":"forbidden"}"#,
+        ));
+    }
+
+    #[test]
     fn prefers_affinity_account_before_round_robin_order() {
         let ordered = build_ordered_account_ids(
             &[
@@ -2672,5 +4194,448 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
         let hint = build_request_routing_hint(&request);
         assert_eq!(hint.model_key, "gpt-5.4-mini");
         assert_eq!(hint.previous_response_id.as_deref(), Some("resp_prev"));
+    }
+
+    #[test]
+    fn maps_snapshot_model_ids_to_supported_aliases() {
+        assert_eq!(
+            resolve_supported_model_alias("gpt-5.4-2026-03-05"),
+            "gpt-5.4"
+        );
+        assert_eq!(
+            resolve_supported_model_alias("GPT-5.4-Mini-2026-03-05"),
+            "gpt-5.4-mini"
+        );
+        assert_eq!(
+            resolve_supported_model_alias("custom-model-2026-03-05"),
+            "custom-model-2026-03-05"
+        );
+    }
+
+    #[test]
+    fn prepares_chat_completions_request_for_responses_proxy() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"GPT-5.4","stream":true,"messages":[{"role":"user","content":"hello"}]}"#
+                .to_vec(),
+        };
+
+        let (prepared, adapter) = prepare_gateway_request(request).expect("request should map");
+        assert_eq!(prepared.target, "/v1/responses");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        assert_eq!(mapped_body.get("model").and_then(Value::as_str), Some("gpt-5.4"));
+        assert!(mapped_body.get("input").is_some());
+        assert_eq!(mapped_body.get("store"), Some(&Value::Bool(false)));
+        assert_eq!(mapped_body.get("stream"), Some(&Value::Bool(true)));
+        assert_eq!(
+            mapped_body.get("instructions").and_then(Value::as_str),
+            Some("")
+        );
+        assert_eq!(
+            mapped_body
+                .get("parallel_tool_calls")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            mapped_body
+                .get("reasoning")
+                .and_then(|reasoning| reasoning.get("effort"))
+                .and_then(Value::as_str),
+            Some("medium")
+        );
+
+        match adapter {
+            GatewayResponseAdapter::ChatCompletions {
+                stream,
+                requested_model,
+                original_request_body: _,
+            } => {
+                assert!(stream);
+                assert_eq!(requested_model, "gpt-5.4");
+            }
+            _ => panic!("expected chat completions adapter"),
+        }
+    }
+
+    #[test]
+    fn rewrites_snapshot_model_ids_for_passthrough_requests() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/responses".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4-2026-03-05","input":"hello"}"#.to_vec(),
+        };
+
+        let (prepared, adapter) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        assert_eq!(mapped_body.get("model").and_then(Value::as_str), Some("gpt-5.4"));
+
+        match adapter {
+            GatewayResponseAdapter::Passthrough { request_is_stream } => {
+                assert!(!request_is_stream);
+            }
+            _ => panic!("expected passthrough adapter"),
+        }
+    }
+
+    #[test]
+    fn rewrites_snapshot_model_ids_for_chat_completions_requests() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4-2026-03-05","messages":[{"role":"user","content":"hello"}]}"#
+                .to_vec(),
+        };
+
+        let (prepared, adapter) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        assert_eq!(mapped_body.get("model").and_then(Value::as_str), Some("gpt-5.4"));
+
+        match adapter {
+            GatewayResponseAdapter::ChatCompletions {
+                requested_model, ..
+            } => {
+                assert_eq!(requested_model, "gpt-5.4");
+            }
+            _ => panic!("expected chat completions adapter"),
+        }
+    }
+
+    #[test]
+    fn drops_unsupported_sampling_params_for_responses_proxy() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4","temperature":0.2,"top_p":0.7,"messages":[{"role":"user","content":"hello"}]}"#
+                .to_vec(),
+        };
+
+        let (prepared, _) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        assert!(mapped_body.get("temperature").is_none());
+        assert!(mapped_body.get("top_p").is_none());
+    }
+
+    #[test]
+    fn normalizes_text_content_parts_for_responses_proxy() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4","messages":[{"role":"user","content":[{"type":"text","text":"hello"}]}]}"#
+                .to_vec(),
+        };
+
+        let (prepared, _) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        let first_type = mapped_body
+            .get("input")
+            .and_then(Value::as_array)
+            .and_then(|messages| messages.first())
+            .and_then(|message| message.get("content"))
+            .and_then(Value::as_array)
+            .and_then(|parts| parts.first())
+            .and_then(|part| part.get("type"))
+            .and_then(Value::as_str);
+        assert_eq!(first_type, Some("input_text"));
+    }
+
+    #[test]
+    fn normalizes_function_tools_for_responses_proxy() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4","messages":[{"role":"user","content":"hello"}],"tools":[{"type":"function","function":{"name":"get_weather","description":"Get weather","parameters":{"type":"object","properties":{"location":{"type":"string"}}},"strict":true}}],"tool_choice":{"type":"function","function":{"name":"get_weather"}}}"#
+                .to_vec(),
+        };
+
+        let (prepared, _) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        assert_eq!(
+            mapped_body
+                .get("tools")
+                .and_then(Value::as_array)
+                .and_then(|tools| tools.first())
+                .and_then(|tool| tool.get("name"))
+                .and_then(Value::as_str),
+            Some("get_weather")
+        );
+        assert_eq!(
+            mapped_body
+                .get("tool_choice")
+                .and_then(|choice| choice.get("name"))
+                .and_then(Value::as_str),
+            Some("get_weather")
+        );
+        assert_eq!(
+            mapped_body
+                .get("tools")
+                .and_then(Value::as_array)
+                .and_then(|tools| tools.first())
+                .and_then(|tool| tool.get("strict"))
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn normalizes_tool_history_messages_for_responses_proxy() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4","messages":[{"role":"user","content":"weather?"},{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\"location\":\"Paris\"}"}}]},{"role":"tool","tool_call_id":"call_1","content":"{\"temperature_c\":18}"}]}"#
+                .to_vec(),
+        };
+
+        let (prepared, _) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        let input = mapped_body
+            .get("input")
+            .and_then(Value::as_array)
+            .expect("input should be array");
+        assert_eq!(
+            input.first()
+                .and_then(|item| item.get("role"))
+                .and_then(Value::as_str),
+            Some("user")
+        );
+        assert!(input.iter().any(|item| {
+            item.get("type").and_then(Value::as_str) == Some("function_call")
+                && item.get("name").and_then(Value::as_str) == Some("get_weather")
+        }));
+        assert!(input.iter().any(|item| {
+            item.get("type").and_then(Value::as_str) == Some("function_call_output")
+                && item.get("call_id").and_then(Value::as_str) == Some("call_1")
+        }));
+    }
+
+    #[test]
+    fn skips_spurious_empty_assistant_message_for_tool_calls() {
+        let request = ParsedRequest {
+            method: "POST".to_string(),
+            target: "/v1/chat/completions".to_string(),
+            headers: HashMap::new(),
+            body: br#"{"model":"gpt-5.4","messages":[{"role":"user","content":"weather?"},{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\"location\":\"Paris\"}"}}]},{"role":"tool","tool_call_id":"call_1","content":"{\"temperature_c\":18}"}]}"#
+                .to_vec(),
+        };
+
+        let (prepared, _) = prepare_gateway_request(request).expect("request should map");
+        let mapped_body: Value =
+            serde_json::from_slice(&prepared.body).expect("mapped body should be json");
+        let input = mapped_body
+            .get("input")
+            .and_then(Value::as_array)
+            .expect("input should be array");
+        assert_eq!(input.len(), 3);
+        assert_eq!(
+            input.first()
+                .and_then(|item| item.get("type"))
+                .and_then(Value::as_str),
+            Some("message")
+        );
+        assert_eq!(
+            input.get(1)
+                .and_then(|item| item.get("type"))
+                .and_then(Value::as_str),
+            Some("function_call")
+        );
+        assert_eq!(
+            input.get(2)
+                .and_then(|item| item.get("type"))
+                .and_then(Value::as_str),
+            Some("function_call_output")
+        );
+    }
+
+    #[test]
+    fn builds_chat_completion_payload_from_responses_output() {
+        let responses_payload = json!({
+            "id": "resp_123",
+            "model": "gpt-5.4",
+            "output": [{
+                "type": "message",
+                "role": "assistant",
+                "content": [{
+                    "type": "output_text",
+                    "text": "hello world"
+                }]
+            }],
+            "usage": {
+                "input_tokens": 7,
+                "output_tokens": 3,
+                "total_tokens": 10
+            }
+        });
+
+        let chat_payload = build_chat_completion_payload(&responses_payload, "gpt-5.4", br#"{}"#);
+        assert_eq!(
+            chat_payload.get("object").and_then(Value::as_str),
+            Some("chat.completion")
+        );
+        assert_eq!(
+            chat_payload
+                .get("choices")
+                .and_then(Value::as_array)
+                .and_then(|choices| choices.first())
+                .and_then(|choice| choice.get("message"))
+                .and_then(|message| message.get("content"))
+                .and_then(Value::as_str),
+            Some("hello world")
+        );
+        assert_eq!(
+            chat_payload
+                .get("usage")
+                .and_then(|usage| usage.get("total_tokens"))
+                .and_then(Value::as_u64),
+            Some(10)
+        );
+    }
+
+    #[test]
+    fn builds_chat_completion_payload_from_function_call_output() {
+        let responses_payload = json!({
+            "id": "resp_tool_1",
+            "model": "gpt-5.4",
+            "status": "completed",
+            "output": [{
+                "type": "function_call",
+                "call_id": "call_abc",
+                "name": "get_weather",
+                "arguments": "{\"location\":\"Paris\"}"
+            }]
+        });
+
+        let chat_payload = build_chat_completion_payload(&responses_payload, "gpt-5.4", br#"{}"#);
+        assert_eq!(
+            chat_payload
+                .get("choices")
+                .and_then(Value::as_array)
+                .and_then(|choices| choices.first())
+                .and_then(|choice| choice.get("finish_reason"))
+                .and_then(Value::as_str),
+            Some("tool_calls")
+        );
+        assert_eq!(
+            chat_payload
+                .get("choices")
+                .and_then(Value::as_array)
+                .and_then(|choices| choices.first())
+                .and_then(|choice| choice.get("message"))
+                .and_then(|message| message.get("tool_calls"))
+                .and_then(Value::as_array)
+                .and_then(|tool_calls| tool_calls.first())
+                .and_then(|tool_call| tool_call.get("function"))
+                .and_then(|function| function.get("name"))
+                .and_then(Value::as_str),
+            Some("get_weather")
+        );
+    }
+
+    #[test]
+    fn restores_shortened_tool_name_in_chat_payload() {
+        let original_request = br#"{
+            "model":"gpt-5.4",
+            "messages":[{"role":"user","content":"run tool"}],
+            "tools":[{
+                "type":"function",
+                "function":{
+                    "name":"mcp__very_long_namespace_segment__very_long_server_name__super_long_tool_name_that_needs_shortening",
+                    "description":"Long name",
+                    "parameters":{"type":"object","properties":{}}
+                }
+            }]
+        }"#;
+        let responses_payload = json!({
+            "id": "resp_tool_2",
+            "model": "gpt-5.4",
+            "status": "completed",
+            "output": [{
+                "type": "function_call",
+                "call_id": "call_long",
+                "name": "mcp__super_long_tool_name_that_needs_shortening",
+                "arguments": "{}"
+            }]
+        });
+
+        let chat_payload =
+            build_chat_completion_payload(&responses_payload, "gpt-5.4", original_request);
+        assert_eq!(
+            chat_payload
+                .get("choices")
+                .and_then(Value::as_array)
+                .and_then(|choices| choices.first())
+                .and_then(|choice| choice.get("message"))
+                .and_then(|message| message.get("tool_calls"))
+                .and_then(Value::as_array)
+                .and_then(|tool_calls| tool_calls.first())
+                .and_then(|tool_call| tool_call.get("function"))
+                .and_then(|function| function.get("name"))
+                .and_then(Value::as_str),
+            Some(
+                "mcp__very_long_namespace_segment__very_long_server_name__super_long_tool_name_that_needs_shortening"
+            )
+        );
+    }
+
+    #[test]
+    fn builds_chat_completion_stream_body_with_done_marker() {
+        let upstream_sse = br#"data: {"type":"response.created","response":{"id":"resp_1","created_at":123,"model":"gpt-5.4"}}
+
+data: {"type":"response.output_text.delta","delta":"stream-body"}
+
+data: {"type":"response.completed","response":{"id":"resp_1","created_at":123,"model":"gpt-5.4","status":"completed","usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}
+
+"#;
+
+        let stream_body = build_chat_completion_stream_body(upstream_sse, br#"{}"#, "gpt-5.4");
+        assert!(stream_body.contains("chat.completion.chunk"));
+        assert!(stream_body.contains("stream-body"));
+        assert!(stream_body.contains("data: [DONE]"));
+    }
+
+    #[test]
+    fn parses_responses_sse_payload_to_json() {
+        let sse = br#"event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"hello "}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"world"}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_1","model":"gpt-5.4","status":"completed","usage":{"input_tokens":2,"output_tokens":2,"total_tokens":4}}}
+
+data: [DONE]
+
+"#;
+
+        let parsed = parse_responses_payload_from_upstream(sse).expect("sse should be parsed");
+        assert_eq!(
+            parsed
+                .get("response")
+                .and_then(|value| value.get("id"))
+                .and_then(Value::as_str),
+            Some("resp_1")
+        );
+        assert_eq!(
+            parsed
+                .get("response")
+                .and_then(|value| value.get("output_text"))
+                .and_then(Value::as_str),
+            Some("hello world")
+        );
     }
 }

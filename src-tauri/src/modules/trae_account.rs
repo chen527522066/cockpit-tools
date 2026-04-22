@@ -72,6 +72,9 @@ const TRAE_ENT_USAGE_PATH: &str = "/trae/api/v1/pay/ide_user_ent_usage";
 const TRAE_AUTH_CLIENT_ID: &str = "ono9krqynydwx5";
 const TRAE_EXCHANGE_CLIENT_SECRET: &str = "-";
 const TRAE_IDE_VERSION: &str = "1.0.0";
+const TRAE_NEED_REFRESH_WINDOW_MILLISECONDS: i64 = 24 * 60 * 60 * 1000;
+const TRAE_CHECK_LOGIN_INVALID_ERROR_CODES: [&str; 5] =
+    ["20324", "20101", "20315", "20125", "20126"];
 
 lazy_static::lazy_static! {
     static ref TRAE_ACCOUNT_INDEX_LOCK: Mutex<()> = Mutex::new(());
@@ -83,6 +86,13 @@ struct TraeRefreshRoutingContext {
     login_region: Option<String>,
     store_region: Option<String>,
     ai_region: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TraeCheckLoginVerdict {
+    pub is_valid: bool,
+    pub error_code: Option<String>,
+    pub is_login: Option<bool>,
 }
 
 fn now_ts() -> i64 {
@@ -524,6 +534,29 @@ fn pick_i64(root: Option<&Value>, paths: &[&[&str]]) -> Option<i64> {
                 }
                 if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(trimmed) {
                     return Some(parsed.timestamp());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn pick_bool(root: Option<&Value>, paths: &[&[&str]]) -> Option<bool> {
+    for path in paths {
+        if let Some(value) = extract_json_value(root, path) {
+            if let Some(boolean) = value.as_bool() {
+                return Some(boolean);
+            }
+            if let Some(num) = value.as_i64() {
+                return Some(num != 0);
+            }
+            if let Some(text) = value.as_str() {
+                let trimmed = text.trim();
+                if trimmed.eq_ignore_ascii_case("true") || trimmed == "1" {
+                    return Some(true);
+                }
+                if trimmed.eq_ignore_ascii_case("false") || trimmed == "0" {
+                    return Some(false);
                 }
             }
         }
@@ -1773,6 +1806,84 @@ fn resolve_iso_timestamp(
     None
 }
 
+fn parse_iso_timestamp_millis(raw: Option<&str>) -> Option<i64> {
+    let value = normalize_non_empty(raw)?;
+    chrono::DateTime::parse_from_rfc3339(value.as_str())
+        .ok()
+        .map(|parsed| parsed.with_timezone(&chrono::Utc).timestamp_millis())
+}
+
+fn token_time_roots(account: &TraeAccount) -> [Option<&Value>; 3] {
+    [
+        account.trae_auth_raw.as_ref(),
+        account.trae_server_raw.as_ref(),
+        account.trae_profile_raw.as_ref(),
+    ]
+}
+
+fn resolve_token_expired_at_millis(account: &TraeAccount) -> Option<i64> {
+    let roots = token_time_roots(account);
+    let expired_at = resolve_iso_timestamp(
+        account.expires_at,
+        &roots,
+        &[
+            &["expiredAt"],
+            &["expiresAt"],
+            &["exchangeResponse", "Result", "TokenExpireAt"],
+            &["Result", "TokenExpireAt"],
+            &["token", "expiredAt"],
+        ],
+    )?;
+    parse_iso_timestamp_millis(Some(expired_at.as_str()))
+}
+
+fn resolve_token_release_at_millis(account: &TraeAccount) -> Option<i64> {
+    let roots = token_time_roots(account);
+    let token_release_at = resolve_iso_timestamp(
+        None,
+        &roots,
+        &[
+            &["tokenReleaseAt"],
+            &["exchangeResponse", "Result", "TokenReleaseAt"],
+            &["exchangeResponse", "Result", "tokenReleaseAt"],
+            &["Result", "TokenReleaseAt"],
+            &["Result", "tokenReleaseAt"],
+        ],
+    )?;
+    parse_iso_timestamp_millis(Some(token_release_at.as_str()))
+}
+
+pub fn should_refresh_token_by_official_window(account: &TraeAccount) -> bool {
+    if normalize_non_empty(Some(account.access_token.as_str())).is_none() {
+        return false;
+    }
+
+    let Some(expired_at_ms) = resolve_token_expired_at_millis(account) else {
+        return true;
+    };
+
+    let now = chrono::Utc::now().timestamp_millis();
+    let remaining = expired_at_ms - now;
+    if remaining <= 0 {
+        return true;
+    }
+
+    if remaining <= TRAE_NEED_REFRESH_WINDOW_MILLISECONDS {
+        return true;
+    }
+
+    if let Some(token_release_at_ms) = resolve_token_release_at_millis(account) {
+        if expired_at_ms > token_release_at_ms {
+            let lifecycle_one_third = (expired_at_ms - token_release_at_ms) / 3;
+            if lifecycle_one_third > remaining {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 fn to_store_region(raw: &str) -> String {
     match raw.trim().to_ascii_lowercase().as_str() {
         "cn" | "china-north" => "CN".to_string(),
@@ -1932,15 +2043,16 @@ fn ensure_auth_raw_for_inject(account: &TraeAccount, existing_auth_raw: Option<&
     )
     .unwrap_or_default();
 
-    let scope = pick_string_multi(
-        &roots,
-        &[
-            &["account", "scope"],
-            &["scope"],
-            &["callbackQuery", "scope"],
-        ],
-    )
-    .unwrap_or_else(|| "marscode".to_string());
+    let scope = pick_string_multi(&roots, &[&["account", "scope"], &["scope"]])
+        .and_then(|value| normalize_non_empty(Some(value.as_str())))
+        .map(|value| {
+            if value.trim().eq_ignore_ascii_case("trae") {
+                "marscode".to_string()
+            } else {
+                value
+            }
+        })
+        .unwrap_or_else(|| "marscode".to_string());
     let login_scope = pick_string_multi(
         &roots,
         &[
@@ -1949,6 +2061,7 @@ fn ensure_auth_raw_for_inject(account: &TraeAccount, existing_auth_raw: Option<&
             &["callbackQuery", "scope"],
         ],
     )
+    .and_then(|value| normalize_non_empty(Some(value.as_str())))
     .unwrap_or_else(|| "trae".to_string());
 
     let store_country_code = pick_string_multi(
@@ -2016,10 +2129,10 @@ fn ensure_auth_raw_for_inject(account: &TraeAccount, existing_auth_raw: Option<&
         pick_string_multi(
             &roots,
             &[
-                &["host"],
-                &["loginHost"],
                 &["callbackQuery", "host"],
                 &["data", "host"],
+                &["loginHost"],
+                &["host"],
                 &["Result", "Host"],
                 &["Result", "AIPayHost"],
                 &["Result", "AIHost"],
@@ -2087,7 +2200,6 @@ fn ensure_auth_raw_for_inject(account: &TraeAccount, existing_auth_raw: Option<&
             obj.entry(key.clone()).or_insert_with(|| value.clone());
         }
     }
-    let had_access_token_key = obj.contains_key("accessToken");
     let had_token_type_key = obj.contains_key("tokenType") || obj.contains_key("token_type");
     let had_region_key = obj.contains_key("region");
     let had_ai_region_key = obj.contains_key("aiRegion");
@@ -2158,12 +2270,10 @@ fn ensure_auth_raw_for_inject(account: &TraeAccount, existing_auth_raw: Option<&
         "token".to_string(),
         Value::String(account.access_token.clone()),
     );
-    if had_access_token_key {
-        obj.insert(
-            "accessToken".to_string(),
-            Value::String(account.access_token.clone()),
-        );
-    }
+    obj.insert(
+        "accessToken".to_string(),
+        Value::String(account.access_token.clone()),
+    );
     if !refresh_token.is_empty() {
         obj.insert("refreshToken".to_string(), Value::String(refresh_token));
     }
@@ -2226,14 +2336,18 @@ fn ensure_entitlement_raw_for_inject(account: &TraeAccount) -> Option<Value> {
     account.trae_entitlement_raw.clone()
 }
 
-pub fn read_local_trae_auth() -> Result<Option<TraeImportPayload>, String> {
-    let storage_path = get_default_trae_storage_path()?;
+fn read_local_trae_auth_from_storage_path(storage_path: &Path) -> Result<Option<TraeImportPayload>, String> {
     if !storage_path.exists() {
         return Ok(None);
     }
-    let storage_root = read_storage_json(&storage_path)?;
+    let storage_root = read_storage_json(storage_path)?;
     let payload = payload_from_storage_root(&storage_root)?;
     Ok(Some(payload))
+}
+
+pub fn read_local_trae_auth() -> Result<Option<TraeImportPayload>, String> {
+    let storage_path = get_default_trae_storage_path()?;
+    read_local_trae_auth_from_storage_path(&storage_path)
 }
 
 pub fn import_from_local() -> Result<Option<TraeAccount>, String> {
@@ -2254,6 +2368,44 @@ pub(crate) fn resolve_current_account_id(accounts: &[TraeAccount]) -> Option<Str
         "trae",
         accounts.iter().map(|account| account.id.as_str()),
     )
+}
+
+pub(crate) fn resolve_running_account_refresh_protection_map(
+    accounts: &[TraeAccount],
+) -> BTreeMap<String, Option<PathBuf>> {
+    let mut protected = BTreeMap::new();
+
+    if crate::modules::process::is_trae_running() {
+        if let Some(current_id) = resolve_current_account_id(accounts) {
+            let default_storage_path = get_default_trae_storage_path().ok();
+            protected.insert(current_id, default_storage_path);
+        }
+    }
+
+    match crate::modules::trae_instance::resolve_running_bound_account_contexts() {
+        Ok(contexts) => {
+            for context in contexts {
+                let account_id = context.account_id;
+                let storage_path = context.storage_path;
+                protected
+                    .entry(account_id)
+                    .and_modify(|current| {
+                        if current.is_none() {
+                            *current = Some(storage_path.clone());
+                        }
+                    })
+                    .or_insert(Some(storage_path));
+            }
+        }
+        Err(err) => {
+            logger::log_warn(&format!(
+                "[Trae Refresh] 读取运行中实例绑定账号失败，跳过实例保护名单: {}",
+                err
+            ));
+        }
+    }
+
+    protected
 }
 
 pub fn inject_to_trae(account_id: &str) -> Result<(), String> {
@@ -3011,6 +3163,227 @@ fn apply_check_login_response(
     account.trae_server_raw = Some(merged_response);
 }
 
+fn evaluate_check_login_response(response: &Value) -> TraeCheckLoginVerdict {
+    let error_code = normalize_non_empty(
+        pick_string(
+            Some(response),
+            &[
+                &["ResponseMetadata", "Error", "Code"],
+                &["responseMetadata", "error", "code"],
+                &["error", "code"],
+            ],
+        )
+        .as_deref(),
+    );
+    let is_login = pick_bool(
+        Some(response),
+        &[&["Result", "IsLogin"], &["result", "isLogin"], &["isLogin"]],
+    );
+    let invalid_by_code = error_code
+        .as_deref()
+        .map(|code| {
+            TRAE_CHECK_LOGIN_INVALID_ERROR_CODES
+                .iter()
+                .any(|invalid_code| *invalid_code == code)
+        })
+        .unwrap_or(false);
+    let invalid_by_login = matches!(is_login, Some(false));
+
+    TraeCheckLoginVerdict {
+        is_valid: !invalid_by_code && !invalid_by_login,
+        error_code,
+        is_login,
+    }
+}
+
+async fn request_check_login_for_account(account: &TraeAccount) -> Result<Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
+    let cookie = pick_cookie_from_account(account);
+    let check_login_urls = build_refresh_api_urls(account, TRAE_CHECK_LOGIN_PATH);
+    request_trae_json_with_candidates(
+        &client,
+        Method::POST,
+        check_login_urls.as_slice(),
+        &account.access_token,
+        cookie.as_deref(),
+        Some(serde_json::json!({
+            "IDEVersion": TRAE_IDE_VERSION,
+        })),
+    )
+    .await
+}
+
+pub async fn check_login_token(account_id: &str) -> Result<TraeCheckLoginVerdict, String> {
+    let existing = load_account(account_id).ok_or_else(|| "账号不存在".to_string())?;
+    let response = request_check_login_for_account(&existing).await?;
+    let verdict = evaluate_check_login_response(&response);
+
+    let mut account = existing.clone();
+    let context = build_refresh_routing_context(&account);
+    apply_check_login_response(&mut account, &response, &context);
+    account.last_used = now_ts();
+    if let Err(err) = upsert_account_record(account) {
+        logger::log_warn(&format!(
+            "[Trae CheckLogin] 同步检查结果到账号存储失败: account_id={}, error={}",
+            existing.id, err
+        ));
+    }
+
+    logger::log_info(&format!(
+        "[Trae CheckLogin] 检查完成: account_id={}, valid={}, error_code={}, is_login={}",
+        existing.id,
+        verdict.is_valid,
+        verdict.error_code.as_deref().unwrap_or("-"),
+        verdict
+            .is_login
+            .map(|value| if value { "true" } else { "false" })
+            .unwrap_or("-")
+    ));
+    Ok(verdict)
+}
+
+pub async fn check_login_then_refresh_if_needed(account_id: &str) -> Result<bool, String> {
+    let verdict = check_login_token(account_id).await?;
+    if verdict.is_valid {
+        return Ok(false);
+    }
+
+    if let Ok(accounts) = list_accounts_checked() {
+        let protection_map = resolve_running_account_refresh_protection_map(&accounts);
+        if let Some(storage_path) = protection_map.get(account_id) {
+            logger::log_warn(&format!(
+                "[Trae CheckLogin] 账号处于运行中实例，跳过 Token 刷新，改为仅额度刷新: account_id={}, storage_path={}",
+                account_id,
+                storage_path
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "-".to_string())
+            ));
+            refresh_account_usage_only_async(account_id, storage_path.as_deref()).await?;
+            return Ok(false);
+        }
+    }
+
+    logger::log_warn(&format!(
+        "[Trae CheckLogin] 检测到账号状态异常，开始静默刷新: account_id={}, error_code={}, is_login={}",
+        account_id,
+        verdict.error_code.as_deref().unwrap_or("-"),
+        verdict
+            .is_login
+            .map(|value| if value { "true" } else { "false" })
+            .unwrap_or("-")
+    ));
+    refresh_account_async(account_id).await?;
+    Ok(true)
+}
+
+fn apply_runtime_storage_payload_for_usage_refresh(
+    account: &mut TraeAccount,
+    runtime_storage_path: Option<&Path>,
+) {
+    let Some(storage_path) = runtime_storage_path else {
+        return;
+    };
+
+    let payload = match read_local_trae_auth_from_storage_path(storage_path) {
+        Ok(Some(payload)) => payload,
+        Ok(None) => return,
+        Err(err) => {
+            logger::log_warn(&format!(
+                "[Trae Refresh] 读取运行中实例 storage 失败，跳过本地会话同步: path={}, error={}",
+                storage_path.display(),
+                err
+            ));
+            return;
+        }
+    };
+
+    let payload_user_id = normalize_non_empty(payload.user_id.as_deref());
+    let payload_email = normalize_identity_email(Some(payload.email.as_str()));
+    if !account_matches_import_identity(account, payload_user_id.as_deref(), payload_email.as_deref()) {
+        logger::log_warn(&format!(
+            "[Trae Refresh] 运行中实例 storage 与目标账号不匹配，跳过本地会话同步: account_id={}, path={}",
+            account.id,
+            storage_path.display()
+        ));
+        return;
+    }
+
+    let previous_access_token = account.access_token.clone();
+    apply_payload(account, payload);
+    logger::log_info(&format!(
+        "[Trae Refresh] 已同步运行中实例会话快照: account_id={}, path={}, token_changed={}",
+        account.id,
+        storage_path.display(),
+        if previous_access_token == account.access_token {
+            "false"
+        } else {
+            "true"
+        }
+    ));
+}
+
+async fn refresh_quota_snapshot(account: &mut TraeAccount, client: &reqwest::Client, cookie: Option<&str>) {
+    let entitlement_urls = build_refresh_api_urls(account, TRAE_PAY_STATUS_PATH);
+    let entitlement_response = request_trae_pay_json_with_candidates(
+        client,
+        Method::POST,
+        entitlement_urls.as_slice(),
+        &account.access_token,
+        cookie,
+        Some(serde_json::json!({})),
+    )
+    .await;
+
+    let mut quota_query_errors: Vec<String> = Vec::new();
+    match entitlement_response {
+        Ok(response) => apply_entitlement_response(account, &response),
+        Err(err) => {
+            logger::log_warn(&format!("[Trae Refresh] ide_user_pay_status 失败: {}", err));
+            quota_query_errors.push(err);
+        }
+    }
+
+    let usage_urls = build_refresh_api_urls(account, TRAE_ENT_USAGE_PATH);
+    let usage_response = request_trae_pay_json_with_candidates(
+        client,
+        Method::POST,
+        usage_urls.as_slice(),
+        &account.access_token,
+        cookie,
+        Some(serde_json::json!({
+            "require_usage": true,
+        })),
+    )
+    .await;
+
+    let mut usage_refreshed = false;
+    match usage_response {
+        Ok(response) => {
+            apply_usage_response(account, &response);
+            usage_refreshed = true;
+        }
+        Err(err) => {
+            logger::log_warn(&format!("[Trae Refresh] ide_user_ent_usage 失败: {}", err));
+            quota_query_errors.push(err);
+        }
+    }
+
+    let refreshed_at = now_ts();
+    if usage_refreshed {
+        account.quota_query_last_error = None;
+        account.quota_query_last_error_at = None;
+        account.usage_updated_at = Some(refreshed_at);
+    } else if !quota_query_errors.is_empty() {
+        account.quota_query_last_error = Some(quota_query_errors.join(" | "));
+        account.quota_query_last_error_at = Some(chrono::Utc::now().timestamp_millis());
+    }
+    account.last_used = refreshed_at;
+}
+
 async fn refresh_account_async_once(account_id: &str) -> Result<TraeAccount, String> {
     let existing = load_account(account_id).ok_or_else(|| "账号不存在".to_string())?;
     logger::log_info(&format!(
@@ -3045,8 +3418,12 @@ async fn refresh_account_async_once(account_id: &str) -> Result<TraeAccount, Str
         "refresh_token": account.refresh_token.clone().unwrap_or_default(),
         "token": account.access_token.clone(),
     });
+    if normalize_non_empty(account.refresh_token.as_deref()).is_none() {
+        return Err("Trae refresh token 缺失，无法按官方流程刷新登录态".to_string());
+    }
+
     let exchange_urls = build_refresh_api_urls(&account, TRAE_EXCHANGE_TOKEN_PATH);
-    if let Ok(exchange_response) = request_trae_json_with_candidates(
+    let exchange_response = request_trae_json_with_candidates(
         &client,
         Method::POST,
         exchange_urls.as_slice(),
@@ -3055,10 +3432,9 @@ async fn refresh_account_async_once(account_id: &str) -> Result<TraeAccount, Str
         Some(exchange_body),
     )
     .await
-    {
-        let exchange_context = build_refresh_routing_context(&account);
-        apply_exchange_response(&mut account, &exchange_response, &exchange_context);
-    }
+    .map_err(|err| format!("Trae ExchangeToken 失败: {}", err))?;
+    let exchange_context = build_refresh_routing_context(&account);
+    apply_exchange_response(&mut account, &exchange_response, &exchange_context);
 
     let profile_urls = build_refresh_api_urls(&account, TRAE_GET_USER_INFO_PATH);
     match request_trae_json_with_candidates(
@@ -3095,61 +3471,7 @@ async fn refresh_account_async_once(account_id: &str) -> Result<TraeAccount, Str
         Err(err) => logger::log_warn(&format!("[Trae Refresh] CheckLogin 失败: {}", err)),
     }
 
-    let entitlement_urls = build_refresh_api_urls(&account, TRAE_PAY_STATUS_PATH);
-    let entitlement_response = request_trae_pay_json_with_candidates(
-        &client,
-        Method::POST,
-        entitlement_urls.as_slice(),
-        &account.access_token,
-        cookie.as_deref(),
-        Some(serde_json::json!({})),
-    )
-    .await;
-
-    let mut quota_query_errors: Vec<String> = Vec::new();
-    match entitlement_response {
-        Ok(response) => apply_entitlement_response(&mut account, &response),
-        Err(err) => {
-            logger::log_warn(&format!("[Trae Refresh] ide_user_pay_status 失败: {}", err));
-            quota_query_errors.push(err);
-        }
-    }
-
-    let usage_urls = build_refresh_api_urls(&account, TRAE_ENT_USAGE_PATH);
-    let usage_response = request_trae_pay_json_with_candidates(
-        &client,
-        Method::POST,
-        usage_urls.as_slice(),
-        &account.access_token,
-        cookie.as_deref(),
-        Some(serde_json::json!({
-            "require_usage": true,
-        })),
-    )
-    .await;
-
-    let mut usage_refreshed = false;
-    match usage_response {
-        Ok(response) => {
-            apply_usage_response(&mut account, &response);
-            usage_refreshed = true;
-        }
-        Err(err) => {
-            logger::log_warn(&format!("[Trae Refresh] ide_user_ent_usage 失败: {}", err));
-            quota_query_errors.push(err);
-        }
-    }
-
-    let refreshed_at = now_ts();
-    if usage_refreshed {
-        account.quota_query_last_error = None;
-        account.quota_query_last_error_at = None;
-        account.usage_updated_at = Some(refreshed_at);
-    } else if !quota_query_errors.is_empty() {
-        account.quota_query_last_error = Some(quota_query_errors.join(" | "));
-        account.quota_query_last_error_at = Some(chrono::Utc::now().timestamp_millis());
-    }
-    account.last_used = refreshed_at;
+    refresh_quota_snapshot(&mut account, &client, cookie.as_deref()).await;
     let updated = account.clone();
     upsert_account_record(account)?;
     logger::log_info(&format!(
@@ -3172,11 +3494,89 @@ pub async fn refresh_account_async(account_id: &str) -> Result<TraeAccount, Stri
     result
 }
 
+async fn refresh_account_usage_only_async_once(
+    account_id: &str,
+    runtime_storage_path: Option<&Path>,
+) -> Result<TraeAccount, String> {
+    let existing = load_account(account_id).ok_or_else(|| "账号不存在".to_string())?;
+    logger::log_info(&format!(
+        "[Trae Refresh] 开始仅额度刷新: id={}, email={}",
+        existing.id, existing.email
+    ));
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
+
+    let mut account = existing.clone();
+    apply_runtime_storage_payload_for_usage_refresh(&mut account, runtime_storage_path);
+
+    let cookie = pick_cookie_from_account(&account);
+    let routing_context = build_refresh_routing_context(&account);
+    logger::log_info(&format!(
+        "[Trae Refresh] 仅额度刷新使用路由: id={}, host={}, login_region={}, store_region={}, ai_region={}",
+        account.id,
+        routing_context.login_host,
+        routing_context.login_region.as_deref().unwrap_or("-"),
+        routing_context.store_region.as_deref().unwrap_or("-"),
+        routing_context.ai_region.as_deref().unwrap_or("-")
+    ));
+
+    refresh_quota_snapshot(&mut account, &client, cookie.as_deref()).await;
+
+    let updated = account.clone();
+    upsert_account_record(account)?;
+    logger::log_info(&format!(
+        "[Trae Refresh] 仅额度刷新完成: id={}, email={}",
+        updated.id, updated.email
+    ));
+    Ok(updated)
+}
+
+pub async fn refresh_account_usage_only_async(
+    account_id: &str,
+    runtime_storage_path: Option<&Path>,
+) -> Result<TraeAccount, String> {
+    let runtime_storage_path = runtime_storage_path.map(|path| path.to_path_buf());
+    let result = crate::modules::refresh_retry::retry_once_with_delay(
+        "Trae Quota Refresh",
+        account_id,
+        || {
+            let runtime_storage_path = runtime_storage_path.clone();
+            async move {
+                refresh_account_usage_only_async_once(account_id, runtime_storage_path.as_deref())
+                    .await
+            }
+        },
+    )
+    .await;
+    if let Err(err) = &result {
+        persist_quota_query_error(account_id, err);
+    }
+    result
+}
+
 pub async fn refresh_all_tokens() -> Result<Vec<(String, Result<TraeAccount, String>)>, String> {
-    let accounts = list_accounts();
+    let accounts = list_accounts_checked()?;
+    let protection_map = resolve_running_account_refresh_protection_map(&accounts);
     let mut results = Vec::with_capacity(accounts.len());
     for account in accounts {
         let account_id = account.id.clone();
+        if let Some(storage_path) = protection_map.get(account_id.as_str()) {
+            logger::log_info(&format!(
+                "[Trae Refresh] 运行中实例账号走仅额度刷新: account_id={}, storage_path={}",
+                account_id,
+                storage_path
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "-".to_string())
+            ));
+            let result =
+                refresh_account_usage_only_async(account_id.as_str(), storage_path.as_deref()).await;
+            results.push((account_id, result));
+            continue;
+        }
         let result = refresh_account_async(account_id.as_str()).await;
         results.push((account_id, result));
     }
@@ -3365,6 +3765,14 @@ mod tests {
             Some("from-source")
         );
         assert_eq!(
+            auth_obj.get("accessToken").and_then(Value::as_str),
+            Some("old-access")
+        );
+        assert_eq!(
+            auth_obj.get("token").and_then(Value::as_str),
+            Some("old-access")
+        );
+        assert_eq!(
             auth_obj
                 .get("account")
                 .and_then(|value| value.get("tenantId"))
@@ -3433,6 +3841,10 @@ mod tests {
             Some("https://www.trae.ai")
         );
         assert_eq!(
+            auth_obj.get("accessToken").and_then(Value::as_str),
+            Some("old-access")
+        );
+        assert_eq!(
             auth_obj.get("refreshExpiredAt").and_then(Value::as_str),
             Some("2026-10-09T16:18:22.466Z")
         );
@@ -3442,6 +3854,62 @@ mod tests {
                 .and_then(|value| value.get("username"))
                 .and_then(Value::as_str),
             Some("李杰")
+        );
+    }
+
+    #[test]
+    fn ensure_auth_raw_for_inject_uses_official_scope_pair() {
+        let mut account = sample_account();
+        account.trae_auth_raw = Some(serde_json::json!({
+            "callbackQuery": {
+                "scope": "trae"
+            }
+        }));
+
+        let auth_raw = ensure_auth_raw_for_inject(&account, None);
+        let auth_obj = auth_raw.as_object().expect("auth raw should be object");
+
+        assert_eq!(
+            auth_obj
+                .get("account")
+                .and_then(|value| value.get("scope"))
+                .and_then(Value::as_str),
+            Some("marscode")
+        );
+        assert_eq!(
+            auth_obj
+                .get("account")
+                .and_then(|value| value.get("loginScope"))
+                .and_then(Value::as_str),
+            Some("trae")
+        );
+    }
+
+    #[test]
+    fn ensure_auth_raw_for_inject_prefers_callback_host_for_storage() {
+        let mut account = sample_account();
+        account.trae_auth_raw = Some(serde_json::json!({
+            "host": "https://growsg-normal.trae.ai",
+            "loginHost": "https://growsg-normal.trae.ai",
+            "callbackQuery": {
+                "host": "https://api-sg-central.trae.ai",
+                "scope": "trae"
+            },
+            "storeRegion": "SG",
+            "AIRegion": "SG",
+            "loginRegion": "sg"
+        }));
+
+        let auth_raw = ensure_auth_raw_for_inject(&account, None);
+        let auth_obj = auth_raw.as_object().expect("auth raw should be object");
+
+        assert_eq!(
+            auth_obj.get("host").and_then(Value::as_str),
+            Some("https://api-sg-central.trae.ai")
+        );
+        assert_eq!(
+            auth_obj.get("loginHost").and_then(Value::as_str),
+            Some("https://api-sg-central.trae.ai")
         );
     }
 }

@@ -1792,7 +1792,10 @@
       },
       "enableBeforeActivateTitle": "Layanan belum diaktifkan",
       "enableBeforeActivateMessage": "Layanan API saat ini dinonaktifkan dan harus diaktifkan terlebih dahulu. Aktifkan dan alihkan sekarang?",
-      "enableAndActivateAction": "Aktifkan dan alihkan"
+      "enableAndActivateAction": "Aktifkan dan alihkan",
+      "apiPortUrl": "URL Port API",
+      "modelId": "ID Model",
+      "modelIdPlaceholder": "Pilih ID model"
     },
     "api": {
       "baseUrl": "URL Dasar",

@@ -133,7 +133,9 @@ pub struct CodexLocalAccessStats {
 pub struct CodexLocalAccessState {
     pub collection: Option<CodexLocalAccessCollection>,
     pub running: bool,
+    pub api_port_url: Option<String>,
     pub base_url: Option<String>,
+    pub model_ids: Vec<String>,
     pub last_error: Option<String>,
     pub member_count: usize,
     pub stats: CodexLocalAccessStats,

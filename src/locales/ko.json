@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "서비스가 비활성화됨",
       "enableBeforeActivateMessage": "API 서비스가 현재 비활성화되어 있어 먼저 활성화해야 합니다. 활성화하고 전환하시겠습니까?",
-      "enableAndActivateAction": "활성화 후 전환"
+      "enableAndActivateAction": "활성화 후 전환",
+      "apiPortUrl": "API 포트 URL",
+      "modelId": "모델 ID",
+      "modelIdPlaceholder": "모델 ID 선택"
     },
     "local": {
       "desc": "~/.codex/auth.json에서 현재 로그인된 계정 가져오기",

@@ -15,6 +15,8 @@ interface SingleSelectDropdownProps {
   disabled?: boolean;
   ariaLabel?: string;
   placeholder?: string;
+  menuPlacement?: "down" | "up";
+  menuMaxHeight?: number;
 }
 
 export function SingleSelectDropdown({
@@ -24,12 +26,16 @@ export function SingleSelectDropdown({
   disabled = false,
   ariaLabel,
   placeholder,
+  menuPlacement = "down",
+  menuMaxHeight = 280,
 }: SingleSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
-    top: number;
+    top?: number;
+    bottom?: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -46,10 +52,23 @@ export function SingleSelectDropdown({
     const updateMenuPosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect();
       if (!rect) return;
+      if (menuPlacement === "up") {
+        const availableHeight = Math.max(160, rect.top - 20);
+        setMenuStyle({
+          bottom: window.innerHeight - rect.top + 10,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.min(menuMaxHeight, availableHeight),
+        });
+        return;
+      }
+
+      const availableHeight = Math.max(160, window.innerHeight - rect.bottom - 20);
       setMenuStyle({
         top: rect.bottom + 10,
         left: rect.left,
         width: rect.width,
+        maxHeight: Math.min(menuMaxHeight, availableHeight),
       });
     };
 
@@ -71,7 +90,7 @@ export function SingleSelectDropdown({
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
     };
-  }, [open]);
+  }, [menuMaxHeight, menuPlacement, open]);
 
   useEffect(() => {
     if (!disabled) return;
@@ -113,9 +132,11 @@ export function SingleSelectDropdown({
               className="single-select-dropdown-menu"
               style={{
                 position: "fixed",
-                top: `${menuStyle.top}px`,
+                top: menuStyle.top !== undefined ? `${menuStyle.top}px` : "auto",
+                bottom: menuStyle.bottom !== undefined ? `${menuStyle.bottom}px` : "auto",
                 left: `${menuStyle.left}px`,
                 width: `${menuStyle.width}px`,
+                maxHeight: `${menuStyle.maxHeight}px`,
                 zIndex: 11000,
               }}
               role="listbox"

@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "Сервис не включен",
       "enableBeforeActivateMessage": "API‑сервис сейчас отключен, его нужно сначала включить. Включить и переключить сейчас?",
-      "enableAndActivateAction": "Включить и переключить"
+      "enableAndActivateAction": "Включить и переключить",
+      "apiPortUrl": "URL API-порта",
+      "modelId": "ID модели",
+      "modelIdPlaceholder": "Выберите ID модели"
     },
     "local": {
       "desc": "Импортировать текущий аккаунт из ~/.codex/auth.json",

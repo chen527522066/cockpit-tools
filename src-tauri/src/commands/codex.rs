@@ -113,26 +113,30 @@ pub async fn switch_codex_account(
             ));
             None
         });
-    let should_repair_visibility = match (provider_before.as_deref(), provider_after.as_deref()) {
+    let provider_changed = match (provider_before.as_deref(), provider_after.as_deref()) {
         (Some(before), Some(after)) => before != after,
         (None, Some(_)) => true,
         _ => false,
     };
-    if should_repair_visibility {
-        match crate::modules::codex_session_visibility::repair_session_visibility_across_instances()
-        {
-            Ok(summary) => {
+    match crate::modules::codex_session_visibility::repair_session_visibility_across_instances() {
+        Ok(summary) => {
+            if provider_changed {
                 logger::log_info(&format!(
-                    "Codex 切号后已自动执行历史会话可见性修复: {}",
+                    "Codex 切号后检测到 provider 变化，已自动执行历史会话可见性修复: {}",
+                    summary.message
+                ));
+            } else {
+                logger::log_info(&format!(
+                    "Codex 切号后已自动执行历史会话可见性修复检查: {}",
                     summary.message
                 ));
             }
-            Err(error) => {
-                logger::log_warn(&format!(
-                    "Codex 切号成功，但自动修复历史会话可见性失败，请稍后在会话管理中手动补跑: {}",
-                    error
-                ));
-            }
+        }
+        Err(error) => {
+            logger::log_warn(&format!(
+                "Codex 切号成功，但自动修复历史会话可见性失败，请稍后在会话管理中手动补跑: {}",
+                error
+            ));
         }
     }
 

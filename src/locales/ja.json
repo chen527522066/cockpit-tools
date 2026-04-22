@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "サービスが未有効です",
       "enableBeforeActivateMessage": "APIサービスは現在無効です。先に有効化する必要があります。有効化して切り替えますか？",
-      "enableAndActivateAction": "有効化して切り替え"
+      "enableAndActivateAction": "有効化して切り替え",
+      "apiPortUrl": "APIポートURL",
+      "modelId": "モデル ID",
+      "modelIdPlaceholder": "モデル ID を選択"
     },
     "local": {
       "desc": "~/.codex/auth.json から現在ログイン中のアカウントをインポート",

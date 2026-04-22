@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "Dịch vụ chưa bật",
       "enableBeforeActivateMessage": "Dịch vụ API hiện đang tắt và cần bật trước. Bật và chuyển ngay?",
-      "enableAndActivateAction": "Bật và chuyển"
+      "enableAndActivateAction": "Bật và chuyển",
+      "apiPortUrl": "URL cổng API",
+      "modelId": "ID mô hình",
+      "modelIdPlaceholder": "Chọn ID mô hình"
     },
     "local": {
       "desc": "Nhập tài khoản hiện tại từ ~/.codex/auth.json",

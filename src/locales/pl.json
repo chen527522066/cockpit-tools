@@ -1743,7 +1743,10 @@
       },
       "enableBeforeActivateTitle": "Usługa nie jest włączona",
       "enableBeforeActivateMessage": "Usługa API jest obecnie wyłączona i trzeba ją najpierw włączyć. Włączyć i przełączyć teraz?",
-      "enableAndActivateAction": "Włącz i przełącz"
+      "enableAndActivateAction": "Włącz i przełącz",
+      "apiPortUrl": "URL portu API",
+      "modelId": "ID modelu",
+      "modelIdPlaceholder": "Wybierz ID modelu"
     },
     "local": {
       "desc": "Importuj bieżące konto z ~/.codex/auth.json",

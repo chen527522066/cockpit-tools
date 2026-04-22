@@ -527,6 +527,14 @@
   align-items: stretch;
 }
 
+.codex-local-access-config-extra-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
 .codex-local-access-config-card {
   display: flex;
   min-width: 0;
@@ -544,9 +552,14 @@
     0 12px 24px -22px rgba(15, 23, 42, 0.45);
 }
 
+.codex-local-access-config-card-root,
 .codex-local-access-config-card-base,
 .codex-local-access-config-card-key {
   min-height: 100%;
+}
+
+.codex-local-access-config-card-model {
+  gap: 14px;
 }
 
 .codex-local-access-port-card {
@@ -608,6 +621,12 @@
   font-size: 12px;
   line-height: 1.6;
   overflow-x: auto;
+}
+
+.codex-local-access-model-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
 }
 
 .codex-local-access-port-row {
@@ -1071,6 +1090,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .codex-local-access-config-extra-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .codex-local-access-account-stats {
     grid-template-columns: 1fr;
   }
@@ -1124,7 +1147,8 @@
 
 @media (max-width: 640px) {
   .codex-local-access-stats-grid,
-  .codex-local-access-config-grid {
+  .codex-local-access-config-grid,
+  .codex-local-access-config-extra-grid {
     grid-template-columns: 1fr;
   }
 

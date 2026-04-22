@@ -55,7 +55,9 @@ export interface CodexLocalAccessStats {
 export interface CodexLocalAccessState {
   collection: CodexLocalAccessCollection | null;
   running: boolean;
+  apiPortUrl: string | null;
   baseUrl: string | null;
+  modelIds: string[];
   lastError: string | null;
   memberCount: number;
   stats: CodexLocalAccessStats;
