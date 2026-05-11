@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::process::Command;
 
 use serde::Serialize;
@@ -181,6 +181,11 @@ fn posix_shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
+#[cfg(target_os = "windows")]
+fn powershell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
 fn build_launch_command(context: &CodexLaunchContext) -> Result<String, String> {
     let runtime = modules::codex_wakeup::resolve_cli_runtime()?;
     let parsed_args = modules::process::parse_extra_args(&context.extra_args);
@@ -214,6 +219,46 @@ fn build_launch_command(context: &CodexLaunchContext) -> Result<String, String> 
 
         command_parts.push(codex_cmd);
         return Ok(command_parts.join(" && "));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let mut command_parts = Vec::new();
+        command_parts.push(format!(
+            "$env:CODEX_HOME={}",
+            powershell_quote(&context.user_data_dir)
+        ));
+
+        if let Some(ref dir) = context.working_dir {
+            if !dir.trim().is_empty() {
+                command_parts.push(format!(
+                    "Set-Location -LiteralPath {}",
+                    powershell_quote(dir)
+                ));
+            }
+        }
+
+        let mut codex_cmd = String::new();
+        if let Some(node_path) = runtime.node_path.as_deref() {
+            codex_cmd.push_str("& ");
+            codex_cmd.push_str(&powershell_quote(node_path));
+            codex_cmd.push(' ');
+            codex_cmd.push_str(&powershell_quote(&runtime.binary_path));
+        } else {
+            codex_cmd.push_str("& ");
+            codex_cmd.push_str(&powershell_quote(&runtime.binary_path));
+        }
+
+        for arg in parsed_args {
+            let trimmed = arg.trim();
+            if !trimmed.is_empty() {
+                codex_cmd.push(' ');
+                codex_cmd.push_str(&powershell_quote(trimmed));
+            }
+        }
+
+        command_parts.push(codex_cmd);
+        return Ok(command_parts.join("; "));
     }
 
     #[allow(unreachable_code)]
@@ -662,13 +707,6 @@ pub async fn codex_execute_instance_launch_command(
 ) -> Result<String, String> {
     let context = resolve_instance_launch_context(&instance_id)?;
 
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = terminal;
-        let _ = context;
-    }
-
-    #[cfg(target_os = "macos")]
     let command = build_launch_command(&context)?;
 
     #[cfg(target_os = "macos")]
@@ -735,6 +773,44 @@ pub async fn codex_execute_instance_launch_command(
         return Ok(format!("已在 {} 执行 Codex CLI 命令", app_name));
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        let config = crate::modules::config::get_user_config();
+        let terminal = terminal
+            .unwrap_or(config.default_terminal)
+            .trim()
+            .to_string();
+
+        let mut cmd = if terminal == "pwsh" {
+            let mut command_process = Command::new("pwsh");
+            command_process.args(["-NoExit", "-Command", &command]);
+            command_process
+        } else if terminal == "wt" {
+            let mut command_process = Command::new("wt");
+            command_process.args(["powershell", "-NoExit", "-Command", &command]);
+            command_process
+        } else if terminal == "cmd" {
+            let mut command_process = Command::new("cmd");
+            command_process.args([
+                "/C",
+                "start",
+                "",
+                "powershell",
+                "-NoExit",
+                "-Command",
+                &command,
+            ]);
+            command_process
+        } else {
+            let mut command_process = Command::new("powershell");
+            command_process.args(["-NoExit", "-Command", &command]);
+            command_process
+        };
+
+        cmd.spawn().map_err(|e| format!("打开终端失败: {}", e))?;
+        return Ok("已在终端执行 Codex CLI 命令".to_string());
+    }
+
     #[allow(unreachable_code)]
-    Err("Codex CLI 终端执行仅支持 macOS".to_string())
+    Err("Codex CLI 终端执行仅支持 macOS 和 Windows".to_string())
 }
