@@ -4,7 +4,7 @@
   "topRightAd": {
     "id": "top-right-ad-2026-04-shop",
     "priority": 100,
-    "text": "Codex Plus手搓存货和Kiro成品号。需要的可以选购，感谢",
+    "text": "Kiro成品号。需要的可以选购，感谢",
     "badge": "推广",
     "ctaLabel": "选购",
     "ctaUrl": "https://xiangzili.xyz",
@@ -16,7 +16,7 @@
     "expiresAt": null,
     "locales": {
       "zh-CN": {
-        "text": "此地址提供Codex 9.9元日抛号，可一键导入到此工具里。需要的可以选购，感谢",
+        "text": "Kiro成品号。需要的可以选购，感谢",
         "badge": "推广",
         "ctaLabel": "选购"
       }
