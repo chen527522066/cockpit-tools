@@ -9184,7 +9184,7 @@ async fn probe_local_access_gateway(
     api_key: &str,
     model_id: &str,
 ) -> LocalAccessGatewayProbeResult {
-    let url = format!("{}/v1/responses", base_url.trim_end_matches('/'));
+    let url = probe_local_access_gateway_url(base_url);
     let client = match build_localhost_http_client(Duration::from_secs(90), "本地网关诊断") {
         Ok(client) => client,
         Err(error) => {
@@ -9246,6 +9246,15 @@ async fn probe_local_access_gateway(
         detail: clean_diagnostic_text(body_text.clone()),
         gateway_output: clean_diagnostic_text(format!("HTTP {}\n{}", status.as_u16(), body_text)),
     })
+}
+
+fn probe_local_access_gateway_url(base_url: &str) -> String {
+    let trimmed = base_url.trim_end_matches('/');
+    if trimmed.ends_with("/v1") {
+        format!("{}/responses", trimmed)
+    } else {
+        format!("{}{}", trimmed, RESPONSES_PATH)
+    }
 }
 
 fn format_cli_failure_output(
@@ -14883,10 +14892,11 @@ mod tests {
         legacy_stream_error_category, model_pricing, normalize_custom_routing_rules,
         normalized_sidecar_error_category, parse_codex_retry_after,
         parse_responses_payload_from_upstream, parse_websocket_upstream_error,
-        prepare_gateway_request, profile_base_url_matches, recover_invalid_stats_file,
-        remove_codex_local_access_config, resolve_plan_rank, resolve_supported_model_alias,
-        resolve_upstream_target, should_retry_single_account_upstream_status,
-        should_treat_response_as_stream, should_try_next_account, validate_client_model_visible,
+        prepare_gateway_request, probe_local_access_gateway_url, profile_base_url_matches,
+        recover_invalid_stats_file, remove_codex_local_access_config, resolve_plan_rank,
+        resolve_supported_model_alias, resolve_upstream_target,
+        should_retry_single_account_upstream_status, should_treat_response_as_stream,
+        should_try_next_account, validate_client_model_visible,
         visible_codex_model_ids_for_api_key, websocket_accept_value,
         websocket_connect_error_from_http_response, CodexLocalAccessCollection,
         CodexLocalAccessGatewayMode, CodexLocalAccessScope, GatewayResponseAdapter, ParsedRequest,
@@ -15418,6 +15428,18 @@ supports_websockets = false
             Some("http://127.0.0.1:14998/v1"),
             "http://localhost:14998/v1"
         ));
+    }
+
+    #[test]
+    fn probe_local_access_gateway_url_preserves_existing_v1_prefix() {
+        assert_eq!(
+            probe_local_access_gateway_url("http://localhost:11892/v1"),
+            "http://localhost:11892/v1/responses"
+        );
+        assert_eq!(
+            probe_local_access_gateway_url("http://localhost:11892/v1/"),
+            "http://localhost:11892/v1/responses"
+        );
     }
 
     #[test]
