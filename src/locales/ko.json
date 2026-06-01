@@ -2784,6 +2784,18 @@
         "presetNameRequired": "프리셋 이름을 입력하세요",
         "deletePresetConfirm": "이 사용자 프리셋을 삭제할까요?",
         "deletePresetTitle": "프리셋 삭제"
+      },
+      "accountModelRules": {
+        "action": "모델 차단",
+        "title": "계정별 모델 차단",
+        "desc": "규칙에 맞는 계정은 해당 모델 요청에서 제외됩니다. 줄마다 모델 또는 와일드카드를 입력하세요.",
+        "bulkLabel": "일괄 규칙",
+        "placeholder": "예:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "선택 항목에 적용",
+        "selectAll": "계정 선택",
+        "clearSelection": "선택 해제",
+        "saveSuccess": "계정 모델 차단 규칙이 저장되었습니다",
+        "cardCount": "{{count}}개 차단"
       }
     }
   },

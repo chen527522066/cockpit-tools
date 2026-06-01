@@ -2043,7 +2043,7 @@
         "save": "保存集合"
       },
       "oauthBinding": {
-        "desc": "可选绑定。只能选择带 refresh_token、可自动续期的 OAuth 账号；未绑定时 API 服务按原 API Key 逻辑运行；绑定后登录态使用 OAuth 账号，Provider 使用当前 API 服务配置。",
+        "desc": "可选绑定。只要 OAuth 账号带 refresh_token 即可选择；未绑定时 API 服务按原 API Key 逻辑运行；绑定后登录态使用 OAuth 账号，Provider 使用当前 API 服务配置。",
         "currentService": "API 服务：{{name}}"
       },
       "customRoutingEdit": "编辑自定义调度",
@@ -2200,7 +2200,7 @@
         "action": "绑定 OAuth",
         "actionShort": "绑定",
         "title": "绑定 OAuth 账号",
-        "desc": "可选绑定。只能选择带 refresh_token、可自动续期的 OAuth 账号；未绑定时该账号按原 API Key 逻辑切换；绑定后登录态使用 OAuth 账号，Provider 使用当前 API Key 账号配置。",
+        "desc": "可选绑定。只要 OAuth 账号带 refresh_token 即可选择；未绑定时该账号按原 API Key 逻辑切换；绑定后登录态使用 OAuth 账号，Provider 使用当前 API Key 账号配置。",
         "currentAccount": "API Key 账号：{{name}}",
         "selectLabel": "选择 OAuth 账号",
         "empty": "暂无 OAuth 账号，请先添加 OAuth 授权账号。",
@@ -2708,6 +2708,18 @@
       "accountHealth": {
         "failures": "连续失败 {{count}}",
         "image": "图片 {{status}}"
+      },
+      "accountModelRules": {
+        "action": "禁用模型",
+        "title": "账号禁用模型",
+        "desc": "命中规则的账号不会参与该模型请求；每行一个模型或通配符。",
+        "bulkLabel": "批量规则",
+        "placeholder": "示例：\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "应用到已选",
+        "selectAll": "全选账号",
+        "clearSelection": "清除选择",
+        "saveSuccess": "账号模型禁用规则已保存",
+        "cardCount": "禁用 {{count}}"
       },
       "models": {
         "availableTitle": "可用模型",

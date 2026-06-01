@@ -2830,6 +2830,18 @@
         "presetNameRequired": "أدخل اسم الإعداد",
         "deletePresetConfirm": "هل تريد حذف هذا الإعداد المخصص؟",
         "deletePresetTitle": "حذف الإعداد"
+      },
+      "accountModelRules": {
+        "action": "حظر النماذج",
+        "title": "حظر نماذج الحساب",
+        "desc": "يتم تخطي الحسابات المطابقة لهذه القواعد عند طلب هذا النموذج. اكتب نموذجا أو نمطا في كل سطر.",
+        "bulkLabel": "قواعد جماعية",
+        "placeholder": "مثال:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "تطبيق على المحدد",
+        "selectAll": "تحديد الحسابات",
+        "clearSelection": "مسح التحديد",
+        "saveSuccess": "تم حفظ حظر نماذج الحساب",
+        "cardCount": "{{count}} محظور"
       }
     }
   },

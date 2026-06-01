@@ -2784,6 +2784,18 @@
         "presetNameRequired": "プリセット名を入力してください",
         "deletePresetConfirm": "このカスタムプリセットを削除しますか？",
         "deletePresetTitle": "プリセットを削除"
+      },
+      "accountModelRules": {
+        "action": "モデル除外",
+        "title": "アカウント別モデル除外",
+        "desc": "ルールに一致するアカウントは、そのモデルのリクエストでは使われません。1 行に 1 つのモデルまたはワイルドカードを入力します。",
+        "bulkLabel": "一括ルール",
+        "placeholder": "例:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "選択に適用",
+        "selectAll": "アカウント選択",
+        "clearSelection": "選択解除",
+        "saveSuccess": "アカウント別モデル除外を保存しました",
+        "cardCount": "{{count}} 件除外"
       }
     }
   },

@@ -2784,6 +2784,18 @@
         "presetNameRequired": "Zadejte název sady",
         "deletePresetConfirm": "Smazat tuto vlastní sadu?",
         "deletePresetTitle": "Smazat sadu"
+      },
+      "accountModelRules": {
+        "action": "Blokovat modely",
+        "title": "Blokace modelů účtu",
+        "desc": "Účty odpovídající pravidlům se pro daný model přeskočí. Jeden model nebo zástupný vzor na řádek.",
+        "bulkLabel": "Hromadná pravidla",
+        "placeholder": "Příklad:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "Použít na vybrané",
+        "selectAll": "Vybrat účty",
+        "clearSelection": "Zrušit výběr",
+        "saveSuccess": "Blokace modelů účtu uložena",
+        "cardCount": "{{count}} blok."
       }
     }
   },

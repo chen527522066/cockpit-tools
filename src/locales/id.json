@@ -2830,6 +2830,18 @@
         "presetNameRequired": "Masukkan nama preset",
         "deletePresetConfirm": "Hapus preset kustom ini?",
         "deletePresetTitle": "Hapus preset"
+      },
+      "accountModelRules": {
+        "action": "Blokir Model",
+        "title": "Blokir Model Akun",
+        "desc": "Akun yang cocok dengan aturan akan dilewati untuk permintaan model tersebut. Satu model atau wildcard per baris.",
+        "bulkLabel": "Aturan Massal",
+        "placeholder": "Contoh:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "Terapkan ke Pilihan",
+        "selectAll": "Pilih Akun",
+        "clearSelection": "Hapus Pilihan",
+        "saveSuccess": "Blokir model akun tersimpan",
+        "cardCount": "{{count}} diblokir"
       }
     }
   },

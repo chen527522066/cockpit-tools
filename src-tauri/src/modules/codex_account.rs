@@ -713,7 +713,8 @@ fn write_quick_config_to_config_toml(
     if let Some(parent) = config_path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("创建 config.toml 目录失败: {}", e))?;
     }
-    let content = doc.to_string();
+    let content =
+        crate::modules::codex_config_format::normalize_config_toml_spacing(&doc.to_string());
     crate::modules::atomic_write::write_string_atomic(&config_path, &content)
         .map_err(|e| format!("写入 config.toml 失败: {}", e))?;
 
@@ -874,7 +875,8 @@ fn write_api_provider_to_config_toml(
     if let Some(parent) = config_path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("创建 config.toml 目录失败: {}", e))?;
     }
-    let content = doc.to_string();
+    let content =
+        crate::modules::codex_config_format::normalize_config_toml_spacing(&doc.to_string());
     crate::modules::atomic_write::write_string_atomic(&config_path, &content)
         .map_err(|e| format!("写入 config.toml 失败: {}", e))
 }
@@ -945,7 +947,10 @@ fn write_api_key_provider_to_config_toml(
 
     let _ = doc.remove(CODEX_CONFIG_OPENAI_BASE_URL_KEY);
     doc[CODEX_CONFIG_MODEL_PROVIDER_KEY] = value(CODEX_RUNTIME_MODEL_PROVIDER_ID);
-    doc[CODEX_CONFIG_MODEL_PROVIDERS_KEY] = toml_edit::table();
+    remove_managed_api_key_model_providers_from_doc(&mut doc);
+    if doc.get(CODEX_CONFIG_MODEL_PROVIDERS_KEY).is_none() {
+        doc[CODEX_CONFIG_MODEL_PROVIDERS_KEY] = toml_edit::table();
+    }
     let model_providers = doc[CODEX_CONFIG_MODEL_PROVIDERS_KEY]
         .as_table_mut()
         .ok_or("config.toml 中 model_providers 不是合法表结构")?;
@@ -963,7 +968,8 @@ fn write_api_key_provider_to_config_toml(
     if let Some(parent) = config_path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("创建 config.toml 目录失败: {}", e))?;
     }
-    let content = doc.to_string();
+    let content =
+        crate::modules::codex_config_format::normalize_config_toml_spacing(&doc.to_string());
     crate::modules::atomic_write::write_string_atomic(&config_path, &content)
         .map_err(|e| format!("写入 config.toml 失败: {}", e))
 }
@@ -6015,7 +6021,7 @@ requires_openai_auth = false
     }
 
     #[test]
-    fn api_key_config_toml_cleans_legacy_model_provider_sections() {
+    fn api_key_config_toml_preserves_unmanaged_model_provider_sections() {
         let base_dir = make_temp_dir("codex-config-clean-provider-test");
         let config_path = base_dir.join("config.toml");
         fs::write(
@@ -6052,8 +6058,8 @@ requires_openai_auth = true
         let content = fs::read_to_string(&config_path).expect("read config");
         assert!(content.contains("model_provider = \"codex_local_access\""));
         assert!(content.contains("[model_providers.codex_local_access]"));
-        assert!(!content.contains("[model_providers.mimo]"));
-        assert!(!content.contains("[model_providers.relay]"));
+        assert!(content.contains("[model_providers.mimo]"));
+        assert!(content.contains("[model_providers.relay]"));
         assert!(!content.contains("openai_base_url"));
         assert!(content.contains("model_context_window = 1000000"));
 

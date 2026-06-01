@@ -2709,6 +2709,18 @@
         "failures": "{{count}} consecutive failure(s)",
         "image": "Images {{status}}"
       },
+      "accountModelRules": {
+        "action": "Block Models",
+        "title": "Account Model Blocks",
+        "desc": "Accounts matching these rules are skipped for that model request. Use one model or wildcard per line.",
+        "bulkLabel": "Bulk Rules",
+        "placeholder": "gpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "Apply to Selected",
+        "selectAll": "Select Accounts",
+        "clearSelection": "Clear Selection",
+        "saveSuccess": "Account model blocks saved",
+        "cardCount": "{{count}} blocked"
+      },
       "models": {
         "availableTitle": "Available Models",
         "capabilityTitle": "Capability Switches",

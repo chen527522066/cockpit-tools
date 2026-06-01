@@ -2784,6 +2784,18 @@
         "presetNameRequired": "Ön ayar adı girin",
         "deletePresetConfirm": "Bu özel ön ayar silinsin mi?",
         "deletePresetTitle": "Ön ayarı sil"
+      },
+      "accountModelRules": {
+        "action": "Model engelle",
+        "title": "Hesap model engelleri",
+        "desc": "Kurallarla eşleşen hesaplar bu model isteğinde atlanır. Satır başına bir model veya joker yazın.",
+        "bulkLabel": "Toplu kurallar",
+        "placeholder": "Örnek:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "Seçilenlere uygula",
+        "selectAll": "Hesapları seç",
+        "clearSelection": "Seçimi temizle",
+        "saveSuccess": "Hesap model engelleri kaydedildi",
+        "cardCount": "{{count}} engelli"
       }
     }
   },

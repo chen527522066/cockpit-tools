@@ -2784,6 +2784,18 @@
         "presetNameRequired": "請輸入方案名稱",
         "deletePresetConfirm": "確定要刪除此自訂方案嗎？",
         "deletePresetTitle": "刪除方案"
+      },
+      "accountModelRules": {
+        "action": "停用模型",
+        "title": "帳號停用模型",
+        "desc": "符合規則的帳號不會參與該模型請求；每行一個模型或萬用字元。",
+        "bulkLabel": "批次規則",
+        "placeholder": "範例：\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "套用到已選",
+        "selectAll": "全選帳號",
+        "clearSelection": "清除選取",
+        "saveSuccess": "帳號模型停用規則已儲存",
+        "cardCount": "停用 {{count}}"
       }
     }
   },

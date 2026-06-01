@@ -2784,6 +2784,18 @@
         "presetNameRequired": "Introduce un nombre de perfil",
         "deletePresetConfirm": "¿Eliminar este perfil personalizado?",
         "deletePresetTitle": "Eliminar perfil"
+      },
+      "accountModelRules": {
+        "action": "Bloquear modelos",
+        "title": "Bloqueos por cuenta",
+        "desc": "Las cuentas que coincidan se omiten para esa solicitud de modelo. Un modelo o comodín por línea.",
+        "bulkLabel": "Reglas masivas",
+        "placeholder": "Ejemplo:\ngpt-5.4-mini\ngpt-5.3-*",
+        "applySelected": "Aplicar a selección",
+        "selectAll": "Seleccionar cuentas",
+        "clearSelection": "Borrar selección",
+        "saveSuccess": "Bloqueos de modelo guardados",
+        "cardCount": "{{count}} bloqueados"
       }
     }
   },
