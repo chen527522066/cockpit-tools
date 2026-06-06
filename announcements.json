@@ -24,127 +24,6 @@
       }
     }
   },
-  "topRightAds": [
-    {
-      "id": "top-right-ad-2026-04-shop",
-      "priority": 100,
-      "text": "Codex Plus代过试用，成品号，Gemini给自己账号订阅一年Pro 需要的了解一下",
-      "badge": "推广",
-      "ctaLabel": "选购",
-      "ctaUrl": "https://xiangzili.xyz",
-      "targetLanguages": [
-        "*"
-      ],
-      "createdAt": "2026-04-07T12:00:00Z",
-      "expiresAt": null,
-      "locales": {
-        "zh-CN": {
-          "text": "Codex Plus代过试用，成品号，Gemini给自己账号订阅一年Pro 需要的了解一下",
-          "badge": "推广",
-          "ctaLabel": "选购"
-        }
-      }
-    },
-    {
-      "id": "top-right-ad-local-carousel-test",
-      "priority": 90,
-      "text": "APIKEY.FUN 提供 Claude、OpenAI、Gemini 等多模型 API 中转服务，兼顾稳定调用与成本优化",
-      "badge": "赞助",
-      "ctaLabel": "查看",
-      "ctaUrl": "https://apikey.fun",
-      "targetLanguages": [
-        "*"
-      ],
-      "createdAt": "2026-06-06T00:00:00Z",
-      "expiresAt": null,
-      "locales": {
-        "zh-CN": {
-          "text": "APIKEY.FUN 提供 Claude、OpenAI、Gemini 等多模型 API 中转服务，兼顾稳定调用与成本优化",
-          "badge": "赞助",
-          "ctaLabel": "查看"
-        },
-        "en": {
-          "text": "APIKEY.FUN multi-model API relay with unified keys, stable calls, and lower costs.",
-          "badge": "Sponsor",
-          "ctaLabel": "View"
-        },
-        "en-US": {
-          "text": "APIKEY.FUN multi-model API relay with unified keys, stable calls, and lower costs.",
-          "badge": "Sponsor",
-          "ctaLabel": "View"
-        }
-      }
-    }
-  ],
-  "sponsorModule": {
-    "enabled": true,
-    "entryVisible": true,
-    "title": "赞助商",
-    "subtitle": "感谢以下赞助商支持 Cockpit Tools 的持续维护与改进。",
-    "targetVersions": "*",
-    "targetLanguages": [
-      "*"
-    ],
-    "createdAt": "2026-06-05T00:00:00Z",
-    "expiresAt": null,
-    "locales": {
-      "zh-CN": {
-        "title": "赞助商",
-        "subtitle": "感谢以下赞助商支持 Cockpit Tools 的持续维护与改进。"
-      },
-      "en": {
-        "title": "Sponsors",
-        "subtitle": "Thanks to these sponsors for supporting the ongoing maintenance and improvement of Cockpit Tools."
-      },
-      "en-US": {
-        "title": "Sponsors",
-        "subtitle": "Thanks to these sponsors for supporting the ongoing maintenance and improvement of Cockpit Tools."
-      }
-    },
-    "sponsors": [
-      {
-        "id": "apikey-fun",
-        "name": "APIKEY.FUN",
-        "priority": 100,
-        "logoUrl": "https://raw.githubusercontent.com/BigPizzaV3/CodexPlusPlus/main/docs/images/sponsor-apikey-fun.png",
-        "url": "https://apikey.fun/register?aff=CODEX",
-        "badge": "AI 中转",
-        "description": "APIKEY.FUN 面向开发者提供多模型 API 接入与中转服务，覆盖 Claude、OpenAI、Gemini 等常用模型，适合需要统一密钥、稳定调用和成本优化的工具链场景。",
-        "integration": {
-          "enabled": true,
-          "type": "sub2api",
-          "baseUrl": "https://api.apikey.fun/v1",
-          "wireApi": "chat_completions",
-          "quickConfigure": true,
-          "dashboardCard": true,
-          "models": [],
-          "supportsVision": false,
-          "website": "https://apikey.fun",
-          "apiKeyUrl": "https://apikey.fun/register?aff=CODEX"
-        },
-        "targetVersions": "*",
-        "targetLanguages": [
-          "*"
-        ],
-        "createdAt": "2026-06-05T00:00:00Z",
-        "expiresAt": null,
-        "locales": {
-          "zh-CN": {
-            "badge": "AI 中转",
-            "description": "APIKEY.FUN 面向开发者提供多模型 API 接入与中转服务，覆盖 Claude、OpenAI、Gemini 等常用模型，适合需要统一密钥、稳定调用和成本优化的工具链场景。"
-          },
-          "en": {
-            "badge": "AI Relay",
-            "description": "APIKEY.FUN provides multi-model API access and relay services for developers, covering popular models such as Claude, OpenAI, and Gemini. It fits workflows that need unified keys, stable calls, and better cost control."
-          },
-          "en-US": {
-            "badge": "AI Relay",
-            "description": "APIKEY.FUN provides multi-model API access and relay services for developers, covering popular models such as Claude, OpenAI, and Gemini. It fits workflows that need unified keys, stable calls, and better cost control."
-          }
-        }
-      }
-    ]
-  },
   "announcements": [
     {
       "id": "ann-2026-05-12-v0230-withdrawn-manual-update",
@@ -199,7 +78,7 @@
       "priority": 300,
       "title": "👋 欢迎使用 Cockpit Tools",
       "summary": "账号管理、配额监控与多开能力已就绪。",
-      "content": "感谢你选择 Cockpit Tools。\n\n这个桌面端目前可以帮助你：\n• 统一管理 Antigravity、Codex、GitHub Copilot、Windsurf、Kiro 账号\n• 实时查看模型配额与重置时间\n• 快速切换当前账号并支持批量刷新\n• 管理多开实例\n• 使用唤醒任务与账号验证能力\n\n如果你有建议或问题，欢迎随时反馈。",
+      "content": "感谢你选择 Cockpit Tools。\n\n这个桌面端目前可以帮助你：\n• 统一管理 Antigravity、Codex、GitHub Copilot、Windsurf、Kiro 账号\n• 实时查看模型配额与重置时间\n• 快速切换当前账号并支持批量刷新\n• 管理设备指纹与多开实例\n• 使用唤醒任务与账号验证能力\n\n如果你有建议或问题，欢迎随时反馈。",
       "action": {
         "type": "url",
         "target": "https://github.com/jlcodes99/cockpit-tools/issues",
@@ -217,55 +96,55 @@
         "zh-CN": {
           "title": "👋 欢迎使用 Cockpit Tools",
           "summary": "账号管理、配额监控与多开能力已就绪。",
-          "content": "感谢你选择 Cockpit Tools。\n\n这个桌面端目前可以帮助你：\n• 统一管理 Antigravity、Codex、GitHub Copilot、Windsurf、Kiro 账号\n• 实时查看模型配额与重置时间\n• 快速切换当前账号并支持批量刷新\n• 管理多开实例\n• 使用唤醒任务与账号验证能力\n\n如果你有建议或问题，欢迎随时反馈。",
+          "content": "感谢你选择 Cockpit Tools。\n\n这个桌面端目前可以帮助你：\n• 统一管理 Antigravity、Codex、GitHub Copilot、Windsurf、Kiro 账号\n• 实时查看模型配额与重置时间\n• 快速切换当前账号并支持批量刷新\n• 管理设备指纹与多开实例\n• 使用唤醒任务与账号验证能力\n\n如果你有建议或问题，欢迎随时反馈。",
           "actionLabel": "反馈建议"
         },
         "zh-tw": {
           "title": "👋 歡迎使用 Cockpit Tools",
           "summary": "帳號管理、配額監控與多開能力已就緒。",
-          "content": "感謝你選擇 Cockpit Tools。\n\n這個桌面端目前可以幫助你：\n• 統一管理 Antigravity、Codex、GitHub Copilot、Windsurf、Kiro 帳號\n• 即時查看模型配額與重置時間\n• 快速切換當前帳號並支援批量刷新\n• 管理多開實例\n• 使用喚醒任務與帳號驗證能力\n\n如果你有建議或問題，歡迎隨時回饋。",
+          "content": "感謝你選擇 Cockpit Tools。\n\n這個桌面端目前可以幫助你：\n• 統一管理 Antigravity、Codex、GitHub Copilot、Windsurf、Kiro 帳號\n• 即時查看模型配額與重置時間\n• 快速切換當前帳號並支援批量刷新\n• 管理裝置指紋與多開實例\n• 使用喚醒任務與帳號驗證能力\n\n如果你有建議或問題，歡迎隨時回饋。",
           "actionLabel": "回饋建議"
         },
         "en": {
           "title": "👋 Welcome to Cockpit Tools",
           "summary": "Account management, quota monitoring, and multi-instance tools are ready.",
-          "content": "Thanks for choosing Cockpit Tools.\n\nThis desktop app can help you with:\n• Unified account management for Antigravity, Codex, GitHub Copilot, Windsurf, and Kiro\n• Real-time quota and reset-time visibility\n• Fast current-account switching and batch refresh\n• Multi-instance management\n• Wakeup tasks and account verification workflows\n\nIf you have suggestions or run into issues, we would love your feedback.",
+          "content": "Thanks for choosing Cockpit Tools.\n\nThis desktop app can help you with:\n• Unified account management for Antigravity, Codex, GitHub Copilot, Windsurf, and Kiro\n• Real-time quota and reset-time visibility\n• Fast current-account switching and batch refresh\n• Device fingerprint and multi-instance management\n• Wakeup tasks and account verification workflows\n\nIf you have suggestions or run into issues, we would love your feedback.",
           "actionLabel": "Send Feedback"
         },
         "en-US": {
           "title": "👋 Welcome to Cockpit Tools",
           "summary": "Account management, quota monitoring, and multi-instance tools are ready.",
-          "content": "Thanks for choosing Cockpit Tools.\n\nThis desktop app can help you with:\n• Unified account management for Antigravity, Codex, GitHub Copilot, Windsurf, and Kiro\n• Real-time quota and reset-time visibility\n• Fast current-account switching and batch refresh\n• Multi-instance management\n• Wakeup tasks and account verification workflows\n\nIf you have suggestions or run into issues, we would love your feedback.",
+          "content": "Thanks for choosing Cockpit Tools.\n\nThis desktop app can help you with:\n• Unified account management for Antigravity, Codex, GitHub Copilot, Windsurf, and Kiro\n• Real-time quota and reset-time visibility\n• Fast current-account switching and batch refresh\n• Device fingerprint and multi-instance management\n• Wakeup tasks and account verification workflows\n\nIf you have suggestions or run into issues, we would love your feedback.",
           "actionLabel": "Send Feedback"
         },
         "ja": {
           "title": "👋 Cockpit Tools へようこそ",
           "summary": "アカウント管理、クォータ監視、マルチインスタンス機能が利用できます。",
-          "content": "Cockpit Tools を選んでいただきありがとうございます。\n\nこのデスクトップアプリでできること：\n• Antigravity / Codex / GitHub Copilot / Windsurf / Kiro のアカウントを一元管理\n• モデルクォータとリセット時刻をリアルタイムで確認\n• 現在アカウントの高速切替と一括更新\n• マルチインスタンス管理\n• ウェイクアップタスクとアカウント検証機能\n\nご意見や問題があれば、ぜひお知らせください。",
+          "content": "Cockpit Tools を選んでいただきありがとうございます。\n\nこのデスクトップアプリでできること：\n• Antigravity / Codex / GitHub Copilot / Windsurf / Kiro のアカウントを一元管理\n• モデルクォータとリセット時刻をリアルタイムで確認\n• 現在アカウントの高速切替と一括更新\n• デバイスフィンガープリントとマルチインスタンス管理\n• ウェイクアップタスクとアカウント検証機能\n\nご意見や問題があれば、ぜひお知らせください。",
           "actionLabel": "フィードバックを送る"
         },
         "ko": {
           "title": "👋 Cockpit Tools에 오신 것을 환영합니다",
           "summary": "계정 관리, 할당량 모니터링, 멀티 인스턴스 기능을 사용할 수 있습니다.",
-          "content": "Cockpit Tools를 선택해 주셔서 감사합니다.\n\n이 데스크톱 앱으로 할 수 있는 일:\n• Antigravity, Codex, GitHub Copilot, Windsurf, Kiro 계정을 통합 관리\n• 모델 할당량과 리셋 시간을 실시간으로 확인\n• 현재 계정 빠른 전환 및 일괄 새로고침\n• 멀티 인스턴스 관리\n• 웨이크업 작업 및 계정 검증 기능\n\n문의나 제안이 있다면 언제든지 알려주세요.",
+          "content": "Cockpit Tools를 선택해 주셔서 감사합니다.\n\n이 데스크톱 앱으로 할 수 있는 일:\n• Antigravity, Codex, GitHub Copilot, Windsurf, Kiro 계정을 통합 관리\n• 모델 할당량과 리셋 시간을 실시간으로 확인\n• 현재 계정 빠른 전환 및 일괄 새로고침\n• 디바이스 지문 및 멀티 인스턴스 관리\n• 웨이크업 작업 및 계정 검증 기능\n\n문의나 제안이 있다면 언제든지 알려주세요.",
           "actionLabel": "피드백 보내기"
         },
         "de": {
           "title": "👋 Willkommen bei Cockpit Tools",
           "summary": "Kontoverwaltung, Quotenüberwachung und Multi-Instanz-Funktionen sind bereit.",
-          "content": "Danke, dass du Cockpit Tools gewählt hast.\n\nDiese Desktop-App hilft dir bei:\n• Zentraler Verwaltung von Antigravity-, Codex-, GitHub Copilot-, Windsurf- und Kiro-Konten\n• Echtzeit-Anzeige von Modellquoten und Reset-Zeiten\n• Schnellem Kontowechsel und Massenaktualisierung\n• Verwaltung von Multi-Instanzen\n• Wakeup-Tasks und Kontoverifikation\n\nWenn du Feedback oder Fragen hast, freuen wir uns auf deine Rückmeldung.",
+          "content": "Danke, dass du Cockpit Tools gewählt hast.\n\nDiese Desktop-App hilft dir bei:\n• Zentraler Verwaltung von Antigravity-, Codex-, GitHub Copilot-, Windsurf- und Kiro-Konten\n• Echtzeit-Anzeige von Modellquoten und Reset-Zeiten\n• Schnellem Kontowechsel und Massenaktualisierung\n• Verwaltung von Geräte-Fingerprints und Multi-Instanzen\n• Wakeup-Tasks und Kontoverifikation\n\nWenn du Feedback oder Fragen hast, freuen wir uns auf deine Rückmeldung.",
           "actionLabel": "Feedback senden"
         },
         "fr": {
           "title": "👋 Bienvenue dans Cockpit Tools",
           "summary": "La gestion des comptes, le suivi des quotas et le multi-instance sont prêts.",
-          "content": "Merci d'avoir choisi Cockpit Tools.\n\nCette application desktop vous permet de :\n• Gérer de façon unifiée les comptes Antigravity, Codex, GitHub Copilot, Windsurf et Kiro\n• Suivre en temps réel les quotas de modèles et les heures de réinitialisation\n• Changer rapidement de compte actif et lancer des rafraîchissements en lot\n• Gérer plusieurs instances\n• Utiliser les tâches de réveil et la vérification de compte\n\nSi vous avez des suggestions ou des problèmes, n'hésitez pas à nous le dire.",
+          "content": "Merci d'avoir choisi Cockpit Tools.\n\nCette application desktop vous permet de :\n• Gérer de façon unifiée les comptes Antigravity, Codex, GitHub Copilot, Windsurf et Kiro\n• Suivre en temps réel les quotas de modèles et les heures de réinitialisation\n• Changer rapidement de compte actif et lancer des rafraîchissements en lot\n• Gérer les empreintes d'appareil et les instances multiples\n• Utiliser les tâches de réveil et la vérification de compte\n\nSi vous avez des suggestions ou des problèmes, n'hésitez pas à nous le dire.",
           "actionLabel": "Envoyer un retour"
         },
         "es": {
           "title": "👋 Bienvenido a Cockpit Tools",
           "summary": "La gestión de cuentas, el monitoreo de cuotas y las funciones multiinstancia están listas.",
-          "content": "Gracias por elegir Cockpit Tools.\n\nEsta aplicación de escritorio te ayuda a:\n• Gestionar de forma unificada cuentas de Antigravity, Codex, GitHub Copilot, Windsurf y Kiro\n• Ver en tiempo real las cuotas de modelos y horarios de reinicio\n• Cambiar rápidamente la cuenta actual y refrescar en lote\n• Gestionar múltiples instancias\n• Usar tareas de activación y verificación de cuentas\n\nSi tienes sugerencias o problemas, estaremos encantados de recibir tus comentarios.",
+          "content": "Gracias por elegir Cockpit Tools.\n\nEsta aplicación de escritorio te ayuda a:\n• Gestionar de forma unificada cuentas de Antigravity, Codex, GitHub Copilot, Windsurf y Kiro\n• Ver en tiempo real las cuotas de modelos y horarios de reinicio\n• Cambiar rápidamente la cuenta actual y refrescar en lote\n• Gestionar huellas del dispositivo e instancias múltiples\n• Usar tareas de activación y verificación de cuentas\n\nSi tienes sugerencias o problemas, estaremos encantados de recibir tus comentarios.",
           "actionLabel": "Enviar comentarios"
         },
         "it": {
@@ -277,7 +156,7 @@
         "ru": {
           "title": "👋 Добро пожаловать в Cockpit Tools",
           "summary": "Управление аккаунтами, мониторинг квот и мультиинстанс уже готовы.",
-          "content": "Спасибо, что выбрали Cockpit Tools.\n\nЭто настольное приложение помогает:\n• Единообразно управлять аккаунтами Antigravity, Codex, GitHub Copilot, Windsurf и Kiro\n• В реальном времени отслеживать квоты моделей и время сброса\n• Быстро переключать текущий аккаунт и обновлять данные пакетно\n• Управлять несколькими инстансами\n• Использовать задачи пробуждения и проверку аккаунтов\n\nЕсли у вас есть предложения или проблемы, будем рады обратной связи.",
+          "content": "Спасибо, что выбрали Cockpit Tools.\n\nЭто настольное приложение помогает:\n• Единообразно управлять аккаунтами Antigravity, Codex, GitHub Copilot, Windsurf и Kiro\n• В реальном времени отслеживать квоты моделей и время сброса\n• Быстро переключать текущий аккаунт и обновлять данные пакетно\n• Управлять отпечатками устройства и несколькими инстансами\n• Использовать задачи пробуждения и проверку аккаунтов\n\nЕсли у вас есть предложения или проблемы, будем рады обратной связи.",
           "actionLabel": "Отправить отзыв"
         },
         "pt-br": {
@@ -289,31 +168,31 @@
         "tr": {
           "title": "👋 Cockpit Tools'a hoş geldiniz",
           "summary": "Hesap yönetimi, kota izleme ve çoklu örnek özellikleri hazır.",
-          "content": "Cockpit Tools'u seçtiğiniz için teşekkürler.\n\nBu masaüstü uygulaması size şunlarda yardımcı olur:\n• Antigravity, Codex, GitHub Copilot, Windsurf ve Kiro hesaplarını tek yerden yönetme\n• Model kotalarını ve sıfırlanma zamanlarını gerçek zamanlı izleme\n• Mevcut hesabı hızlı değiştirme ve toplu yenileme\n• Çoklu örnek yönetimi\n• Wakeup görevleri ve hesap doğrulama\n\nÖneriniz veya sorununuz varsa geri bildiriminizi bekliyoruz.",
+          "content": "Cockpit Tools'u seçtiğiniz için teşekkürler.\n\nBu masaüstü uygulaması size şunlarda yardımcı olur:\n• Antigravity, Codex, GitHub Copilot, Windsurf ve Kiro hesaplarını tek yerden yönetme\n• Model kotalarını ve sıfırlanma zamanlarını gerçek zamanlı izleme\n• Mevcut hesabı hızlı değiştirme ve toplu yenileme\n• Cihaz parmak izi ve çoklu örnek yönetimi\n• Wakeup görevleri ve hesap doğrulama\n\nÖneriniz veya sorununuz varsa geri bildiriminizi bekliyoruz.",
           "actionLabel": "Geri bildirim gönder"
         },
         "vi": {
           "title": "👋 Chào mừng bạn đến với Cockpit Tools",
           "summary": "Quản lý tài khoản, theo dõi hạn mức và tính năng đa phiên bản đã sẵn sàng.",
-          "content": "Cảm ơn bạn đã chọn Cockpit Tools.\n\nỨng dụng desktop này có thể giúp bạn:\n• Quản lý tập trung tài khoản Antigravity, Codex, GitHub Copilot, Windsurf và Kiro\n• Theo dõi thời gian thực hạn mức mô hình và thời điểm đặt lại\n• Chuyển nhanh tài khoản hiện tại và làm mới hàng loạt\n• Quản lý đa phiên bản\n• Sử dụng tác vụ wakeup và xác minh tài khoản\n\nNếu bạn có góp ý hoặc gặp vấn đề, hãy phản hồi cho chúng tôi.",
+          "content": "Cảm ơn bạn đã chọn Cockpit Tools.\n\nỨng dụng desktop này có thể giúp bạn:\n• Quản lý tập trung tài khoản Antigravity, Codex, GitHub Copilot, Windsurf và Kiro\n• Theo dõi thời gian thực hạn mức mô hình và thời điểm đặt lại\n• Chuyển nhanh tài khoản hiện tại và làm mới hàng loạt\n• Quản lý dấu vân tay thiết bị và đa phiên bản\n• Sử dụng tác vụ wakeup và xác minh tài khoản\n\nNếu bạn có góp ý hoặc gặp vấn đề, hãy phản hồi cho chúng tôi.",
           "actionLabel": "Gửi phản hồi"
         },
         "pl": {
           "title": "👋 Witamy w Cockpit Tools",
           "summary": "Zarządzanie kontami, monitorowanie limitów i obsługa wielu instancji są gotowe.",
-          "content": "Dziękujemy za wybór Cockpit Tools.\n\nTa aplikacja desktopowa pomaga w:\n• Zunifikowanym zarządzaniu kontami Antigravity, Codex, GitHub Copilot, Windsurf i Kiro\n• Monitorowaniu limitów modeli i czasu resetu w czasie rzeczywistym\n• Szybkim przełączaniu aktywnego konta i odświeżaniu wsadowym\n• Zarządzaniu wieloma instancjami\n• Korzystaniu z zadań wakeup i weryfikacji kont\n\nJeśli masz sugestie lub problemy, chętnie poznamy Twoją opinię.",
+          "content": "Dziękujemy za wybór Cockpit Tools.\n\nTa aplikacja desktopowa pomaga w:\n• Zunifikowanym zarządzaniu kontami Antigravity, Codex, GitHub Copilot, Windsurf i Kiro\n• Monitorowaniu limitów modeli i czasu resetu w czasie rzeczywistym\n• Szybkim przełączaniu aktywnego konta i odświeżaniu wsadowym\n• Zarządzaniu fingerprintami urządzenia i wieloma instancjami\n• Korzystaniu z zadań wakeup i weryfikacji kont\n\nJeśli masz sugestie lub problemy, chętnie poznamy Twoją opinię.",
           "actionLabel": "Wyślij opinię"
         },
         "cs": {
           "title": "👋 Vítejte v Cockpit Tools",
           "summary": "Správa účtů, sledování kvót a podpora více instancí jsou připravené.",
-          "content": "Děkujeme, že používáte Cockpit Tools.\n\nTato desktopová aplikace vám pomůže s:\n• Jednotnou správou účtů Antigravity, Codex, GitHub Copilot, Windsurf a Kiro\n• Sledováním kvót modelů a časů resetu v reálném čase\n• Rychlým přepínáním aktuálního účtu a hromadným obnovením\n• Správou více instancí\n• Používáním wakeup úloh a ověřením účtu\n\nPokud máte návrhy nebo narazíte na problém, pošlete nám zpětnou vazbu.",
+          "content": "Děkujeme, že používáte Cockpit Tools.\n\nTato desktopová aplikace vám pomůže s:\n• Jednotnou správou účtů Antigravity, Codex, GitHub Copilot, Windsurf a Kiro\n• Sledováním kvót modelů a časů resetu v reálném čase\n• Rychlým přepínáním aktuálního účtu a hromadným obnovením\n• Správou fingerprintů zařízení a více instancí\n• Používáním wakeup úloh a ověřením účtu\n\nPokud máte návrhy nebo narazíte na problém, pošlete nám zpětnou vazbu.",
           "actionLabel": "Odeslat zpětnou vazbu"
         },
         "ar": {
           "title": "👋 مرحبًا بك في Cockpit Tools",
           "summary": "إدارة الحسابات ومراقبة الحصص وميزات تعدد المثيلات جاهزة.",
-          "content": "شكرًا لاختيارك Cockpit Tools.\n\nيمكن لهذا التطبيق المكتبي مساعدتك في:\n• إدارة حسابات Antigravity وCodex وGitHub Copilot وWindsurf وKiro بشكل موحّد\n• متابعة حصص النماذج وأوقات إعادة التعيين في الوقت الفعلي\n• التبديل السريع للحساب الحالي مع التحديث الدفعي\n• إدارة تعدد المثيلات\n• استخدام مهام الإيقاظ وميزة التحقق من الحساب\n\nإذا كان لديك اقتراح أو واجهت مشكلة، يسعدنا تلقي ملاحظاتك.",
+          "content": "شكرًا لاختيارك Cockpit Tools.\n\nيمكن لهذا التطبيق المكتبي مساعدتك في:\n• إدارة حسابات Antigravity وCodex وGitHub Copilot وWindsurf وKiro بشكل موحّد\n• متابعة حصص النماذج وأوقات إعادة التعيين في الوقت الفعلي\n• التبديل السريع للحساب الحالي مع التحديث الدفعي\n• إدارة بصمة الجهاز وتعدد المثيلات\n• استخدام مهام الإيقاظ وميزة التحقق من الحساب\n\nإذا كان لديك اقتراح أو واجهت مشكلة، يسعدنا تلقي ملاحظاتك.",
           "actionLabel": "إرسال ملاحظات"
         }
       }
