@@ -1137,6 +1137,21 @@ pub async fn refresh_account_quota_with_options(
     refresh_account_quota_once(account_id, options).await
 }
 
+pub async fn probe_import_account_quota(account: &CodexAccount) -> Result<CodexQuota, String> {
+    if account.is_api_key_auth() {
+        if is_new_api_account(account) {
+            return fetch_new_api_quota(account).await.map(|result| result.quota);
+        }
+        return Err("API Key 账号不支持自动查询额度".to_string());
+    }
+
+    if crate::modules::codex_oauth::is_token_expired(&account.tokens.access_token) {
+        return Err("access_token 已过期，无法在导入前查询额度".to_string());
+    }
+
+    fetch_quota(account).await.map(|result| result.quota)
+}
+
 pub async fn refresh_account_subscription_info(
     account_id: &str,
     force: bool,

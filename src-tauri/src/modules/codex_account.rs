@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use toml_edit::{value, Document};
 
@@ -21,6 +21,10 @@ static CODEX_TOKEN_REFRESH_LOCKS: std::sync::LazyLock<
     Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
 > = std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 static CODEX_AUTO_SWITCH_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
+static CODEX_BATCH_IMPORT_COUNTER: AtomicU64 = AtomicU64::new(1);
+static CODEX_BATCH_IMPORT_SESSIONS: std::sync::LazyLock<
+    Mutex<HashMap<String, CodexBatchImportSession>>,
+> = std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 const CODEX_QUOTA_ALERT_COOLDOWN_SECONDS: i64 = 300;
 const ACCOUNT_CHECK_URL: &str = "https://chatgpt.com/backend-api/wham/accounts/check";
 const API_KEY_LOGIN_PLAN_TYPE: &str = "API_KEY";
@@ -4796,6 +4800,918 @@ pub struct CodexFileImportResult {
 pub struct CodexFileImportFailure {
     pub email: String,
     pub error: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexBatchImportStartResult {
+    pub session_id: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexBatchImportItem {
+    pub item_id: String,
+    pub source: String,
+    pub label: String,
+    pub account_id: Option<String>,
+    pub email: Option<String>,
+    pub account_type: String,
+    pub provider: Option<String>,
+    pub quota_status: String,
+    pub quota_error: Option<String>,
+    pub status: String,
+    pub error: Option<String>,
+    pub default_selected: bool,
+    pub selectable: bool,
+    pub existing: bool,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexBatchImportProgress {
+    pub session_id: String,
+    pub phase: String,
+    pub current: usize,
+    pub total: usize,
+    pub success: usize,
+    pub failed: usize,
+    pub quota_failed: usize,
+    pub existing: usize,
+    pub current_label: Option<String>,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexBatchImportPreview {
+    pub session_id: String,
+    pub status: String,
+    pub total: usize,
+    pub items: Vec<CodexBatchImportItem>,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexBatchImportConfirmResult {
+    pub imported: Vec<CodexAccount>,
+    pub failed: Vec<CodexFileImportFailure>,
+}
+
+#[derive(Clone)]
+struct CodexBatchImportSession {
+    status: String,
+    cancel: Arc<AtomicBool>,
+    source_items: Vec<CodexBatchImportSourceItem>,
+    next_index: usize,
+    total: usize,
+    items: Vec<CodexBatchImportCachedItem>,
+}
+
+#[derive(Clone)]
+struct CodexBatchImportSourceItem {
+    source: String,
+    value: serde_json::Value,
+}
+
+#[derive(Clone)]
+struct CodexBatchImportCachedItem {
+    preview: CodexBatchImportItem,
+    draft: Option<CodexBatchImportDraft>,
+    quota: Option<crate::models::codex::CodexQuota>,
+}
+
+#[derive(Clone)]
+enum CodexBatchImportDraft {
+    Account(CodexAccount),
+    FullToken {
+        tokens: CodexTokens,
+        account_id_hint: Option<String>,
+        account_note: Option<String>,
+    },
+    AccessToken {
+        access_token: String,
+        account_note: Option<String>,
+    },
+}
+
+fn next_codex_batch_import_session_id() -> String {
+    let id = CODEX_BATCH_IMPORT_COUNTER.fetch_add(1, Ordering::SeqCst);
+    format!("codex-import-{}-{}", chrono::Utc::now().timestamp_millis(), id)
+}
+
+fn emit_codex_batch_import_progress(app: &tauri::AppHandle, payload: CodexBatchImportProgress) {
+    use tauri::Emitter;
+    let _ = app.emit("codex:batch-import-progress", payload);
+}
+
+fn emit_codex_batch_import_completed(app: &tauri::AppHandle, payload: CodexBatchImportPreview) {
+    use tauri::Emitter;
+    let _ = app.emit("codex:batch-import-completed", payload);
+}
+
+fn emit_codex_batch_import_preview(app: &tauri::AppHandle, payload: CodexBatchImportPreview) {
+    use tauri::Emitter;
+    let _ = app.emit("codex:batch-import-preview", payload);
+}
+
+fn codex_batch_import_preview_from_session(
+    session_id: &str,
+    session: &CodexBatchImportSession,
+) -> CodexBatchImportPreview {
+    CodexBatchImportPreview {
+        session_id: session_id.to_string(),
+        status: session.status.clone(),
+        total: session.total,
+        items: session
+            .items
+            .iter()
+            .map(|item| item.preview.clone())
+            .collect(),
+    }
+}
+
+fn codex_batch_import_progress_from_items(
+    session_id: &str,
+    phase: &str,
+    current: usize,
+    total: usize,
+    items: &[CodexBatchImportCachedItem],
+    current_label: Option<String>,
+) -> CodexBatchImportProgress {
+    CodexBatchImportProgress {
+        session_id: session_id.to_string(),
+        phase: phase.to_string(),
+        current,
+        total,
+        success: items.iter().filter(|item| item.preview.status == "ready").count(),
+        failed: items.iter().filter(|item| item.preview.status == "invalid").count(),
+        quota_failed: items
+            .iter()
+            .filter(|item| item.preview.status == "quota_failed")
+            .count(),
+        existing: items.iter().filter(|item| item.preview.existing).count(),
+        current_label,
+    }
+}
+
+fn preview_account_from_full_tokens(
+    mut tokens: CodexTokens,
+    account_id_hint: Option<String>,
+    account_note: Option<String>,
+) -> Result<CodexAccount, String> {
+    let (
+        email,
+        user_id,
+        plan_type,
+        subscription_active_until,
+        id_token_account_id,
+        id_token_org_id,
+    ) = extract_user_info(&tokens.id_token)?;
+    let account_id = normalize_optional_value(
+        extract_chatgpt_account_id_from_access_token(&tokens.access_token)
+            .or(id_token_account_id)
+            .or(account_id_hint),
+    );
+    let organization_id = normalize_optional_value(
+        extract_chatgpt_organization_id_from_access_token(&tokens.access_token).or(id_token_org_id),
+    );
+    tokens = retain_existing_refresh_token_if_missing(tokens, None);
+    let storage_id = build_account_storage_id(&email, account_id.as_deref(), organization_id.as_deref());
+    let mut account = CodexAccount::new(storage_id, email, tokens);
+    mark_token_chain_updated(&mut account);
+    account.auth_mode = CodexAuthMode::OAuth;
+    account.user_id = user_id;
+    account.plan_type = plan_type;
+    account.subscription_active_until = subscription_active_until;
+    account.account_id = account_id;
+    account.organization_id = organization_id;
+    account.account_note = account_note;
+    Ok(account)
+}
+
+fn preview_account_from_access_token(
+    access_token: String,
+    account_note: Option<String>,
+) -> Result<CodexAccount, String> {
+    let access_token =
+        normalize_optional_value(Some(access_token)).ok_or("accessToken 不能为空")?;
+    let (email, user_id, plan_type, subscription_active_until, account_id, organization_id) =
+        extract_access_token_identity(&access_token);
+    let email = email
+        .or_else(|| account_id.as_ref().map(|value| format!("codex-{}", value)))
+        .or_else(|| user_id.as_ref().map(|value| format!("codex-{}", value)))
+        .unwrap_or_else(|| format!("codex-access-{}", access_token_fingerprint(&access_token)));
+    let tokens = CodexTokens {
+        id_token: String::new(),
+        access_token,
+        refresh_token: None,
+    };
+    let storage_id = build_account_storage_id(&email, account_id.as_deref(), organization_id.as_deref());
+    let mut account = CodexAccount::new(storage_id, email, tokens);
+    mark_token_chain_updated(&mut account);
+    account.auth_mode = CodexAuthMode::OAuth;
+    account.user_id = user_id;
+    account.plan_type = plan_type;
+    account.subscription_active_until = subscription_active_until;
+    account.account_id = account_id;
+    account.organization_id = organization_id;
+    account.account_note = account_note;
+    Ok(account)
+}
+
+fn preview_account_for_draft(draft: &CodexBatchImportDraft) -> Result<CodexAccount, String> {
+    match draft {
+        CodexBatchImportDraft::Account(account) => Ok(account.clone()),
+        CodexBatchImportDraft::FullToken {
+            tokens,
+            account_id_hint,
+            account_note,
+        } => preview_account_from_full_tokens(
+            tokens.clone(),
+            account_id_hint.clone(),
+            account_note.clone(),
+        ),
+        CodexBatchImportDraft::AccessToken {
+            access_token,
+            account_note,
+        } => preview_account_from_access_token(access_token.clone(), account_note.clone()),
+    }
+}
+
+fn codex_batch_import_draft_from_candidate(
+    candidate: CodexJsonImportCandidate,
+) -> CodexBatchImportDraft {
+    match candidate {
+        CodexJsonImportCandidate::FullToken {
+            tokens,
+            account_id_hint,
+            account_note,
+        } => CodexBatchImportDraft::FullToken {
+            tokens,
+            account_id_hint,
+            account_note,
+        },
+        CodexJsonImportCandidate::AccessToken {
+            access_token,
+            account_note,
+        } => CodexBatchImportDraft::AccessToken {
+            access_token,
+            account_note,
+        },
+        CodexJsonImportCandidate::RefreshToken { .. } => {
+            unreachable!("refresh_token candidates are resolved before creating a draft")
+        }
+    }
+}
+
+fn api_key_draft_from_value(
+    value: &serde_json::Value,
+    fallback_id: Option<String>,
+) -> Result<Option<CodexBatchImportDraft>, String> {
+    if !is_auth_mode_apikey(
+        value
+            .get("auth_mode")
+            .and_then(|value| value.as_str())
+            .or_else(|| value.get("authMode").and_then(|value| value.as_str())),
+    ) {
+        return Ok(None);
+    }
+    let Some(api_key) = value
+        .get("OPENAI_API_KEY")
+        .and_then(|value| value.as_str())
+        .and_then(normalize_api_key)
+    else {
+        return Ok(None);
+    };
+    let (api_key, api_base_url) =
+        validate_api_key_credentials(&api_key, extract_api_base_url_from_json_value(value).as_deref())?;
+    let provider_config = resolve_api_provider_config(
+        api_base_url.as_deref(),
+        read_codex_api_provider_mode(value),
+        value.get("api_provider_id").and_then(|value| value.as_str()),
+        value
+            .get("api_provider_name")
+            .and_then(|value| value.as_str()),
+    )?;
+    let mut account = CodexAccount::new_api_key(
+        fallback_id.unwrap_or_else(|| build_api_key_account_id(&api_key)),
+        read_json_string(value, &["email", "account_email"])
+            .unwrap_or_else(|| build_api_key_email(&api_key)),
+        api_key,
+        provider_config.mode,
+        provider_config.base_url,
+        provider_config.provider_id,
+        provider_config.provider_name,
+        Vec::new(),
+    );
+    apply_api_key_import_metadata(&mut account, value);
+    Ok(Some(CodexBatchImportDraft::Account(account)))
+}
+
+async fn codex_batch_import_draft_from_value(
+    value: serde_json::Value,
+) -> Result<Option<CodexBatchImportDraft>, String> {
+    if let Ok(auth_file) = serde_json::from_value::<CodexAuthFile>(value.clone()) {
+        let fallback_api_key = extract_api_key_from_auth_file(&auth_file);
+        let fallback_provider = infer_api_provider_config(
+            extract_api_base_url_from_auth_file(&auth_file).as_deref(),
+            read_codex_api_provider_mode(&value),
+            value.get("api_provider_id").and_then(|item| item.as_str()),
+            value
+                .get("api_provider_name")
+                .and_then(|item| item.as_str()),
+        );
+        if is_auth_mode_apikey(auth_file.auth_mode.as_deref()) {
+            let api_key = fallback_api_key.ok_or("auth.json 缺少 OPENAI_API_KEY")?;
+            let mut account = CodexAccount::new_api_key(
+                build_api_key_account_id(&api_key),
+                build_api_key_email(&api_key),
+                api_key,
+                fallback_provider.mode,
+                fallback_provider.base_url,
+                fallback_provider.provider_id,
+                fallback_provider.provider_name,
+                Vec::new(),
+            );
+            apply_api_key_import_metadata(&mut account, &value);
+            return Ok(Some(CodexBatchImportDraft::Account(account)));
+        }
+        if let Some(tokens) = auth_file.tokens {
+            let account_id_hint = tokens.account_id.clone();
+            let tokens = CodexTokens {
+                id_token: tokens.id_token,
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+            };
+            if normalize_optional_ref(Some(&tokens.id_token)).is_none()
+                && decode_jwt_payload_value(&tokens.access_token).is_some()
+            {
+                return Ok(Some(CodexBatchImportDraft::AccessToken {
+                    access_token: tokens.access_token,
+                    account_note: None,
+                }));
+            }
+            return Ok(Some(CodexBatchImportDraft::FullToken {
+                tokens,
+                account_id_hint,
+                account_note: None,
+            }));
+        }
+        if let Some(api_key) = fallback_api_key {
+            let mut account = CodexAccount::new_api_key(
+                build_api_key_account_id(&api_key),
+                build_api_key_email(&api_key),
+                api_key,
+                fallback_provider.mode,
+                fallback_provider.base_url,
+                fallback_provider.provider_id,
+                fallback_provider.provider_name,
+                Vec::new(),
+            );
+            apply_api_key_import_metadata(&mut account, &value);
+            return Ok(Some(CodexBatchImportDraft::Account(account)));
+        }
+    }
+
+    if let Some(draft) = api_key_draft_from_value(&value, None)? {
+        return Ok(Some(draft));
+    }
+
+    if let Some(candidate) = extract_codex_import_candidate_from_value(&value) {
+        return match candidate {
+            CodexJsonImportCandidate::RefreshToken {
+                refresh_token,
+                account_note,
+            } => {
+                let tokens = codex_oauth::refresh_access_token(&refresh_token).await?;
+                Ok(Some(CodexBatchImportDraft::FullToken {
+                    tokens,
+                    account_id_hint: None,
+                    account_note,
+                }))
+            }
+            other => Ok(Some(codex_batch_import_draft_from_candidate(other))),
+        };
+    }
+
+    if let Ok(account) = serde_json::from_value::<CodexAccount>(value) {
+        return Ok(Some(CodexBatchImportDraft::Account(account)));
+    }
+
+    Ok(None)
+}
+
+fn codex_batch_import_values_from_content(
+    content: &str,
+) -> Result<Vec<serde_json::Value>, String> {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+    if !trimmed.starts_with('{') && !trimmed.starts_with('[') {
+        let mut values = Vec::new();
+        for line in trimmed.lines().filter_map(|line| normalize_optional_ref(Some(line))) {
+            match serde_json::from_str::<serde_json::Value>(&line) {
+                Ok(serde_json::Value::Array(items)) => values.extend(items),
+                Ok(value) => values.push(value),
+                Err(_) => values.push(serde_json::Value::String(line)),
+            }
+        }
+        return Ok(values);
+    }
+
+    match serde_json::from_str::<serde_json::Value>(trimmed) {
+        Ok(value) => {
+            if looks_like_sub2api_export(&value) {
+                let accounts = value
+                    .get("accounts")
+                    .and_then(|item| item.as_array())
+                    .ok_or("Sub2API JSON 缺少 accounts 数组")?;
+                return Ok(accounts
+                    .iter()
+                    .filter(|item| is_sub2api_codex_oauth_account(item))
+                    .cloned()
+                    .collect());
+            }
+            match value {
+                serde_json::Value::Array(items) => Ok(items),
+                other => Ok(vec![other]),
+            }
+        }
+        Err(_) => parse_line_delimited_json_values(trimmed).map(|items| items.unwrap_or_default()),
+    }
+}
+
+fn codex_batch_import_account_type(account: &CodexAccount) -> String {
+    if account.is_api_key_auth() {
+        "API Key".to_string()
+    } else if normalize_optional_ref(account.tokens.refresh_token.as_deref()).is_some() {
+        "OAuth".to_string()
+    } else {
+        "Access Token".to_string()
+    }
+}
+
+async fn build_codex_batch_import_item(
+    session_id: &str,
+    index: usize,
+    source: String,
+    value: serde_json::Value,
+) -> CodexBatchImportCachedItem {
+    let item_id = format!("{}-item-{}", session_id, index + 1);
+    let draft = match codex_batch_import_draft_from_value(value).await {
+        Ok(Some(draft)) => draft,
+        Ok(None) => {
+            return CodexBatchImportCachedItem {
+                preview: CodexBatchImportItem {
+                    item_id,
+                    source,
+                    label: "未识别账号".to_string(),
+                    account_id: None,
+                    email: None,
+                    account_type: "-".to_string(),
+                    provider: None,
+                    quota_status: "skipped".to_string(),
+                    quota_error: None,
+                    status: "invalid".to_string(),
+                    error: Some("未找到有效的 Codex 账号凭据".to_string()),
+                    default_selected: false,
+                    selectable: false,
+                    existing: false,
+                },
+                draft: None,
+                quota: None,
+            };
+        }
+        Err(error) => {
+            return CodexBatchImportCachedItem {
+                preview: CodexBatchImportItem {
+                    item_id,
+                    source,
+                    label: "解析失败".to_string(),
+                    account_id: None,
+                    email: None,
+                    account_type: "-".to_string(),
+                    provider: None,
+                    quota_status: "skipped".to_string(),
+                    quota_error: None,
+                    status: "invalid".to_string(),
+                    error: Some(error),
+                    default_selected: false,
+                    selectable: false,
+                    existing: false,
+                },
+                draft: None,
+                quota: None,
+            };
+        }
+    };
+
+    let account = match preview_account_for_draft(&draft) {
+        Ok(account) => account,
+        Err(error) => {
+            return CodexBatchImportCachedItem {
+                preview: CodexBatchImportItem {
+                    item_id,
+                    source,
+                    label: "解析失败".to_string(),
+                    account_id: None,
+                    email: None,
+                    account_type: "-".to_string(),
+                    provider: None,
+                    quota_status: "skipped".to_string(),
+                    quota_error: None,
+                    status: "invalid".to_string(),
+                    error: Some(error),
+                    default_selected: false,
+                    selectable: false,
+                    existing: false,
+                },
+                draft: None,
+                quota: None,
+            };
+        }
+    };
+
+    let existing = load_account(&account.id).is_some();
+    let quota_result = crate::modules::codex_quota::probe_import_account_quota(&account).await;
+    let (quota_status, quota_error, quota) = match quota_result {
+        Ok(quota) => ("success".to_string(), None, Some(quota)),
+        Err(error) => ("failed".to_string(), Some(error), None),
+    };
+    let status = if quota_status == "failed" {
+        "quota_failed".to_string()
+    } else if existing {
+        "existing".to_string()
+    } else {
+        "ready".to_string()
+    };
+    let default_selected = status == "ready" || status == "existing";
+    CodexBatchImportCachedItem {
+        preview: CodexBatchImportItem {
+            item_id,
+            source,
+            label: account.account_name.clone().unwrap_or_else(|| account.email.clone()),
+            account_id: Some(account.id.clone()),
+            email: Some(account.email.clone()),
+            account_type: codex_batch_import_account_type(&account),
+            provider: account
+                .api_provider_name
+                .clone()
+                .or(account.api_provider_id.clone())
+                .or(account.api_base_url.clone()),
+            quota_status,
+            quota_error,
+            status,
+            error: None,
+            default_selected,
+            selectable: true,
+            existing,
+        },
+        draft: Some(draft),
+        quota,
+    }
+}
+
+async fn run_codex_batch_import_scan(
+    app: tauri::AppHandle,
+    session_id: String,
+    file_paths: Vec<String>,
+) {
+    let cancel = {
+        let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        sessions
+            .get(&session_id)
+            .map(|session| session.cancel.clone())
+            .unwrap_or_else(|| Arc::new(AtomicBool::new(true)))
+    };
+    let mut values: Vec<CodexBatchImportSourceItem> = Vec::new();
+    let mut read_failures: Vec<CodexBatchImportCachedItem> = Vec::new();
+
+    for file_path in file_paths {
+        if cancel.load(Ordering::SeqCst) {
+            break;
+        }
+        let path = Path::new(&file_path);
+        let source = path
+            .file_name()
+            .and_then(|item| item.to_str())
+            .unwrap_or(&file_path)
+            .to_string();
+        match fs::read_to_string(path) {
+            Ok(content) => match codex_batch_import_values_from_content(&content) {
+                Ok(items) => {
+                    values.extend(items.into_iter().map(|item| CodexBatchImportSourceItem {
+                        source: source.clone(),
+                        value: item,
+                    }));
+                }
+                Err(error) => read_failures.push(CodexBatchImportCachedItem {
+                    preview: CodexBatchImportItem {
+                        item_id: format!("{}-file-error-{}", session_id, read_failures.len() + 1),
+                        source,
+                        label: "文件解析失败".to_string(),
+                        account_id: None,
+                        email: None,
+                        account_type: "-".to_string(),
+                        provider: None,
+                        quota_status: "skipped".to_string(),
+                        quota_error: None,
+                        status: "invalid".to_string(),
+                        error: Some(error),
+                        default_selected: false,
+                        selectable: false,
+                        existing: false,
+                    },
+                    draft: None,
+                    quota: None,
+                }),
+            },
+            Err(error) => read_failures.push(CodexBatchImportCachedItem {
+                preview: CodexBatchImportItem {
+                    item_id: format!("{}-file-error-{}", session_id, read_failures.len() + 1),
+                    source,
+                    label: "文件读取失败".to_string(),
+                    account_id: None,
+                    email: None,
+                    account_type: "-".to_string(),
+                    provider: None,
+                    quota_status: "skipped".to_string(),
+                    quota_error: None,
+                    status: "invalid".to_string(),
+                    error: Some(error.to_string()),
+                    default_selected: false,
+                    selectable: false,
+                    existing: false,
+                },
+                draft: None,
+                quota: None,
+            }),
+        }
+    }
+
+    let total = values.len() + read_failures.len();
+    {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        if let Some(session) = sessions.get_mut(&session_id) {
+            session.source_items = values;
+            session.next_index = 0;
+            session.total = total;
+            session.items = read_failures;
+        }
+    }
+    run_codex_batch_import_resume(app, session_id).await;
+}
+
+async fn run_codex_batch_import_resume(app: tauri::AppHandle, session_id: String) {
+    let (cancel, source_items, start_index, mut items, total) = {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        let Some(session) = sessions.get_mut(&session_id) else {
+            return;
+        };
+        session.cancel.store(false, Ordering::SeqCst);
+        session.status = "scanning".to_string();
+        (
+            session.cancel.clone(),
+            session.source_items.clone(),
+            session.next_index,
+            session.items.clone(),
+            session.total,
+        )
+    };
+
+    emit_codex_batch_import_progress(
+        &app,
+        codex_batch_import_progress_from_items(
+            &session_id,
+            "scanning",
+            items.len(),
+            total,
+            &items,
+            None,
+        ),
+    );
+
+    for (index, source_item) in source_items.into_iter().enumerate().skip(start_index) {
+        if cancel.load(Ordering::SeqCst) {
+            break;
+        }
+        let cached = build_codex_batch_import_item(
+            &session_id,
+            index,
+            source_item.source,
+            source_item.value,
+        )
+        .await;
+        let current_label = Some(cached.preview.label.clone());
+        items.push(cached);
+        {
+            let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+            if let Some(session) = sessions.get_mut(&session_id) {
+                session.next_index = index + 1;
+                session.items = items.clone();
+            }
+        }
+        emit_codex_batch_import_progress(
+            &app,
+            codex_batch_import_progress_from_items(
+                &session_id,
+                "scanning",
+                items.len(),
+                total,
+                &items,
+                current_label,
+            ),
+        );
+        let preview = {
+            let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+            sessions
+                .get(&session_id)
+                .map(|session| codex_batch_import_preview_from_session(&session_id, session))
+        };
+        if let Some(preview) = preview {
+            emit_codex_batch_import_preview(&app, preview);
+        }
+    }
+
+    let status = if cancel.load(Ordering::SeqCst) {
+        "cancelled"
+    } else if {
+        let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        sessions
+            .get(&session_id)
+            .map(|session| session.next_index < session.source_items.len())
+            .unwrap_or(false)
+    } {
+        "cancelled"
+    } else {
+        "ready"
+    };
+    let preview = {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        let session = sessions
+            .entry(session_id.clone())
+            .or_insert_with(|| CodexBatchImportSession {
+                status: status.to_string(),
+                cancel: cancel.clone(),
+                source_items: Vec::new(),
+                next_index: 0,
+                total: items.len(),
+                items: Vec::new(),
+            });
+        session.status = status.to_string();
+        session.items = items;
+        codex_batch_import_preview_from_session(&session_id, session)
+    };
+    emit_codex_batch_import_completed(&app, preview);
+}
+
+pub fn start_codex_batch_import_from_files(
+    app: tauri::AppHandle,
+    file_paths: Vec<String>,
+) -> Result<CodexBatchImportStartResult, String> {
+    if file_paths.is_empty() {
+        return Err("未选择任何文件".to_string());
+    }
+    ensure_storage_writable_for_import()?;
+    let session_id = next_codex_batch_import_session_id();
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        sessions.insert(
+            session_id.clone(),
+            CodexBatchImportSession {
+                status: "scanning".to_string(),
+                cancel,
+                source_items: Vec::new(),
+                next_index: 0,
+                total: 0,
+                items: Vec::new(),
+            },
+        );
+    }
+    let task_session_id = session_id.clone();
+    tauri::async_runtime::spawn(async move {
+        run_codex_batch_import_scan(app, task_session_id, file_paths).await;
+    });
+    Ok(CodexBatchImportStartResult { session_id })
+}
+
+pub fn cancel_codex_batch_import(session_id: &str) -> Result<(), String> {
+    let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+    let session = sessions
+        .get(session_id)
+        .ok_or_else(|| "导入会话不存在".to_string())?;
+    session.cancel.store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+pub fn resume_codex_batch_import(
+    app: tauri::AppHandle,
+    session_id: &str,
+) -> Result<(), String> {
+    {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        let session = sessions
+            .get_mut(session_id)
+            .ok_or_else(|| "导入会话不存在".to_string())?;
+        if session.status != "cancelled" {
+            return Err("只有已取消的导入会话可以继续".to_string());
+        }
+        if session.next_index >= session.source_items.len() {
+            session.status = "ready".to_string();
+            return Ok(());
+        }
+        session.cancel.store(false, Ordering::SeqCst);
+        session.status = "scanning".to_string();
+    }
+
+    let task_session_id = session_id.to_string();
+    tauri::async_runtime::spawn(async move {
+        run_codex_batch_import_resume(app, task_session_id).await;
+    });
+    Ok(())
+}
+
+pub fn get_codex_batch_import_preview(
+    session_id: &str,
+) -> Result<CodexBatchImportPreview, String> {
+    let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+    let session = sessions
+        .get(session_id)
+        .ok_or_else(|| "导入会话不存在".to_string())?;
+    Ok(codex_batch_import_preview_from_session(session_id, session))
+}
+
+pub fn confirm_codex_batch_import(
+    session_id: &str,
+    item_ids: &[String],
+) -> Result<CodexBatchImportConfirmResult, String> {
+    ensure_storage_writable_for_import()?;
+    let selected: HashSet<String> = item_ids.iter().cloned().collect();
+    let cached_items = {
+        let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        let session = sessions
+            .get(session_id)
+            .ok_or_else(|| "导入会话不存在".to_string())?;
+        session.items.clone()
+    };
+
+    let mut imported = Vec::new();
+    let mut failed = Vec::new();
+    for cached in cached_items {
+        if !selected.contains(&cached.preview.item_id) {
+            continue;
+        }
+        let Some(draft) = cached.draft else {
+            failed.push(CodexFileImportFailure {
+                email: cached.preview.label,
+                error: cached.preview.error.unwrap_or_else(|| "无可导入账号".to_string()),
+            });
+            continue;
+        };
+        let result = match draft {
+            CodexBatchImportDraft::Account(account) => import_account_struct(account),
+            CodexBatchImportDraft::FullToken {
+                tokens,
+                account_id_hint,
+                account_note,
+            } => {
+                let mut account = upsert_account_with_hints(tokens, account_id_hint, None)?;
+                if account_note.is_some() {
+                    account.account_note = account_note;
+                    save_account(&account)?;
+                }
+                Ok(account)
+            }
+            CodexBatchImportDraft::AccessToken {
+                access_token,
+                account_note,
+            } => upsert_account_from_access_token(access_token, account_note),
+        };
+        match result {
+            Ok(mut account) => {
+                if let Some(quota) = cached.quota.clone() {
+                    account.quota = Some(quota);
+                    account.quota_error = None;
+                    account.usage_updated_at = Some(chrono::Utc::now().timestamp());
+                    save_account(&account)?;
+                }
+                imported.push(account);
+            }
+            Err(error) => failed.push(CodexFileImportFailure {
+                email: cached.preview.label,
+                error,
+            }),
+        }
+    }
+
+    {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        sessions.remove(session_id);
+    }
+
+    Ok(CodexBatchImportConfirmResult { imported, failed })
 }
 
 fn normalize_auth_file_plan_type(value: Option<&str>) -> Option<String> {

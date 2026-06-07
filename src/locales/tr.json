@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Yeniden adlandırıldı",
       "renameFailed": "Yeniden adlandırılamadı"
+    },
+    "batchImport": {
+      "title": "Codex toplu içe aktarma",
+      "resultSubtitle": "İçe aktarma sonucu",
+      "previewSubtitle": "Kaydedilecek hesapları seçin",
+      "scanSubtitle": "Hesaplar tek tek ayrıştırılıp kontrol ediliyor",
+      "cancelling": "İptal ediliyor...",
+      "scanDone": "Tarama tamamlandı",
+      "scanning": "Taranıyor",
+      "current": "Geçerli",
+      "imported": "İçe aktarıldı",
+      "failed": "Başarısız",
+      "quotaOk": "Hesap OK",
+      "quotaFailed": "Hata",
+      "preparing": "İçe aktarma hazırlanıyor...",
+      "importSelected": "Seçili hesapları içe aktar",
+      "noSelection": "Önce hesap seçin",
+      "groups": {
+        "ready": "Hazır",
+        "quotaFailed": "Hata",
+        "existing": "Mevcut",
+        "invalid": "Geçersiz"
+      },
+      "cancelScan": "Taramayı iptal et",
+      "cancelled": "İptal edildi",
+      "resumeScan": "Taramaya devam et",
+      "selectedCount": "Seçildi {{count}}/{{total}}",
+      "selectAllAccounts": "Tüm hesapları seç",
+      "selectReady": "Sağlamları seç",
+      "clearSelection": "Seçimi temizle"
     }
   },
   "githubCopilot": {

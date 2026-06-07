@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Renomeado",
       "renameFailed": "Falha ao renomear"
+    },
+    "batchImport": {
+      "title": "Importação em lote Codex",
+      "resultSubtitle": "Resultado da importação",
+      "previewSubtitle": "Selecione contas para salvar",
+      "scanSubtitle": "Analisando e verificando contas uma por uma",
+      "cancelling": "Cancelando...",
+      "scanDone": "Verificação concluída",
+      "scanning": "Verificando",
+      "current": "Atual",
+      "imported": "Importadas",
+      "failed": "Falhas",
+      "quotaOk": "Conta OK",
+      "quotaFailed": "Erro",
+      "preparing": "Preparando importação...",
+      "importSelected": "Importar contas selecionadas",
+      "noSelection": "Selecione contas para importar",
+      "groups": {
+        "ready": "Prontas",
+        "quotaFailed": "Erro",
+        "existing": "Existentes",
+        "invalid": "Inválidas"
+      },
+      "cancelScan": "Cancelar verificação",
+      "cancelled": "Cancelado",
+      "resumeScan": "Continuar verificação",
+      "selectedCount": "Selecionadas {{count}}/{{total}}",
+      "selectAllAccounts": "Selecionar todas",
+      "selectReady": "Selecionar contas OK",
+      "clearSelection": "Limpar seleção"
     }
   },
   "githubCopilot": {

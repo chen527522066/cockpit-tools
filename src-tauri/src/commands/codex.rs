@@ -450,6 +450,39 @@ pub async fn import_codex_from_files(
     })
 }
 
+#[tauri::command]
+pub fn start_codex_batch_import_from_files(
+    app: AppHandle,
+    file_paths: Vec<String>,
+) -> Result<codex_account::CodexBatchImportStartResult, String> {
+    codex_account::start_codex_batch_import_from_files(app, file_paths)
+}
+
+#[tauri::command]
+pub fn cancel_codex_batch_import(session_id: String) -> Result<(), String> {
+    codex_account::cancel_codex_batch_import(&session_id)
+}
+
+#[tauri::command]
+pub fn resume_codex_batch_import(app: AppHandle, session_id: String) -> Result<(), String> {
+    codex_account::resume_codex_batch_import(app, &session_id)
+}
+
+#[tauri::command]
+pub fn get_codex_batch_import_preview(
+    session_id: String,
+) -> Result<codex_account::CodexBatchImportPreview, String> {
+    codex_account::get_codex_batch_import_preview(&session_id)
+}
+
+#[tauri::command]
+pub fn confirm_codex_batch_import(
+    session_id: String,
+    item_ids: Vec<String>,
+) -> Result<codex_account::CodexBatchImportConfirmResult, String> {
+    codex_account::confirm_codex_batch_import(&session_id, &item_ids)
+}
+
 /// 刷新单个账号配额
 #[tauri::command]
 pub async fn refresh_codex_quota(app: AppHandle, account_id: String) -> Result<CodexQuota, String> {

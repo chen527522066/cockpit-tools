@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Zmieniono nazwę",
       "renameFailed": "Nie udało się zmienić nazwy"
+    },
+    "batchImport": {
+      "title": "Import zbiorczy Codex",
+      "resultSubtitle": "Wynik importu",
+      "previewSubtitle": "Wybierz konta do zapisu",
+      "scanSubtitle": "Konta są analizowane i sprawdzane pojedynczo",
+      "cancelling": "Anulowanie...",
+      "scanDone": "Skan zakończony",
+      "scanning": "Skanowanie",
+      "current": "Bieżące",
+      "imported": "Zaimportowano",
+      "failed": "Błędy",
+      "quotaOk": "Konto OK",
+      "quotaFailed": "Błąd",
+      "preparing": "Przygotowanie importu...",
+      "importSelected": "Importuj wybrane konta",
+      "noSelection": "Najpierw wybierz konta",
+      "groups": {
+        "ready": "Gotowe",
+        "quotaFailed": "Błąd",
+        "existing": "Istniejące",
+        "invalid": "Nieprawidłowe"
+      },
+      "cancelScan": "Anuluj skan",
+      "cancelled": "Anulowano",
+      "resumeScan": "Wznów skan",
+      "selectedCount": "Wybrano {{count}}/{{total}}",
+      "selectAllAccounts": "Wybierz wszystkie",
+      "selectReady": "Wybierz konta OK",
+      "clearSelection": "Wyczyść wybór"
     }
   },
   "githubCopilot": {

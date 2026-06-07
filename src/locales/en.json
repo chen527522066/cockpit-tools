@@ -3059,6 +3059,36 @@
     "apiKey": {
       "renameSuccess": "Renamed",
       "renameFailed": "Rename failed"
+    },
+    "batchImport": {
+      "title": "Codex Batch Import",
+      "resultSubtitle": "Import result",
+      "previewSubtitle": "Select accounts to save",
+      "scanSubtitle": "Scanning and checking accounts one by one",
+      "cancelling": "Cancelling...",
+      "scanDone": "Scan complete",
+      "scanning": "Scanning",
+      "current": "Current",
+      "imported": "Imported",
+      "failed": "Failed",
+      "quotaOk": "Account OK",
+      "quotaFailed": "Exception",
+      "preparing": "Preparing import task...",
+      "importSelected": "Import selected accounts",
+      "noSelection": "Select accounts to import first",
+      "groups": {
+        "ready": "Ready",
+        "quotaFailed": "Exception",
+        "existing": "Existing",
+        "invalid": "Invalid"
+      },
+      "cancelScan": "Cancel scan",
+      "cancelled": "Cancelled",
+      "resumeScan": "Resume scan",
+      "selectedCount": "Selected {{count}}/{{total}}",
+      "selectAllAccounts": "Select all accounts",
+      "selectReady": "Select OK accounts",
+      "clearSelection": "Clear selection"
     }
   },
   "codebuddy": {

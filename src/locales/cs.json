@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Přejmenováno",
       "renameFailed": "Přejmenování selhalo"
+    },
+    "batchImport": {
+      "title": "Hromadný import Codex",
+      "resultSubtitle": "Výsledek importu",
+      "previewSubtitle": "Vyberte účty k uložení",
+      "scanSubtitle": "Postupně se načítají a kontrolují účty",
+      "cancelling": "Rušení...",
+      "scanDone": "Sken dokončen",
+      "scanning": "Skenování",
+      "current": "Aktuální",
+      "imported": "Importováno",
+      "failed": "Selhalo",
+      "quotaOk": "Účet OK",
+      "quotaFailed": "Chyba",
+      "preparing": "Příprava importu...",
+      "importSelected": "Importovat vybrané účty",
+      "noSelection": "Nejprve vyberte účty",
+      "groups": {
+        "ready": "Připraveno",
+        "quotaFailed": "Chyba",
+        "existing": "Existuje",
+        "invalid": "Neplatné"
+      },
+      "cancelScan": "Zrušit sken",
+      "cancelled": "Zrušeno",
+      "resumeScan": "Pokračovat ve skenu",
+      "selectedCount": "Vybráno {{count}}/{{total}}",
+      "selectAllAccounts": "Vybrat všechny účty",
+      "selectReady": "Vybrat účty OK",
+      "clearSelection": "Zrušit výběr"
     }
   },
   "githubCopilot": {

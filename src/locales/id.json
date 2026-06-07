@@ -2934,6 +2934,36 @@
     "apiKey": {
       "renameSuccess": "Berhasil diganti nama",
       "renameFailed": "Gagal mengganti nama"
+    },
+    "batchImport": {
+      "title": "Impor massal Codex",
+      "resultSubtitle": "Hasil impor",
+      "previewSubtitle": "Pilih akun untuk disimpan",
+      "scanSubtitle": "Mengurai dan memeriksa akun satu per satu",
+      "cancelling": "Membatalkan...",
+      "scanDone": "Pemindaian selesai",
+      "scanning": "Memindai",
+      "current": "Saat ini",
+      "imported": "Diimpor",
+      "failed": "Gagal",
+      "quotaOk": "Akun OK",
+      "quotaFailed": "Bermasalah",
+      "preparing": "Menyiapkan impor...",
+      "importSelected": "Impor akun terpilih",
+      "noSelection": "Pilih akun terlebih dahulu",
+      "groups": {
+        "ready": "Siap",
+        "quotaFailed": "Bermasalah",
+        "existing": "Sudah ada",
+        "invalid": "Tidak valid"
+      },
+      "cancelScan": "Batalkan pemindaian",
+      "cancelled": "Dibatalkan",
+      "resumeScan": "Lanjutkan pemindaian",
+      "selectedCount": "Dipilih {{count}}/{{total}}",
+      "selectAllAccounts": "Pilih semua akun",
+      "selectReady": "Pilih akun OK",
+      "clearSelection": "Hapus pilihan"
     }
   },
   "codebuddy": {

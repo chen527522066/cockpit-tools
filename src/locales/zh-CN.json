@@ -3059,6 +3059,36 @@
     "apiKey": {
       "renameSuccess": "已重命名",
       "renameFailed": "重命名失败"
+    },
+    "batchImport": {
+      "title": "Codex 批量导入",
+      "resultSubtitle": "导入结果",
+      "previewSubtitle": "选择要写入的账号",
+      "scanSubtitle": "正在逐条解析并检查账号",
+      "cancelling": "正在取消...",
+      "scanDone": "扫描完成",
+      "scanning": "扫描中",
+      "current": "当前",
+      "imported": "已导入",
+      "failed": "失败",
+      "quotaOk": "账号正常",
+      "quotaFailed": "异常",
+      "preparing": "正在准备导入任务...",
+      "importSelected": "导入选中账号",
+      "noSelection": "请先选择要导入的账号",
+      "groups": {
+        "ready": "可导入",
+        "quotaFailed": "异常",
+        "existing": "已存在",
+        "invalid": "无效账号"
+      },
+      "cancelScan": "取消扫描",
+      "cancelled": "已取消",
+      "resumeScan": "继续扫描",
+      "selectedCount": "已选 {{count}}/{{total}}",
+      "selectAllAccounts": "选择全部账号",
+      "selectReady": "选择正常账号",
+      "clearSelection": "取消选择"
     }
   },
   "codebuddy": {

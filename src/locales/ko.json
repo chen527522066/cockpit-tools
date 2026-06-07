@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "이름이 변경되었습니다",
       "renameFailed": "이름 변경 실패"
+    },
+    "batchImport": {
+      "title": "Codex 일괄 가져오기",
+      "resultSubtitle": "가져오기 결과",
+      "previewSubtitle": "저장할 계정 선택",
+      "scanSubtitle": "계정을 하나씩 분석하고 확인 중",
+      "cancelling": "취소 중...",
+      "scanDone": "스캔 완료",
+      "scanning": "스캔 중",
+      "current": "현재",
+      "imported": "가져옴",
+      "failed": "실패",
+      "quotaOk": "계정 정상",
+      "quotaFailed": "이상",
+      "preparing": "가져오기 작업 준비 중...",
+      "importSelected": "선택한 계정 가져오기",
+      "noSelection": "가져올 계정을 먼저 선택하세요",
+      "groups": {
+        "ready": "가져오기 가능",
+        "quotaFailed": "이상",
+        "existing": "이미 있음",
+        "invalid": "유효하지 않음"
+      },
+      "cancelScan": "스캔 취소",
+      "cancelled": "취소됨",
+      "resumeScan": "스캔 계속",
+      "selectedCount": "선택 {{count}}/{{total}}",
+      "selectAllAccounts": "전체 계정 선택",
+      "selectReady": "정상 계정 선택",
+      "clearSelection": "선택 해제"
     }
   },
   "githubCopilot": {

@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Переименовано",
       "renameFailed": "Не удалось переименовать"
+    },
+    "batchImport": {
+      "title": "Пакетный импорт Codex",
+      "resultSubtitle": "Результат импорта",
+      "previewSubtitle": "Выберите аккаунты для сохранения",
+      "scanSubtitle": "Поочередный разбор и проверка аккаунтов",
+      "cancelling": "Отмена...",
+      "scanDone": "Сканирование завершено",
+      "scanning": "Сканирование",
+      "current": "Текущий",
+      "imported": "Импортировано",
+      "failed": "Ошибки",
+      "quotaOk": "Аккаунт OK",
+      "quotaFailed": "Ошибка",
+      "preparing": "Подготовка импорта...",
+      "importSelected": "Импортировать выбранные",
+      "noSelection": "Сначала выберите аккаунты",
+      "groups": {
+        "ready": "Готовы",
+        "quotaFailed": "Ошибка",
+        "existing": "Уже есть",
+        "invalid": "Недействительные"
+      },
+      "cancelScan": "Отменить сканирование",
+      "cancelled": "Отменено",
+      "resumeScan": "Продолжить сканирование",
+      "selectedCount": "Выбрано {{count}}/{{total}}",
+      "selectAllAccounts": "Выбрать все",
+      "selectReady": "Выбрать исправные",
+      "clearSelection": "Снять выбор"
     }
   },
   "githubCopilot": {

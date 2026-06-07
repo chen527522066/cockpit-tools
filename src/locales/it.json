@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Rinominato",
       "renameFailed": "Rinomina non riuscita"
+    },
+    "batchImport": {
+      "title": "Importazione batch Codex",
+      "resultSubtitle": "Risultato importazione",
+      "previewSubtitle": "Seleziona gli account da salvare",
+      "scanSubtitle": "Analisi e controllo degli account uno alla volta",
+      "cancelling": "Annullamento...",
+      "scanDone": "Scansione completata",
+      "scanning": "Scansione",
+      "current": "Corrente",
+      "imported": "Importati",
+      "failed": "Non riusciti",
+      "quotaOk": "Account OK",
+      "quotaFailed": "Anomalia",
+      "preparing": "Preparazione importazione...",
+      "importSelected": "Importa account selezionati",
+      "noSelection": "Seleziona prima gli account",
+      "groups": {
+        "ready": "Pronti",
+        "quotaFailed": "Anomalia",
+        "existing": "Esistenti",
+        "invalid": "Non validi"
+      },
+      "cancelScan": "Annulla scansione",
+      "cancelled": "Annullato",
+      "resumeScan": "Riprendi scansione",
+      "selectedCount": "Selezionati {{count}}/{{total}}",
+      "selectAllAccounts": "Seleziona tutti",
+      "selectReady": "Seleziona account OK",
+      "clearSelection": "Cancella selezione"
     }
   },
   "githubCopilot": {

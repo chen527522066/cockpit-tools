@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "名前を変更しました",
       "renameFailed": "名前の変更に失敗しました"
+    },
+    "batchImport": {
+      "title": "Codex 一括インポート",
+      "resultSubtitle": "インポート結果",
+      "previewSubtitle": "保存するアカウントを選択",
+      "scanSubtitle": "アカウントを1件ずつ解析して確認中",
+      "cancelling": "キャンセル中...",
+      "scanDone": "スキャン完了",
+      "scanning": "スキャン中",
+      "current": "現在",
+      "imported": "インポート済み",
+      "failed": "失敗",
+      "quotaOk": "アカウント正常",
+      "quotaFailed": "異常",
+      "preparing": "インポートタスクを準備中...",
+      "importSelected": "選択したアカウントをインポート",
+      "noSelection": "インポートするアカウントを選択してください",
+      "groups": {
+        "ready": "インポート可",
+        "quotaFailed": "異常",
+        "existing": "既存",
+        "invalid": "無効"
+      },
+      "cancelScan": "スキャンをキャンセル",
+      "cancelled": "キャンセル済み",
+      "resumeScan": "スキャンを再開",
+      "selectedCount": "選択 {{count}}/{{total}}",
+      "selectAllAccounts": "全アカウント選択",
+      "selectReady": "正常アカウント選択",
+      "clearSelection": "選択解除"
     }
   },
   "githubCopilot": {

@@ -120,6 +120,78 @@ export async function importCodexFromFiles(filePaths: string[]): Promise<CodexFi
   return await invoke('import_codex_from_files', { filePaths });
 }
 
+export interface CodexBatchImportStartResult {
+  sessionId: string;
+}
+
+export interface CodexBatchImportProgress {
+  sessionId: string;
+  phase: string;
+  current: number;
+  total: number;
+  success: number;
+  failed: number;
+  quotaFailed: number;
+  existing: number;
+  currentLabel?: string | null;
+}
+
+export interface CodexBatchImportItem {
+  itemId: string;
+  source: string;
+  label: string;
+  accountId?: string | null;
+  email?: string | null;
+  accountType: string;
+  provider?: string | null;
+  quotaStatus: string;
+  quotaError?: string | null;
+  status: string;
+  error?: string | null;
+  defaultSelected: boolean;
+  selectable: boolean;
+  existing: boolean;
+}
+
+export interface CodexBatchImportPreview {
+  sessionId: string;
+  status: string;
+  total: number;
+  items: CodexBatchImportItem[];
+}
+
+export interface CodexBatchImportConfirmResult {
+  imported: CodexAccount[];
+  failed: { email: string; error: string }[];
+}
+
+export async function startCodexBatchImportFromFiles(
+  filePaths: string[],
+): Promise<CodexBatchImportStartResult> {
+  return await invoke('start_codex_batch_import_from_files', { filePaths });
+}
+
+export async function cancelCodexBatchImport(sessionId: string): Promise<void> {
+  return await invoke('cancel_codex_batch_import', { sessionId });
+}
+
+export async function resumeCodexBatchImport(sessionId: string): Promise<void> {
+  return await invoke('resume_codex_batch_import', { sessionId });
+}
+
+export async function getCodexBatchImportPreview(
+  sessionId: string,
+): Promise<CodexBatchImportPreview> {
+  return await invoke('get_codex_batch_import_preview', { sessionId });
+}
+
+export async function confirmCodexBatchImport(
+  sessionId: string,
+  itemIds: string[],
+): Promise<CodexBatchImportConfirmResult> {
+  return await invoke('confirm_codex_batch_import', { sessionId, itemIds });
+}
+
 /** 刷新单个账号配额 */
 export async function refreshCodexQuota(accountId: string): Promise<CodexQuota> {
   return await invoke('refresh_codex_quota', { accountId });

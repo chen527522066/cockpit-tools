@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Umbenannt",
       "renameFailed": "Umbenennen fehlgeschlagen"
+    },
+    "batchImport": {
+      "title": "Codex-Stapelimport",
+      "resultSubtitle": "Importergebnis",
+      "previewSubtitle": "Zu speichernde Konten wählen",
+      "scanSubtitle": "Konten werden einzeln gelesen und geprüft",
+      "cancelling": "Wird abgebrochen...",
+      "scanDone": "Scan abgeschlossen",
+      "scanning": "Scan läuft",
+      "current": "Aktuell",
+      "imported": "Importiert",
+      "failed": "Fehlgeschlagen",
+      "quotaOk": "Konto OK",
+      "quotaFailed": "Störung",
+      "preparing": "Import wird vorbereitet...",
+      "importSelected": "Ausgewählte Konten importieren",
+      "noSelection": "Bitte zuerst Konten auswählen",
+      "groups": {
+        "ready": "Bereit",
+        "quotaFailed": "Störung",
+        "existing": "Vorhanden",
+        "invalid": "Ungültig"
+      },
+      "cancelScan": "Scan abbrechen",
+      "cancelled": "Abgebrochen",
+      "resumeScan": "Scan fortsetzen",
+      "selectedCount": "Ausgewählt {{count}}/{{total}}",
+      "selectAllAccounts": "Alle Konten wählen",
+      "selectReady": "OK-Konten wählen",
+      "clearSelection": "Auswahl löschen"
     }
   },
   "githubCopilot": {

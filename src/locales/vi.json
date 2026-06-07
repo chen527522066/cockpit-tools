@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "Đã đổi tên",
       "renameFailed": "Đổi tên thất bại"
+    },
+    "batchImport": {
+      "title": "Nhập hàng loạt Codex",
+      "resultSubtitle": "Kết quả nhập",
+      "previewSubtitle": "Chọn tài khoản để lưu",
+      "scanSubtitle": "Đang phân tích và kiểm tra từng tài khoản",
+      "cancelling": "Đang hủy...",
+      "scanDone": "Quét xong",
+      "scanning": "Đang quét",
+      "current": "Hiện tại",
+      "imported": "Đã nhập",
+      "failed": "Thất bại",
+      "quotaOk": "Tài khoản OK",
+      "quotaFailed": "Lỗi",
+      "preparing": "Đang chuẩn bị nhập...",
+      "importSelected": "Nhập tài khoản đã chọn",
+      "noSelection": "Hãy chọn tài khoản trước",
+      "groups": {
+        "ready": "Có thể nhập",
+        "quotaFailed": "Lỗi",
+        "existing": "Đã có",
+        "invalid": "Không hợp lệ"
+      },
+      "cancelScan": "Hủy quét",
+      "cancelled": "Đã hủy",
+      "resumeScan": "Tiếp tục quét",
+      "selectedCount": "Đã chọn {{count}}/{{total}}",
+      "selectAllAccounts": "Chọn tất cả",
+      "selectReady": "Chọn tài khoản OK",
+      "clearSelection": "Bỏ chọn"
     }
   },
   "githubCopilot": {

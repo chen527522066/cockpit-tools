@@ -2934,6 +2934,36 @@
     "apiKey": {
       "renameSuccess": "تمت إعادة التسمية",
       "renameFailed": "فشلت إعادة التسمية"
+    },
+    "batchImport": {
+      "title": "استيراد Codex دفعة واحدة",
+      "resultSubtitle": "نتيجة الاستيراد",
+      "previewSubtitle": "اختر الحسابات للحفظ",
+      "scanSubtitle": "جارٍ تحليل الحسابات وفحصها واحدًا تلو الآخر",
+      "cancelling": "جار الإلغاء...",
+      "scanDone": "اكتمل الفحص",
+      "scanning": "جار الفحص",
+      "current": "الحالي",
+      "imported": "تم الاستيراد",
+      "failed": "فشل",
+      "quotaOk": "الحساب سليم",
+      "quotaFailed": "خلل",
+      "preparing": "جار تحضير الاستيراد...",
+      "importSelected": "استيراد الحسابات المحددة",
+      "noSelection": "اختر الحسابات أولاً",
+      "groups": {
+        "ready": "جاهزة",
+        "quotaFailed": "خلل",
+        "existing": "موجودة",
+        "invalid": "غير صالحة"
+      },
+      "cancelScan": "إلغاء الفحص",
+      "cancelled": "تم الإلغاء",
+      "resumeScan": "متابعة الفحص",
+      "selectedCount": "المحدد {{count}}/{{total}}",
+      "selectAllAccounts": "اختيار كل الحسابات",
+      "selectReady": "اختيار الحسابات السليمة",
+      "clearSelection": "إلغاء الاختيار"
     }
   },
   "githubCopilot": {

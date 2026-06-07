@@ -2888,6 +2888,36 @@
     "apiKey": {
       "renameSuccess": "已重新命名",
       "renameFailed": "重新命名失敗"
+    },
+    "batchImport": {
+      "title": "Codex 批次匯入",
+      "resultSubtitle": "匯入結果",
+      "previewSubtitle": "選擇要寫入的帳號",
+      "scanSubtitle": "正在逐條解析並檢查帳號",
+      "cancelling": "正在取消...",
+      "scanDone": "掃描完成",
+      "scanning": "掃描中",
+      "current": "目前",
+      "imported": "已匯入",
+      "failed": "失敗",
+      "quotaOk": "帳號正常",
+      "quotaFailed": "異常",
+      "preparing": "正在準備匯入任務...",
+      "importSelected": "匯入選取帳號",
+      "noSelection": "請先選擇要匯入的帳號",
+      "groups": {
+        "ready": "可匯入",
+        "quotaFailed": "異常",
+        "existing": "已存在",
+        "invalid": "無效帳號"
+      },
+      "cancelScan": "取消掃描",
+      "cancelled": "已取消",
+      "resumeScan": "繼續掃描",
+      "selectedCount": "已選 {{count}}/{{total}}",
+      "selectAllAccounts": "選擇全部帳號",
+      "selectReady": "選擇正常帳號",
+      "clearSelection": "取消選擇"
     }
   },
   "githubCopilot": {
