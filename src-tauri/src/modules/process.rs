@@ -6936,6 +6936,34 @@ pub fn normalize_actual_path_case(path: &std::path::Path) -> std::path::PathBuf 
     }
 }
 
+#[cfg(target_os = "windows")]
+fn find_antigravity_lnk_path() -> Option<std::path::PathBuf> {
+    use std::env;
+    let mut candidates = Vec::new();
+    if let Ok(appdata) = env::var("APPDATA") {
+        candidates.push(
+            std::path::PathBuf::from(appdata)
+                .join("Microsoft\\Windows\\Start Menu\\Programs\\Antigravity.lnk")
+        );
+        candidates.push(
+            std::path::PathBuf::from(&env::var("APPDATA").unwrap())
+                .join("Microsoft\\Windows\\Start Menu\\Programs\\Antigravity IDE\\Antigravity IDE.lnk")
+        );
+    }
+    if let Ok(programdata) = env::var("PROGRAMDATA") {
+        candidates.push(
+            std::path::PathBuf::from(programdata)
+                .join("Microsoft\\Windows\\Start Menu\\Programs\\Antigravity.lnk")
+        );
+    }
+    for candidate in candidates {
+        if candidate.exists() {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
 /// 启动 Antigravity IDE
 pub fn start_antigravity() -> Result<u32, String> {
     start_antigravity_with_args("", &[])
@@ -6998,6 +7026,38 @@ pub fn start_antigravity_with_args(
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
+
+        if user_data_dir.trim().is_empty() && extra_args.is_empty() {
+            if let Some(lnk_path) = find_antigravity_lnk_path() {
+                crate::modules::logger::log_info(&format!(
+                    "检测到快捷方式，尝试通过快捷方式拉起 Antigravity: {}",
+                    lnk_path.to_string_lossy()
+                ));
+                let spawn_res = Command::new("cmd")
+                    .args(["/c", "start", "", &lnk_path.to_string_lossy()])
+                    .creation_flags(0x08000000)
+                    .spawn();
+                match spawn_res {
+                    Ok(_) => {
+                        let probe_started = std::time::Instant::now();
+                        let timeout = std::time::Duration::from_secs(3);
+                        while probe_started.elapsed() < timeout {
+                            if let Some(resolved_pid) = resolve_antigravity_pid(None, None) {
+                                return Ok(resolved_pid);
+                            }
+                            std::thread::sleep(std::time::Duration::from_millis(150));
+                        }
+                        return Ok(0);
+                    }
+                    Err(e) => {
+                        crate::modules::logger::log_warn(&format!(
+                            "快捷方式启动失败，回退到直接启动: {}",
+                            e
+                        ));
+                    }
+                }
+            }
+        }
 
         let launch_path = normalize_actual_path_case(&launch_path);
         let mut cmd = Command::new(&launch_path);
@@ -7096,6 +7156,38 @@ pub fn start_antigravity_legacy_with_args(
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
+
+        if user_data_dir.trim().is_empty() && extra_args.is_empty() {
+            if let Some(lnk_path) = find_antigravity_lnk_path() {
+                crate::modules::logger::log_info(&format!(
+                    "检测到快捷方式，尝试通过快捷方式拉起 Antigravity Legacy: {}",
+                    lnk_path.to_string_lossy()
+                ));
+                let spawn_res = Command::new("cmd")
+                    .args(["/c", "start", "", &lnk_path.to_string_lossy()])
+                    .creation_flags(0x08000000)
+                    .spawn();
+                match spawn_res {
+                    Ok(_) => {
+                        let probe_started = std::time::Instant::now();
+                        let timeout = std::time::Duration::from_secs(3);
+                        while probe_started.elapsed() < timeout {
+                            if let Some(resolved_pid) = resolve_antigravity_pid(None, None) {
+                                return Ok(resolved_pid);
+                            }
+                            std::thread::sleep(std::time::Duration::from_millis(150));
+                        }
+                        return Ok(0);
+                    }
+                    Err(e) => {
+                        crate::modules::logger::log_warn(&format!(
+                            "快捷方式启动失败，回退到直接启动: {}",
+                            e
+                        ));
+                    }
+                }
+            }
+        }
 
         let launch_path = normalize_actual_path_case(&launch_path);
         let mut cmd = Command::new(&launch_path);
