@@ -938,7 +938,7 @@ pub fn close_codex_oauth_port() -> Result<u32, String> {
 
 #[tauri::command]
 pub fn codex_wakeup_get_cli_status() -> Result<codex_wakeup::CodexCliStatus, String> {
-    Ok(codex_wakeup::get_cli_status())
+    Ok(codex_wakeup::wakeup_runtime_status())
 }
 
 #[tauri::command]
@@ -950,7 +950,7 @@ pub fn codex_wakeup_update_runtime_config(
         codex_cli_path,
         node_path,
     })?;
-    Ok(codex_wakeup::get_cli_status())
+    Ok(codex_wakeup::wakeup_runtime_status())
 }
 
 #[tauri::command]

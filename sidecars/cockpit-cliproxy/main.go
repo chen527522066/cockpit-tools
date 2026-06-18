@@ -3558,16 +3558,59 @@ func providerGatewayURL(baseURL string, path string) (string, error) {
 	}
 	cleanPath := "/" + strings.TrimLeft(path, "/")
 	basePath := strings.TrimRight(parsed.Path, "/")
+	endpointPath := providerGatewayEndpointPath(cleanPath)
 	if strings.HasSuffix(basePath, strings.TrimSuffix(cleanPath, "/")) {
 		parsed.Path = basePath
-	} else if strings.HasSuffix(basePath, "/v1") && strings.HasPrefix(cleanPath, "/v1/") {
-		parsed.Path = basePath + strings.TrimPrefix(cleanPath, "/v1")
+	} else if endpointPath != "" && strings.HasSuffix(basePath, strings.TrimSuffix(endpointPath, "/")) {
+		parsed.Path = basePath
+	} else if endpointPath != "" && providerGatewayBasePathHasVersionSegment(basePath) {
+		parsed.Path = basePath + endpointPath
 	} else {
 		parsed.Path = basePath + cleanPath
 	}
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 	return parsed.String(), nil
+}
+
+func providerGatewayEndpointPath(path string) string {
+	cleanPath := "/" + strings.TrimLeft(strings.TrimSpace(path), "/")
+	if strings.HasPrefix(cleanPath, "/v1/") {
+		return strings.TrimPrefix(cleanPath, "/v1")
+	}
+	return ""
+}
+
+func providerGatewayBasePathHasVersionSegment(basePath string) bool {
+	for _, segment := range strings.Split(strings.Trim(basePath, "/"), "/") {
+		if providerGatewayPathSegmentIsVersion(segment) {
+			return true
+		}
+	}
+	return false
+}
+
+func providerGatewayPathSegmentIsVersion(segment string) bool {
+	segment = strings.TrimSpace(segment)
+	if len(segment) < 2 || (segment[0] != 'v' && segment[0] != 'V') {
+		return false
+	}
+	hasDigit := false
+	for i := 1; i < len(segment); i++ {
+		ch := segment[i]
+		if ch >= '0' && ch <= '9' {
+			hasDigit = true
+			continue
+		}
+		if !hasDigit {
+			return false
+		}
+		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '-' || ch == '_' || ch == '.' {
+			continue
+		}
+		return false
+	}
+	return hasDigit
 }
 
 func (s *relayServer) handleNonStream(c *gin.Context, body []byte, model string, sourceFormat sdktranslator.Format, alt string) {

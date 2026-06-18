@@ -7,6 +7,14 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [0.26.2] - 2026-06-18
+
+### 修复
+- **Codex provider gateway 现在会保留供应商版本根路径**：Base URL 已包含 `/api/coding/paas/v4`、`/api/coding/v3` 或 `/v2/coding` 等版本根路径的 Chat Completions 供应商，现在会直接拼到供应商 endpoint，不再额外插入 `/v1`。
+- **Codex 唤醒不再因旧 CLI 缺失而暂停**：唤醒状态和总览可用性现在按官方直连对话运行态判断，不再依赖旧 CLI 探测；保存提示也会以后端实际保存结果为准。
+- **仪表盘 Codex API 卡片暗色主题显示正常**：仪表盘中的 Codex API Key 迷你卡片现在使用暗色主题面板，不再继承浅色赞助商渐变背景。
+
+---
 ## [0.26.1] - 2026-06-18
 
 ### 新增

@@ -734,6 +734,133 @@ func TestRelayServerProviderGatewayRoutesResponsesToChatCompletions(t *testing.T
 	}
 }
 
+func TestRelayServerProviderGatewayPreservesVersionedBaseURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	var upstreamPath string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"chatcmpl_1","object":"chat.completion","created":1,"model":"glm-5.1","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`))
+	}))
+	defer upstream.Close()
+
+	gateway := &providerGatewaySpec{
+		BaseURL:        upstream.URL + "/api/coding/paas/v4",
+		APIKey:         "zhipu-key",
+		UpstreamModel:  "glm-5.1",
+		UpstreamModels: []string{"glm-5.1"},
+		WireAPI:        "chat_completions",
+	}
+	m := &manifest{
+		APIKeys:  []apiKeySpec{{ID: "provider_gateway_account_1", Label: "Provider Gateway", Key: "client-key", Enabled: true, ProviderGateway: gateway}},
+		ModelIDs: []string{"glm-5.1"},
+		apiKeyByValue: map[string]*apiKeySpec{
+			"client-key": {ID: "provider_gateway_account_1", Label: "Provider Gateway", Key: "client-key", Enabled: true, ProviderGateway: gateway},
+		},
+	}
+	router := (&relayServer{
+		runtime:  &fakeRuntime{},
+		cfg:      &config.Config{},
+		manifest: m,
+		policy:   &requestPolicy{manifest: m},
+	}).router()
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(`{"model":"glm-5.1","input":"hello","stream":false}`))
+	req.Header.Set("Authorization", "Bearer client-key")
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d body=%s", w.Code, w.Body.String())
+	}
+	if upstreamPath != "/api/coding/paas/v4/chat/completions" {
+		t.Fatalf("unexpected upstream path: %s", upstreamPath)
+	}
+}
+
+func TestProviderGatewayURLPreservesVersionedBasePaths(t *testing.T) {
+	tests := []struct {
+		name string
+		base string
+		path string
+		want string
+	}{
+		{
+			name: "bare host appends openai v1 path",
+			base: "https://api.example.com",
+			path: "/v1/chat/completions",
+			want: "https://api.example.com/v1/chat/completions",
+		},
+		{
+			name: "existing v1 base keeps single v1",
+			base: "https://api.example.com/v1/",
+			path: "/v1/chat/completions",
+			want: "https://api.example.com/v1/chat/completions",
+		},
+		{
+			name: "complete endpoint is left unchanged",
+			base: "https://api.example.com/v1/chat/completions",
+			path: "/v1/chat/completions",
+			want: "https://api.example.com/v1/chat/completions",
+		},
+		{
+			name: "zhipu coding paas v4 base keeps v4 root",
+			base: "https://open.bigmodel.cn/api/coding/paas/v4",
+			path: "/v1/chat/completions",
+			want: "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
+		},
+		{
+			name: "zai coding paas v4 base keeps v4 root",
+			base: "https://api.z.ai/api/coding/paas/v4",
+			path: "/v1/chat/completions",
+			want: "https://api.z.ai/api/coding/paas/v4/chat/completions",
+		},
+		{
+			name: "volcengine coding v3 base keeps v3 root",
+			base: "https://ark.cn-beijing.volces.com/api/coding/v3",
+			path: "/v1/chat/completions",
+			want: "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions",
+		},
+		{
+			name: "doubao api v3 base keeps v3 root",
+			base: "https://ark.cn-beijing.volces.com/api/v3",
+			path: "/v1/chat/completions",
+			want: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+		},
+		{
+			name: "qianfan v2 coding base keeps v2 root",
+			base: "https://qianfan.baidubce.com/v2/coding",
+			path: "/v1/chat/completions",
+			want: "https://qianfan.baidubce.com/v2/coding/chat/completions",
+		},
+		{
+			name: "versioned responses path drops openai v1 prefix",
+			base: "https://open.bigmodel.cn/api/coding/paas/v4",
+			path: "/v1/responses",
+			want: "https://open.bigmodel.cn/api/coding/paas/v4/responses",
+		},
+		{
+			name: "base query is stripped",
+			base: "https://api.example.com/v1?ignored=1",
+			path: "/v1/chat/completions",
+			want: "https://api.example.com/v1/chat/completions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := providerGatewayURL(tt.base, tt.path)
+			if err != nil {
+				t.Fatalf("providerGatewayURL returned error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("providerGatewayURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRelayServerProviderGatewayChatStreamTerminatesResponsesSSEFrames(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

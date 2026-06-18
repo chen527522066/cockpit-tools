@@ -2056,9 +2056,10 @@ export function CodexWakeupContent({
           ? await ensureCodexRefreshIntervalForQuotaReset()
           : false;
       const next = await saveState(enabled, tasks, modelPresets);
+      const savedEnabled = next.enabled;
       setNotice({
         tone: 'success',
-        text: enabled
+        text: savedEnabled
           ? refreshAdjusted
             ? t('codex.wakeup.noticeSavedEnabledWithQuotaReset', {
                 count: next.tasks.length,

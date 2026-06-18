@@ -7,6 +7,14 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.26.2] - 2026-06-18
+
+### Fixed
+- **Codex provider gateway now preserves versioned provider base paths**: Chat Completions providers whose Base URL already includes a version root such as `/api/coding/paas/v4`, `/api/coding/v3`, or `/v2/coding` now route to the provider endpoint without adding an extra `/v1`.
+- **Codex wakeup no longer pauses when the legacy CLI is missing**: wakeup state and overview availability now follow the official direct-chat runtime instead of the old CLI probe, and the saved-state notice reflects the backend result.
+- **Dashboard Codex API cards look correct in dark mode**: Codex API Key mini cards on the dashboard now use a dark-theme surface instead of inheriting the light sponsor-style gradient.
+
+---
 ## [0.26.1] - 2026-06-18
 
 ### Added

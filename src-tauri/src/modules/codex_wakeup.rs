@@ -435,7 +435,7 @@ fn normalize_reasoning_effort(value: &str) -> Option<String> {
     }
 }
 
-fn official_chat_runtime_status() -> CodexCliStatus {
+pub fn wakeup_runtime_status() -> CodexCliStatus {
     CodexCliStatus {
         available: true,
         binary_path: None,
@@ -1539,36 +1539,6 @@ fn normalize_task(raw: &CodexWakeupTask) -> CodexWakeupTask {
     }
 }
 
-fn disable_tasks_when_cli_missing_with_runtime(
-    state: &mut CodexWakeupState,
-    runtime_available: bool,
-) -> bool {
-    if runtime_available {
-        return false;
-    }
-
-    let mut changed = false;
-    if state.enabled {
-        state.enabled = false;
-        changed = true;
-    }
-
-    for task in &mut state.tasks {
-        if task.enabled {
-            task.enabled = false;
-            task.updated_at = now_ts();
-            changed = true;
-        }
-    }
-
-    changed
-}
-
-fn disable_tasks_when_cli_missing(state: &mut CodexWakeupState) -> bool {
-    let runtime = get_cli_status();
-    disable_tasks_when_cli_missing_with_runtime(state, runtime.available)
-}
-
 fn refresh_next_run_at(state: &mut CodexWakeupState) {
     for task in &mut state.tasks {
         task.next_run_at = if state.enabled && task.enabled {
@@ -1615,10 +1585,7 @@ pub fn save_runtime_config(
     Ok(normalized)
 }
 
-fn load_state_inner(
-    apply_cli_guard: bool,
-    runtime_available_override: Option<bool>,
-) -> Result<CodexWakeupState, String> {
+fn load_state_inner() -> Result<CodexWakeupState, String> {
     let path = tasks_path()?;
     if !path.exists() {
         return Ok(CodexWakeupState::default());
@@ -1652,17 +1619,8 @@ fn load_state_inner(
     state.model_preset_migrations.sort();
     state.model_preset_migrations.dedup();
     let migration_changed = ensure_gpt_5_5_model_preset(&mut state);
-    let changed = if apply_cli_guard {
-        if let Some(runtime_available) = runtime_available_override {
-            disable_tasks_when_cli_missing_with_runtime(&mut state, runtime_available)
-        } else {
-            disable_tasks_when_cli_missing(&mut state)
-        }
-    } else {
-        false
-    };
     refresh_next_run_at(&mut state);
-    if migration_changed || changed {
+    if migration_changed {
         let _lock = TASKS_LOCK.lock().map_err(|_| "获取 Codex 唤醒任务锁失败")?;
         save_json_atomic(&path, &state)?;
     }
@@ -1670,20 +1628,16 @@ fn load_state_inner(
 }
 
 pub fn load_state() -> Result<CodexWakeupState, String> {
-    load_state_inner(true, None)
+    load_state_inner()
 }
 
 pub fn load_state_for_scheduler() -> Result<CodexWakeupState, String> {
-    load_state_inner(false, None)
-}
-
-fn load_state_with_runtime_available(runtime_available: bool) -> Result<CodexWakeupState, String> {
-    load_state_inner(true, Some(runtime_available))
+    load_state_inner()
 }
 
 pub fn load_overview() -> Result<CodexWakeupOverview, String> {
-    let runtime = get_cli_status();
-    let state = load_state_with_runtime_available(runtime.available)?;
+    let runtime = wakeup_runtime_status();
+    let state = load_state()?;
     let history = load_history()?;
     Ok(CodexWakeupOverview {
         runtime,
@@ -1723,7 +1677,6 @@ pub fn save_state(next_state: &CodexWakeupState) -> Result<CodexWakeupState, Str
     state.model_preset_migrations.dedup();
     ensure_gpt_5_5_model_preset(&mut state);
 
-    disable_tasks_when_cli_missing(&mut state);
     refresh_next_run_at(&mut state);
 
     save_json_atomic(&tasks_path()?, &state)?;
@@ -2312,7 +2265,7 @@ pub async fn run_batch(
         .filter(|item| !item.is_empty())
         .unwrap_or_else(|| DEFAULT_PROMPT.to_string());
     let total = cleaned_ids.len();
-    let runtime = official_chat_runtime_status();
+    let runtime = wakeup_runtime_status();
     let run_id = run_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let cancel_flag = resolve_cancel_flag(cancel_scope_id)?;
     emit_progress(
