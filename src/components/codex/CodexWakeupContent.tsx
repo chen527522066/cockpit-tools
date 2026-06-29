@@ -100,6 +100,7 @@ interface CodexWakeupContentProps {
   onRefreshAccounts: () => Promise<void>;
   openPresetManagerSignal?: number;
   openTestRequest?: CodexWakeupTestOpenRequest | null;
+  modalOnly?: boolean;
 }
 
 interface TaskDraft {
@@ -905,6 +906,7 @@ export function CodexWakeupContent({
   onRefreshAccounts,
   openPresetManagerSignal = 0,
   openTestRequest = null,
+  modalOnly = false,
 }: CodexWakeupContentProps) {
   const { t } = useTranslation();
   const {
@@ -2618,7 +2620,9 @@ export function CodexWakeupContent({
   }, [clearHistory, t]);
 
   return (
-    <div className="wakeup-page codex-wakeup-content">
+    <div
+      className={`wakeup-page codex-wakeup-content${modalOnly ? ' codex-wakeup-modal-only' : ''}`}
+    >
       {notice && (
         <div className={`action-message ${notice.tone}`}>
           <span className="action-message-text">{notice.text}</span>
@@ -3475,7 +3479,7 @@ export function CodexWakeupContent({
               <button className="btn btn-secondary icon-only" onClick={closeTestModal} title={t('common.back', '返回')} aria-label={t('common.back', '返回')}><ChevronLeft size={14} /></button>
               <h2>
                 {testModalVariant === 'fullQuota'
-                  ? t('codex.wakeup.fullQuotaTestTitle', '唤醒满额账号')
+                  ? t('codex.wakeup.fullQuotaTestTitle', '唤醒账号')
                   : t('codex.wakeup.testTitle')}
               </h2>
               <button className="modal-close" onClick={closeTestModal}>

@@ -9,6 +9,7 @@ import {
   usePlatformPackageStore,
 } from '../stores/usePlatformPackageStore';
 import type { Page } from '../types/navigation';
+import './AntigravitySuitePage.css';
 
 const ANTIGRAVITY_REMOTE_TABS_SLOT_ID = 'antigravity-remote-tabs-slot';
 
@@ -69,7 +70,8 @@ export function AntigravitySuitePage({
         active={activeTab}
         onNavigate={onNavigate}
         subtitle=""
-        hideTabs={runtimeReady}
+        hideTabs
+        hidePlatformSwitcher={!runtimeReady}
         remoteTabsSlotId={runtimeReady ? ANTIGRAVITY_REMOTE_TABS_SLOT_ID : undefined}
         rightSlot={<PlatformPackageToolbar platformId={platformId} />}
       />

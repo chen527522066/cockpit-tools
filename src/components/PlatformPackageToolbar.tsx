@@ -16,14 +16,47 @@ import {
   getPlatformPackageFromPackages,
   usePlatformPackageStore,
 } from '../stores/usePlatformPackageStore';
+import { getPlatformUiDevConfig } from '../services/platformPackageService';
 import { useGlobalModal } from '../hooks/useGlobalModal';
 import { getPlatformLabel } from '../utils/platformMeta';
 import './PlatformPackageToolbar.css';
 
 const PLATFORM_PACKAGE_PROGRESS_EVENT = 'platform-package://progress';
 const PLATFORM_PACKAGE_PROGRESS_LOCAL_EVENT = 'agtools:platform-package-progress';
+const ERROR_URL_PATTERN = /https?:\/\/[^\s)]+/gi;
+const RETRYABLE_PACKAGE_ERROR_TOKENS = [
+  'error sending request',
+  'failed to send request',
+  'timeout',
+  'timed out',
+  'network',
+  'dns',
+  'tls',
+  'ssl',
+  'connection reset',
+  'connection refused',
+  'connection aborted',
+  'broken pipe',
+  'unexpected eof',
+  'temporarily unavailable',
+  'temporary failure',
+  'no route to host',
+  'unreachable',
+];
+const SOURCE_MISSING_ERROR_TOKENS = [
+  '未找到平台包源',
+  'no matching',
+  'missing artifact',
+  'no artifact',
+];
 
 type PackageAction = PlatformPackageOperation;
+
+interface PlatformPackageDisplayError {
+  summary: string;
+  detail: string | null;
+  retryable: boolean;
+}
 
 interface PlatformPackageToolbarProps {
   platformId: PlatformId;
@@ -286,6 +319,78 @@ function getProgressPhaseText(phase: PlatformPackageProgressPhase, t: TFunction)
   }
 }
 
+function normalizeErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function compactErrorDetail(message: string): string {
+  return message.replace(/\s+/g, ' ').trim();
+}
+
+function isRetryablePackageError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return RETRYABLE_PACKAGE_ERROR_TOKENS.some((token) => normalized.includes(token));
+}
+
+function isSourceMissingPackageError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return SOURCE_MISSING_ERROR_TOKENS.some((token) => normalized.includes(token));
+}
+
+function isPackageVerifyError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes('sha256')
+    || normalized.includes('hash mismatch')
+    || normalized.includes('checksum')
+    || normalized.includes('校验失败');
+}
+
+export function formatPlatformPackageOperationError(
+  error: unknown,
+  t: TFunction,
+): PlatformPackageDisplayError {
+  const raw = normalizeErrorMessage(error);
+  const detail = compactErrorDetail(raw);
+  const redactedDetail = detail.replace(ERROR_URL_PATTERN, '[URL]');
+  const retryable = isRetryablePackageError(detail);
+  let summary: string;
+
+  if (retryable) {
+    summary = t(
+      'platformLayout.packageDownloadFailedRetryable',
+      '平台包下载失败，可能是网络或代理暂时不可用。请检查网络后重试。',
+    );
+  } else if (isSourceMissingPackageError(detail)) {
+    summary = t(
+      'platformLayout.packageDownloadSourceMissing',
+      '当前系统没有可用的平台包源，请稍后检查更新或切换到支持的安装包。',
+    );
+  } else if (isPackageVerifyError(detail)) {
+    summary = t(
+      'platformLayout.packageDownloadVerifyFailed',
+      '平台包校验失败，请重新下载；如果持续失败，请等待平台包重新发布。',
+    );
+  } else {
+    summary = t('platformLayout.packageOperationFailedFriendly', '平台包处理失败，请稍后重试。');
+  }
+
+  return {
+    summary,
+    detail: redactedDetail && redactedDetail !== summary ? redactedDetail : null,
+    retryable,
+  };
+}
+
 export function PlatformPackageOperationProgress({
   platformId,
   operation,
@@ -297,6 +402,7 @@ export function PlatformPackageOperationProgress({
 }) {
   const { t } = useTranslation();
   const [progress, setProgress] = useState<PlatformPackageProgressPayload | null>(null);
+  const [showErrorDetail, setShowErrorDetail] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -337,6 +443,12 @@ export function PlatformPackageOperationProgress({
     };
   }, [operation, platformId]);
 
+  useEffect(() => {
+    if (progress?.phase !== 'failed') {
+      setShowErrorDetail(false);
+    }
+  }, [progress?.phase, progress?.message]);
+
   const percent = typeof progress?.percent === 'number'
     ? Math.min(100, Math.max(0, Math.round(progress.percent)))
     : null;
@@ -360,6 +472,9 @@ export function PlatformPackageOperationProgress({
     : null;
   const isFailed = progress?.phase === 'failed';
   const isIndeterminate = Boolean(progress && percent === null && !isFailed);
+  const displayError = isFailed && progress?.message
+    ? formatPlatformPackageOperationError(progress.message, t)
+    : null;
 
   return (
     <div
@@ -379,7 +494,34 @@ export function PlatformPackageOperationProgress({
       </div>
       {(bytesText || progress?.message) && (
         <div className="platform-package-progress-meta">
-          {isFailed && progress?.message ? progress.message : bytesText}
+          {displayError ? (
+            <div className="platform-package-progress-error">
+              <div className="platform-package-progress-error-summary">
+                {displayError.summary}
+              </div>
+              {displayError.retryable && (
+                <div className="platform-package-progress-error-hint">
+                  {t('platformLayout.packageOperationRetryHint', '可以点击下方按钮重试。')}
+                </div>
+              )}
+              {displayError.detail && (
+                <div className="platform-package-progress-error-detail">
+                  <button
+                    type="button"
+                    className="platform-package-progress-error-detail-toggle"
+                    onClick={() => setShowErrorDetail((value) => !value)}
+                  >
+                    {showErrorDetail
+                      ? t('update_notification.hideErrorDetails', '收起详情')
+                      : t('update_notification.showErrorDetails', '查看详情')}
+                  </button>
+                  {showErrorDetail && (
+                    <pre>{displayError.detail}</pre>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : bytesText}
         </div>
       )}
     </div>
@@ -398,11 +540,13 @@ export function PlatformPackageToolbar({
   const checkUpdate = usePlatformPackageStore((state) => state.checkUpdate);
   const installPackage = usePlatformPackageStore((state) => state.installPackage);
   const updatePackage = usePlatformPackageStore((state) => state.updatePackage);
+  const reloadPackage = usePlatformPackageStore((state) => state.reloadPackage);
   const uninstallPackage = usePlatformPackageStore((state) => state.uninstallPackage);
   const refreshPackages = usePlatformPackageStore((state) => state.refresh);
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [localReloadEnabled, setLocalReloadEnabled] = useState(false);
   const actionPromisesRef = useRef<Map<string, Promise<PlatformPackageState>>>(new Map());
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -470,8 +614,9 @@ export function PlatformPackageToolbar({
       return nextState;
     })()
       .catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        setOperationError(message);
+        const message = normalizeErrorMessage(error);
+        const displayError = formatPlatformPackageOperationError(message, t);
+        setOperationError(displayError.summary);
         dispatchPlatformPackageProgress({
           platformId,
           operation: action,
@@ -481,7 +626,7 @@ export function PlatformPackageToolbar({
           totalBytes: options?.totalBytes ?? null,
           message,
         });
-        throw error;
+        throw new Error(displayError.summary);
       })
       .finally(() => {
         actionPromisesRef.current.delete(key);
@@ -576,13 +721,14 @@ export function PlatformPackageToolbar({
           label: t('common.cancel', '取消'),
           variant: 'secondary',
         },
-        {
-          id: `platform-package-${action}`,
-          label: actionLabel,
-          variant: action === 'uninstall' ? 'danger' : 'primary',
-          onClick: async () => {
-            await runAction(action, {
-              requireRuntimeReady: action !== 'uninstall',
+          {
+            id: `platform-package-${action}`,
+            label: actionLabel,
+            variant: action === 'uninstall' ? 'danger' : 'primary',
+            suppressError: true,
+            onClick: async () => {
+              await runAction(action, {
+                requireRuntimeReady: action !== 'uninstall',
               totalBytes: action === 'uninstall' ? null : platformPackage.downloadSizeBytes,
             });
           },
@@ -607,6 +753,120 @@ export function PlatformPackageToolbar({
       setActionKey((current) => (current === key ? null : current));
     }
   }, [actionKey, checkUpdate, platformId, platformPackage]);
+
+  const runLocalReload = useCallback(async (): Promise<PlatformPackageState> => {
+    const key = `${platformId}:reload`;
+    const existing = actionPromisesRef.current.get(key);
+    if (existing) {
+      return await existing;
+    }
+
+    const promise = (async () => {
+      setActionKey(key);
+      setOperationError(null);
+      dispatchPlatformPackageProgress({
+        platformId,
+        operation: 'update',
+        phase: 'resolving',
+        percent: 0,
+        downloadedBytes: null,
+        totalBytes: null,
+        message: t('platformLayout.packageReloadProgressRebuilding', '正在重建本地平台包'),
+      });
+      let nextState = await reloadPackage(platformId);
+      dispatchPlatformPackageChanged(nextState);
+      if (!nextState.runtimeReady) {
+        try {
+          const refreshedPackages = await refreshPackages();
+          const refreshedState = getPlatformPackageFromPackages(refreshedPackages, platformId);
+          if (refreshedState) {
+            nextState = refreshedState;
+            dispatchPlatformPackageChanged(nextState);
+          }
+        } catch {
+          // Keep the reload result; the runtime-ready check below will surface the error.
+        }
+      }
+      if (!nextState.runtimeReady) {
+        throw new Error(
+          nextState.errorMessage || t('platformLayout.packageInstallNotReady', '平台包已处理，但运行组件尚未就绪'),
+        );
+      }
+      dispatchPlatformPackageProgress({
+        platformId,
+        operation: 'update',
+        phase: 'completed',
+        percent: 100,
+        downloadedBytes: null,
+        totalBytes: null,
+        message: null,
+      });
+      return nextState;
+    })()
+      .catch((error) => {
+        const message = normalizeErrorMessage(error);
+        const displayError = formatPlatformPackageOperationError(message, t);
+        setOperationError(displayError.summary);
+        dispatchPlatformPackageProgress({
+          platformId,
+          operation: 'update',
+          phase: 'failed',
+          percent: null,
+          downloadedBytes: null,
+          totalBytes: null,
+          message,
+        });
+        throw new Error(displayError.summary);
+      })
+      .finally(() => {
+        actionPromisesRef.current.delete(key);
+        setActionKey((current) => (current === key ? null : current));
+      });
+
+    actionPromisesRef.current.set(key, promise);
+    return await promise;
+  }, [platformId, refreshPackages, reloadPackage, t]);
+
+  const confirmLocalReload = useCallback(() => {
+    if (!platformPackage) {
+      return;
+    }
+    setMenuOpen(false);
+    showModal({
+      title: t('platformLayout.packageReloadConfirmTitle', {
+        platform: platformName,
+        defaultValue: '重载 {{platform}} 平台包',
+      }),
+      description: t('platformLayout.packageReloadConfirmDesc', {
+        platform: platformName,
+        defaultValue: '将重新构建本地 {{platform}} 平台包并切换到最新开发包；已保存账号数据不会删除。',
+      }),
+      content: (
+        <PlatformPackageOperationProgress
+          platformId={platformId}
+          operation="update"
+          fallbackTotalBytes={platformPackage.downloadSizeBytes}
+        />
+      ),
+      width: 'sm',
+      actions: [
+        {
+          id: 'cancel',
+          label: t('common.cancel', '取消'),
+          variant: 'secondary',
+        },
+          {
+            id: 'platform-package-reload',
+            label: t('platformLayout.packageReload', '重载'),
+            variant: 'primary',
+            suppressError: true,
+            onClick: async () => {
+              await runLocalReload();
+            },
+        },
+      ],
+    });
+  }, [platformId, platformName, platformPackage, runLocalReload, showModal, t]);
 
   const showChangelog = useCallback(() => {
     if (!platformPackage) {
@@ -690,12 +950,13 @@ export function PlatformPackageToolbar({
           label: t('update_notification.skipThisVersion', '跳过此版本'),
           variant: 'secondary',
         },
-        {
-          id: 'platform-package-update-now',
-          label: t('update_notification.updateNow', '立即更新'),
-          variant: 'primary',
-          onClick: async () => {
-            await runAction('update', {
+          {
+            id: 'platform-package-update-now',
+            label: t('update_notification.updateNow', '立即更新'),
+            variant: 'primary',
+            suppressError: true,
+            onClick: async () => {
+              await runAction('update', {
               requireRuntimeReady: true,
               totalBytes: platformPackage.downloadSizeBytes,
             });
@@ -708,6 +969,24 @@ export function PlatformPackageToolbar({
   useEffect(() => {
     setOperationError(null);
   }, [platformPackage?.installStatus, platformPackage?.installedVersion, platformPackage?.latestVersion]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getPlatformUiDevConfig()
+      .then((config) => {
+        if (!cancelled) {
+          setLocalReloadEnabled(Boolean(config.packageReloadUrl));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLocalReloadEnabled(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -756,6 +1035,7 @@ export function PlatformPackageToolbar({
     || platformPackage.installedVersion
     || platformPackage.installedSizeBytes,
   );
+  const canReloadLocalPackage = isHotUpdate && hasInstalledPackage && localReloadEnabled;
   const currentVersion = platformPackage.installedVersion || '--';
   const latestVersion = platformPackage.latestVersion || '--';
   const topActionKey = canUpdate
@@ -813,6 +1093,21 @@ export function PlatformPackageToolbar({
         >
           {renderTopActionIcon()}
           <span>{topActionLabel}</span>
+        </button>
+      )}
+
+      {canReloadLocalPackage && (
+        <button
+          type="button"
+          className="platform-package-inline-action"
+          title={t('platformLayout.packageReload', '重载')}
+          onClick={confirmLocalReload}
+          disabled={operating}
+        >
+          {actionKey === `${platformId}:reload`
+            ? <RefreshCw size={15} className="loading-spinner" />
+            : <RefreshCw size={15} />}
+          <span>{t('platformLayout.packageReload', '重载')}</span>
         </button>
       )}
 

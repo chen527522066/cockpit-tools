@@ -171,6 +171,64 @@ Core Shell + Platform Package + Remote React UI + Sidecar Adapter + runtimeReady
 9. 后续新平台迁移完成后，必须先通过 test channel 验证 Windows/macOS/Linux 对应 artifact 的安装、卸载、检查更新、更新弹框、更新日志和包大小，再考虑进入正式通道。
 10. macOS 测试 release 必须上传 `.dmg` 供人工下载安装；真实 updater 仍使用 `.app.tar.gz` 与 `.sig`。
 
+#### 5.2.1 本地平台包下载调试
+
+本地调试平台热更新时，也必须走“index 发现版本 -> 下载 zip -> 校验 size/sha256 -> 安装/更新 -> 从 `current` 加载”的完整流程；只允许把下载源替换为本地 HTTP 服务，禁止直接改用户数据目录里的 `platform-packages/<platformId>/current` 或让 App 直接读取源码目录。
+
+推荐流程：
+
+1. 启动本地平台包索引和 zip 服务：
+   ```bash
+   npm run platform:dev:serve -- --platform <platformId>
+   ```
+   不传 `--platform` 时会构建当前系统/架构的全部平台包；只改 remote UI 时保持默认即可，涉及 adapter 改动时加 `--build-adapters`。
+2. 用本地 Test profile 启动接近测试包的桌面端：
+   ```bash
+   npm run tauri:test:local
+   ```
+   该命令读取 `.tmp/platform-dev/server.json` 里的 `indexUrl`，也可用 `--index-url <url>` 或 `COCKPIT_PLATFORM_PACKAGE_INDEX_URL` 覆盖。
+3. 每次修改平台 UI 或 adapter 后，重新执行第 1 步生成新 zip，再在桌面端里走检查更新/更新/安装流程验证。平台包版本或 artifact hash 必须发生变化，否则 App 可能判断为已是最新。
+
+本地服务生成的索引只用于开发验证，文件位于 `.tmp/platform-dev/index.local.json`，不得提交到 Git；测试真实远端下载时仍必须使用 `platform-test/platform-packages/index.test.json`。
+
+#### 5.2.2 本地平台 UI 快速调试
+
+需要实时预览平台页面 UI/交互改动时，不应反复打 zip 或重启 `tauri dev`。本地 UI 调试必须使用 Test/release 宿主 + localhost UI dev override：
+
+推荐使用一键命令：
+
+```bash
+npm run tauri:test:ui
+```
+
+该命令默认构建并监听全部平台 remote UI，同时启动懒加载的本地平台包 dev server。等待本地服务可访问后，再启动 Test/release 宿主并自动设置 `COCKPIT_PLATFORM_UI_DEV_BASE_URL`、本地平台包 index 和本地包重载 URL。常用参数：
+
+```bash
+npm run tauri:test:ui -- --platform codex
+npm run tauri:test:ui -- --platform codex --no-build-app
+npm run tauri:test:ui -- --platform codex,zed --ui-port 14524
+```
+
+低层拆分命令仅用于排查一键脚本本身：
+
+1. 启动目标平台 remote UI 服务：
+   ```bash
+   npm run platform:ui:dev -- --platform <platformId>
+   ```
+   不传 `--platform` 时会构建全部平台 remote UI。该服务会构建 `platform-packages/<platformId>/ui/remoteEntry.js` 与 `style.css`，并通过 `http://127.0.0.1:<port>/<platformId>/remoteEntry.js` 暴露给宿主；源码变化后会自动重建并通过 SSE 通知宿主 remount。
+2. 启动本地 Test/release 宿主并启用 UI dev override：
+   ```bash
+   npm run tauri:test:local -- --ui-dev
+   ```
+   `tauri:test:local` 会读取 `.tmp/platform-ui-dev/server.json` 并设置 `COCKPIT_PLATFORM_UI_DEV_BASE_URL`。后端 `get_platform_package_ui_entry` 仍先检查目标平台已安装且 `runtimeReady=true`，然后只把 UI source/style 替换为 localhost 版本。
+3. 该模式只用于 remote UI 和交互预览，不代表平台包安装、更新、hash、解压、清理流程已验证；这些仍必须回到 5.2.1 的本地 zip 下载调试或真实 test channel 验证。
+
+在 `npm run tauri:test:ui` 启动的桌面端中，平台页右上角会在已安装平台上显示开发态“重载”按钮。点击后才会重建当前平台 zip，刷新本地 index，并走 Core Shell 的平台包更新切换流程；该操作只替换平台包代码和资源，不删除账号数据。未设置本地包重载 URL 的普通 test/正式包不得显示该按钮。
+
+`npm run tauri:dev`、`npm run tauri:dev:vite`、`npm run tauri:test:local` 和 `npm run tauri:test:ui` 启动的本地桌面端必须默认把 Codex API 服务端口固定为 `12345`，便于前后端联调和外部客户端复用 Base URL。脚本通过 `COCKPIT_CODEX_API_SERVICE_PORT=12345` 注入；需要临时覆盖时可显式设置该环境变量。正式包不得默认固定该端口。
+
+`COCKPIT_PLATFORM_UI_DEV_BASE_URL` 只允许 `http://127.0.0.1`、`http://localhost` 或 `http://[::1]` 一类本机地址，禁止指向远端 JS。平台未安装、`runtimeReady=false` 或没有 UI runtime 时，仍必须展示通用不可用页，不得绕过平台包 gate。
+
 ### 5.3 主应用内置资源边界
 
 平台包按需安装是默认分发模型，主应用不得重新变成“全平台大包”：

@@ -94,6 +94,12 @@ export interface PlatformPackageUiEntry {
   style?: string | null;
 }
 
+export interface PlatformUiDevConfig {
+  enabled: boolean;
+  baseUrl?: string | null;
+  packageReloadUrl?: string | null;
+}
+
 export interface PlatformPackagePlatformContribution {
   id: PlatformId;
   label: string;

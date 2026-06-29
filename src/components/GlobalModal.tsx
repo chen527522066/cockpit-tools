@@ -35,7 +35,9 @@ export function GlobalModal() {
     } catch (err) {
       hasError = true;
       console.error('GlobalModal action error:', err);
-      setActionError(String(err));
+      if (!action.suppressError) {
+        setActionError(err instanceof Error ? err.message : String(err));
+      }
     }
     if (!hasError && action.autoClose !== false) {
       closeModal();

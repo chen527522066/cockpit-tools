@@ -1,0 +1,6 @@
+.antigravity-suite-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeUp 0.5s ease;
+}

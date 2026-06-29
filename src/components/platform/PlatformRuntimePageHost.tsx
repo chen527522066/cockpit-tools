@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PlatformId } from '../../types/platform';
 import type { PlatformPackageState, PlatformPackageUiEntry } from '../../types/platformPackage';
-import { getPlatformPackageUiEntry } from '../../services/platformPackageService';
+import {
+  getPlatformPackageUiEntry,
+  getPlatformUiDevConfig,
+} from '../../services/platformPackageService';
 import './PlatformRuntimePageHost.css';
 
 interface PlatformRuntimePageHostProps {
@@ -74,11 +77,13 @@ function buildRemoteModuleUrl(source: string): string {
 function buildRemoteRuntimeCacheKey(
   platformId: PlatformId,
   state: PlatformPackageState,
+  devRevision = 0,
 ): string {
   return [
     platformId,
     state.installedVersion || state.latestVersion || 'unknown',
     state.installedSizeBytes ?? 'unknown-size',
+    devRevision > 0 ? `ui-dev-${devRevision}` : 'stable',
   ].join('@');
 }
 
@@ -110,11 +115,20 @@ function evictStaleRemoteRuntimeCache(): void {
   }
 }
 
+function evictPlatformRemoteRuntimeCache(platformId: PlatformId): void {
+  for (const [key, cached] of platformRemoteRuntimeCache) {
+    if (cached.platformId !== platformId) continue;
+    cleanupCachedRemoteRuntime(cached);
+    platformRemoteRuntimeCache.delete(key);
+  }
+}
+
 function getCachedPlatformRemoteRuntime(
   platformId: PlatformId,
   state: PlatformPackageState,
+  devRevision: number,
 ): CachedPlatformRemoteRuntime {
-  const key = buildRemoteRuntimeCacheKey(platformId, state);
+  const key = buildRemoteRuntimeCacheKey(platformId, state, devRevision);
   const existing = platformRemoteRuntimeCache.get(key);
   if (existing) {
     existing.lastUsedAt = Date.now();
@@ -245,8 +259,9 @@ export function PlatformRuntimePageHost({
   const runtimeParamsRef = useRef(runtimeParams);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [devRevision, setDevRevision] = useState(0);
   const locale = i18n.language || 'zh-cn';
-  const runtimeCacheKey = buildRemoteRuntimeCacheKey(platformId, state);
+  const runtimeCacheKey = buildRemoteRuntimeCacheKey(platformId, state, devRevision);
   const runtimeParamsKey = stableStringify(runtimeParams);
 
   useEffect(() => {
@@ -256,6 +271,46 @@ export function PlatformRuntimePageHost({
   useEffect(() => {
     runtimeParamsRef.current = runtimeParams;
   }, [runtimeParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let eventSource: EventSource | null = null;
+
+    void getPlatformUiDevConfig()
+      .then((config) => {
+        if (cancelled || !config.enabled || !config.baseUrl) return;
+        const baseUrl = config.baseUrl.replace(/\/+$/u, '');
+        eventSource = new EventSource(
+          `${baseUrl}/events?platformId=${encodeURIComponent(platformId)}`,
+        );
+        eventSource.onmessage = (event) => {
+          if (cancelled) return;
+          try {
+            const payload = JSON.parse(event.data) as { platformId?: string };
+            if (payload.platformId && payload.platformId !== platformId) return;
+          } catch {
+            // Ignore malformed dev server events and reload the active platform.
+          }
+          evictPlatformRemoteRuntimeCache(platformId);
+          setDevRevision((value) => value + 1);
+        };
+        eventSource.onerror = () => {
+          if (!cancelled && platformRemotePerfLogEnabled()) {
+            console.warn(`[PlatformRemote][UIDev] event stream disconnected: platform=${platformId}`);
+          }
+        };
+      })
+      .catch((configError) => {
+        if (platformRemotePerfLogEnabled()) {
+          console.warn('[PlatformRemote][UIDev] failed to read dev config:', configError);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      eventSource?.close();
+    };
+  }, [platformId]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -304,7 +359,7 @@ export function PlatformRuntimePageHost({
       tabsSlotElement.appendChild(tabsSlotRootElement);
     }
 
-    cachedRuntime = getCachedPlatformRemoteRuntime(platformId, stateRef.current);
+    cachedRuntime = getCachedPlatformRemoteRuntime(platformId, stateRef.current, devRevision);
     cachedRuntime.lastUsedAt = Date.now();
 
     const loadStartedAt = performance.now();
@@ -384,6 +439,7 @@ export function PlatformRuntimePageHost({
     runtimeCacheKey,
     tabsSlotId,
     runtimeParamsKey,
+    devRevision,
   ]);
 
   return (

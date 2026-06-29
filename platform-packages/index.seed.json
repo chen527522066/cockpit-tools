@@ -521,12 +521,12 @@
           "os": "macos",
           "arch": "aarch64",
           "downloadUrl": "https://raw.githubusercontent.com/jlcodes99/cockpit-tools/main/platform-packages/dist/zed-0.26.7.zip",
-          "downloadSizeBytes": 6240942,
-          "sha256": "603888b3280f2ef85e470649825fc7b13edf81260a451505ea1281518deab075"
+          "downloadSizeBytes": 6253868,
+          "sha256": "b327c7957c508592ad2e1c354274015a9ba4eba78c7f7a27a6f1f9707d787977"
         }
       ],
       "downloadUrl": "https://raw.githubusercontent.com/jlcodes99/cockpit-tools/main/platform-packages/dist/zed-0.26.7.zip",
-      "downloadSizeBytes": 6240942,
+      "downloadSizeBytes": 6253868,
       "capabilities": [
         "accounts",
         "oauth",
@@ -573,7 +573,7 @@
         ],
         "nativeBoundaries": []
       },
-      "sha256": "603888b3280f2ef85e470649825fc7b13edf81260a451505ea1281518deab075"
+      "sha256": "b327c7957c508592ad2e1c354274015a9ba4eba78c7f7a27a6f1f9707d787977"
     },
     {
       "id": "kiro",
@@ -1820,19 +1820,19 @@
           "version": "0.26.8",
           "date": "2026-06-27",
           "notes": [
-            "Adds a full-quota wakeup entry in the Codex account overview. It opens the existing wakeup test dialog directly with accounts sorted by 5h quota from high to low by default.",
+            "Adds a wakeup entry in the Codex account overview. It opens the existing wakeup test dialog directly with accounts sorted by 5h quota from high to low by default.",
             "The wakeup test account picker now supports manual sorting by default order, 5h quota, weekly quota, creation time, or email."
           ],
           "locales": {
             "zh-CN": {
               "notes": [
-                "Codex 账号总览新增“唤醒满额账号”入口：直接打开现有测试唤醒弹框，账号默认按 5h 额度从高到低排序。",
+                "Codex 账号总览新增“唤醒账号”入口：直接打开现有测试唤醒弹框，账号默认按 5h 额度从高到低排序。",
                 "测试唤醒账号选择器支持手动切换排序：默认顺序、5h 额度、周额度、创建时间或邮箱。"
               ]
             },
             "zh-TW": {
               "notes": [
-                "Codex 帳號總覽新增「喚醒滿額帳號」入口：直接開啟既有測試喚醒彈框，帳號預設依 5h 額度由高到低排序。",
+                "Codex 帳號總覽新增「喚醒帳號」入口：直接開啟既有測試喚醒彈框，帳號預設依 5h 額度由高到低排序。",
                 "測試喚醒帳號選擇器支援手動切換排序：預設順序、5h 額度、週額度、建立時間或信箱。"
               ]
             }
@@ -1901,13 +1901,13 @@
           "os": "macos",
           "arch": "aarch64",
           "downloadUrl": "https://raw.githubusercontent.com/jlcodes99/cockpit-tools/main/platform-packages/dist/codex-0.26.8.zip",
-          "downloadSizeBytes": 21882650,
-          "sha256": "03c70db1a132f17a44fb0566d1e64a8ec54aff83a123b67123ec4627b020bbcc"
+          "downloadSizeBytes": 21884045,
+          "sha256": "ec0e5e150018a179a9b871177f99f3d81a9c04df7165cebbf044a68a92859fa9"
         }
       ],
       "downloadUrl": "https://raw.githubusercontent.com/jlcodes99/cockpit-tools/main/platform-packages/dist/codex-0.26.8.zip",
-      "downloadSizeBytes": 21882650,
-      "sha256": "03c70db1a132f17a44fb0566d1e64a8ec54aff83a123b67123ec4627b020bbcc",
+      "downloadSizeBytes": 21884045,
+      "sha256": "ec0e5e150018a179a9b871177f99f3d81a9c04df7165cebbf044a68a92859fa9",
       "adapter": {
         "protocol": "http-json-v1",
         "entry": "adapter/macos/cockpit-codex-adapter",

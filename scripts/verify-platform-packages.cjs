@@ -948,11 +948,11 @@ function verifyHostLifecycleControls() {
 
   for (const expected of [
     'pub fn list_platform_packages',
-    'pub fn check_platform_package_update',
-    'pub fn prepare_platform_package_updates',
-    'pub fn install_platform_package',
-    'pub fn update_platform_package',
-    'pub fn uninstall_platform_package',
+    'pub async fn check_platform_package_update',
+    'pub async fn prepare_platform_package_updates',
+    'pub async fn install_platform_package',
+    'pub async fn update_platform_package',
+    'pub async fn uninstall_platform_package',
     'pub fn get_platform_package_ui_entry',
     'platform_package::list_platform_packages',
     'platform_package::check_platform_package_update',
@@ -1051,7 +1051,9 @@ function verifyPackagingTooling() {
   for (const expected of [
     "'.dmg'",
     "'.app.tar.gz'",
-    'Publish Test Release',
+    'Publish Channel Release',
+    'gray-latest',
+    'latest-gray.json',
     'bundle_platform_packages',
     'prepare:platform-bootstrap',
     'platform-packages/bootstrap/index.json',

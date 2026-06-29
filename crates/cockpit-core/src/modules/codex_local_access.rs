@@ -75,8 +75,9 @@ const SIDECAR_SERVICE_TIER_SUPPORTED_PAYLOAD_FORMATS: &[&str] =
 const CODEX_LOCAL_ACCESS_LOCALHOST_BIND_HOST: &str = "127.0.0.1";
 const CODEX_LOCAL_ACCESS_LAN_BIND_HOST: &str = "0.0.0.0";
 const CODEX_LOCAL_ACCESS_DEFAULT_CLIENT_URL_HOST: &str = "localhost";
-const CODEX_LOCAL_ACCESS_API_PORT_ENV: &str = "COCKPIT_TOOLS_API_PORT";
-const CODEX_LOCAL_ACCESS_DEV_DEFAULT_PORT: u16 = 1456;
+const CODEX_LOCAL_ACCESS_API_PORT_ENV: &str = "COCKPIT_CODEX_API_SERVICE_PORT";
+const CODEX_LOCAL_ACCESS_LEGACY_API_PORT_ENV: &str = "COCKPIT_TOOLS_API_PORT";
+const CODEX_LOCAL_ACCESS_DEV_DEFAULT_PORT: u16 = 12345;
 const CODEX_LOCAL_ACCESS_TAKEOVER_BACKUP_VERSION: u32 = 1;
 const CODEX_LOCAL_ACCESS_RUNTIME_PROVIDER_ID: &str = "codex_local_access";
 const CODEX_LOCAL_ACCESS_RUNTIME_ACCOUNT_ID: &str = "codex_local_access_runtime";
@@ -8275,20 +8276,38 @@ fn allocate_random_local_port(bind_host: &str) -> Result<u16, String> {
         .map_err(|e| format!("读取本地接入端口失败: {}", e))
 }
 
-fn configured_initial_local_access_port() -> Option<u16> {
-    if let Ok(raw) = std::env::var(CODEX_LOCAL_ACCESS_API_PORT_ENV) {
+fn parse_local_access_port_env(name: &str) -> Option<u16> {
+    if let Ok(raw) = std::env::var(name) {
         if let Ok(port) = raw.trim().parse::<u16>() {
             if port > 0 {
                 return Some(port);
             }
         }
     }
+    None
+}
 
+fn configured_local_access_port_env() -> Option<u16> {
+    parse_local_access_port_env(CODEX_LOCAL_ACCESS_API_PORT_ENV)
+        .or_else(|| parse_local_access_port_env(CODEX_LOCAL_ACCESS_LEGACY_API_PORT_ENV))
+}
+
+fn configured_initial_local_access_port() -> Option<u16> {
+    if let Some(port) = configured_local_access_port_env() {
+        return Some(port);
+    }
     if account::is_dev_profile() {
         return Some(CODEX_LOCAL_ACCESS_DEV_DEFAULT_PORT);
     }
 
     None
+}
+
+fn configured_development_local_access_port() -> Option<u16> {
+    if !account::is_dev_profile() && !account::is_test_profile() {
+        return None;
+    }
+    configured_local_access_port_env().or(Some(CODEX_LOCAL_ACCESS_DEV_DEFAULT_PORT))
 }
 
 fn allocate_initial_local_port(bind_host: &str) -> Result<u16, String> {
@@ -9267,7 +9286,12 @@ fn sanitize_collection_with_accounts(
 ) -> Result<(bool, HashSet<String>), String> {
     let mut changed = false;
 
-    if collection.port == 0 {
+    if let Some(port) = configured_development_local_access_port() {
+        if collection.port != port {
+            collection.port = port;
+            changed = true;
+        }
+    } else if collection.port == 0 {
         collection.port = allocate_initial_local_port(bind_host_for_collection(collection))?;
         changed = true;
     }

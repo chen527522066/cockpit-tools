@@ -862,6 +862,71 @@
   white-space: nowrap;
 }
 
+.claude-accounts-page .quota-error-inline {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  overflow: hidden;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.claude-accounts-page .quota-error-inline svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.claude-accounts-page .quota-error-inline > span {
+  display: -webkit-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.claude-accounts-page .quota-error-inline.table {
+  width: min(100%, 260px);
+  margin-top: 6px;
+}
+
+.claude-accounts-page .quota-error-inline .quota-error-action {
+  grid-column: 2;
+  justify-self: start;
+  min-height: 24px;
+  padding: 3px 8px;
+  gap: 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.claude-accounts-page .quota-error-inline .quota-error-action span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .claude-accounts-page .quota-error-inline {
+  border-color: rgba(248, 113, 113, 0.26);
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+}
+
 .claude-accounts-page .claude-compact-list {
   display: flex;
   flex-direction: column;

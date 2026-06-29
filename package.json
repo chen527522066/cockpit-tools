@@ -11,6 +11,8 @@
     "build:platform-ui": "node scripts/build-platform-ui.cjs",
     "package:platform": "node scripts/package-platform-package.cjs",
     "package:platform-index": "node scripts/build-platform-package-index.cjs",
+    "platform:ui:dev": "node scripts/platform-ui-dev.cjs",
+    "platform:dev:serve": "node scripts/platform-dev-serve.cjs",
     "prepare:platform-bootstrap": "node scripts/prepare-platform-bootstrap.cjs",
     "prepare:test-channel-version": "node scripts/prepare-test-channel-version.cjs",
     "verify:platform-packages": "node scripts/verify-platform-packages.cjs",
@@ -24,6 +26,8 @@
     "tauri:dev": "node scripts/tauri-dist-dev.cjs",
     "tauri:dev:vite": "node scripts/tauri-dev.cjs --fast",
     "tauri:dev:full": "npm run typecheck && node scripts/tauri-dev.cjs",
+    "tauri:test:local": "node scripts/tauri-test-local.cjs",
+    "tauri:test:ui": "node scripts/tauri-test-ui.cjs",
     "pretauri": "npm run typecheck",
     "tauri": "node scripts/tauri.cjs",
     "sync-version": "node scripts/sync-version.js"

@@ -12,6 +12,7 @@ const DEV_APP_EXECUTABLE_PATH = path.join(
   'MacOS',
   'cockpit-tools-dev',
 );
+const codexApiServicePort = process.env.COCKPIT_CODEX_API_SERVICE_PORT || '12345';
 
 const rawArgs = process.argv.slice(2);
 const fastMode = rawArgs.includes('--fast');
@@ -20,7 +21,8 @@ const extraArgs = rawArgs.filter((arg) => arg !== '--fast');
 const env = {
   ...process.env,
   COCKPIT_TOOLS_PROFILE: process.env.COCKPIT_TOOLS_PROFILE || 'dev',
-  COCKPIT_TOOLS_API_PORT: process.env.COCKPIT_TOOLS_API_PORT || '1456',
+  COCKPIT_CODEX_API_SERVICE_PORT: codexApiServicePort,
+  COCKPIT_TOOLS_API_PORT: codexApiServicePort,
   COCKPIT_PLATFORM_PACKAGE_INDEX_URL:
     process.env.COCKPIT_PLATFORM_PACKAGE_INDEX_URL || PLATFORM_PACKAGE_TEST_INDEX_URL,
   COCKPIT_PLATFORM_PACKAGE_STRICT_LOCAL_SOURCE:

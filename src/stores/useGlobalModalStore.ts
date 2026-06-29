@@ -10,6 +10,7 @@ export interface GlobalModalAction {
   onClick?: () => void | Promise<void>;
   autoClose?: boolean;
   disabled?: boolean;
+  suppressError?: boolean;
 }
 
 export interface GlobalModalOptions {

@@ -36,19 +36,19 @@
       "version": "0.26.8",
       "date": "2026-06-27",
       "notes": [
-        "Adds a full-quota wakeup entry in the Codex account overview. It opens the existing wakeup test dialog directly with accounts sorted by 5h quota from high to low by default.",
+        "Adds a wakeup entry in the Codex account overview. It opens the existing wakeup test dialog directly with accounts sorted by 5h quota from high to low by default.",
         "The wakeup test account picker now supports manual sorting by default order, 5h quota, weekly quota, creation time, or email."
       ],
       "locales": {
         "zh-CN": {
           "notes": [
-            "Codex 账号总览新增“唤醒满额账号”入口：直接打开现有测试唤醒弹框，账号默认按 5h 额度从高到低排序。",
+            "Codex 账号总览新增“唤醒账号”入口：直接打开现有测试唤醒弹框，账号默认按 5h 额度从高到低排序。",
             "测试唤醒账号选择器支持手动切换排序：默认顺序、5h 额度、周额度、创建时间或邮箱。"
           ]
         },
         "zh-TW": {
           "notes": [
-            "Codex 帳號總覽新增「喚醒滿額帳號」入口：直接開啟既有測試喚醒彈框，帳號預設依 5h 額度由高到低排序。",
+            "Codex 帳號總覽新增「喚醒帳號」入口：直接開啟既有測試喚醒彈框，帳號預設依 5h 額度由高到低排序。",
             "測試喚醒帳號選擇器支援手動切換排序：預設順序、5h 額度、週額度、建立時間或信箱。"
           ]
         }

@@ -1,4 +1,6 @@
-use crate::modules::platform_package::{self, PlatformPackageState, PlatformPackageUiEntry};
+use crate::modules::platform_package::{
+    self, PlatformPackageState, PlatformPackageUiEntry, PlatformUiDevConfig,
+};
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -62,6 +64,21 @@ pub async fn update_platform_package(
 }
 
 #[tauri::command]
+pub async fn reload_platform_package(
+    app: AppHandle,
+    platform_id: String,
+) -> Result<PlatformPackageState, String> {
+    let app_for_task = app.clone();
+    let state = tauri::async_runtime::spawn_blocking(move || {
+        platform_package::reload_platform_package(&app_for_task, platform_id.as_str())
+    })
+    .await
+    .map_err(|err| format!("重载平台包任务失败: {}", err))??;
+    let _ = crate::modules::tray::update_tray_menu(&app);
+    Ok(state)
+}
+
+#[tauri::command]
 pub async fn uninstall_platform_package(
     app: AppHandle,
     platform_id: String,
@@ -81,4 +98,9 @@ pub fn get_platform_package_ui_entry(
     platform_id: String,
 ) -> Result<PlatformPackageUiEntry, String> {
     platform_package::get_platform_package_ui_entry(platform_id.as_str())
+}
+
+#[tauri::command]
+pub fn get_platform_ui_dev_config() -> PlatformUiDevConfig {
+    platform_package::get_platform_ui_dev_config()
 }

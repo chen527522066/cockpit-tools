@@ -24,6 +24,7 @@ interface OverviewTabsHeaderProps {
   onOpenManual?: () => void;
   rightSlot?: ReactNode;
   hideTabs?: boolean;
+  hidePlatformSwitcher?: boolean;
   remoteTabsSlotId?: string;
 }
 
@@ -41,6 +42,7 @@ export function OverviewTabsHeader({
   onOpenManual,
   rightSlot,
   hideTabs = false,
+  hidePlatformSwitcher = false,
   remoteTabsSlotId,
 }: OverviewTabsHeaderProps) {
   void subtitle;
@@ -118,6 +120,7 @@ export function OverviewTabsHeader({
       icon: <ShieldCheck className="tab-icon" />,
     },
   ];
+  const showTabsRow = !hidePlatformSwitcher || Boolean(remoteTabsSlotId) || !hideTabs;
 
   return (
     <>
@@ -138,35 +141,39 @@ export function OverviewTabsHeader({
           )}
         </div>
       </div>
-      <div className="page-tabs-row page-tabs-center page-tabs-row-with-leading">
-        <div className="page-tabs-leading">
-          <PlatformGroupSwitcher
-            currentPlatformId={currentPlatformId}
-            currentLabel={currentDisplayName}
-            options={switchOptions}
-            currentGroupId={currentGroup?.id ?? null}
-          />
+      {showTabsRow && (
+        <div className="page-tabs-row page-tabs-center page-tabs-row-with-leading">
+          {!hidePlatformSwitcher && (
+            <div className="page-tabs-leading">
+              <PlatformGroupSwitcher
+                currentPlatformId={currentPlatformId}
+                currentLabel={currentDisplayName}
+                options={switchOptions}
+                currentGroupId={currentGroup?.id ?? null}
+              />
+            </div>
+          )}
+          {remoteTabsSlotId ? (
+            <div
+              id={remoteTabsSlotId}
+              className="page-tabs filter-tabs platform-remote-tabs-slot"
+            />
+          ) : !hideTabs && (
+            <div className="page-tabs filter-tabs">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  className={`filter-tab${active === tab.key ? ' active' : ''}`}
+                  onClick={() => onNavigate?.(tab.key)}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        {remoteTabsSlotId ? (
-          <div
-            id={remoteTabsSlotId}
-            className="page-tabs filter-tabs platform-remote-tabs-slot"
-          />
-        ) : !hideTabs && (
-          <div className="page-tabs filter-tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                className={`filter-tab${active === tab.key ? ' active' : ''}`}
-                onClick={() => onNavigate?.(tab.key)}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </>
   );
 }

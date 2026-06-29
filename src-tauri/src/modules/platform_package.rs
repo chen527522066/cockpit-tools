@@ -28,7 +28,10 @@ const BOOTSTRAP_DIST_DIR: &str = "dist";
 const BOOTSTRAP_INDEX_FILE: &str = "index.json";
 const PLATFORM_PACKAGE_BOOTSTRAP_ENV: &str = "COCKPIT_PLATFORM_PACKAGE_BOOTSTRAP";
 const PLATFORM_PACKAGE_WORKSPACE_INDEX_ENV: &str = "COCKPIT_PLATFORM_PACKAGE_WORKSPACE_INDEX";
-const PLATFORM_PACKAGE_PREFER_LOCAL_SOURCE_ENV: &str = "COCKPIT_PLATFORM_PACKAGE_PREFER_LOCAL_SOURCE";
+const PLATFORM_PACKAGE_PREFER_LOCAL_SOURCE_ENV: &str =
+    "COCKPIT_PLATFORM_PACKAGE_PREFER_LOCAL_SOURCE";
+const PLATFORM_UI_DEV_BASE_URL_ENV: &str = "COCKPIT_PLATFORM_UI_DEV_BASE_URL";
+const PLATFORM_PACKAGE_DEV_RELOAD_URL_ENV: &str = "COCKPIT_PLATFORM_PACKAGE_DEV_RELOAD_URL";
 const ANTIGRAVITY_PLATFORM_ID: &str = "antigravity";
 const ANTIGRAVITY_IDE_PLATFORM_ID: &str = "antigravity_ide";
 const ZED_PLATFORM_ID: &str = "zed";
@@ -68,11 +71,15 @@ const PLATFORM_PACKAGE_TEST_INDEX_URL: &str =
     "https://raw.githubusercontent.com/jlcodes99/cockpit-tools/platform-test/platform-packages/index.test.json";
 const PLATFORM_PACKAGE_INDEX_CACHE_TTL_MS: i64 = 30 * 60 * 1000;
 const MAX_PLATFORM_PACKAGE_DOWNLOAD_BYTES: u64 = 80 * 1024 * 1024;
+const PLATFORM_PACKAGE_DOWNLOAD_MAX_ATTEMPTS: usize = 3;
+const PLATFORM_PACKAGE_DOWNLOAD_RETRY_BASE_DELAY_MS: u64 = 900;
 const PLATFORM_PACKAGE_PROGRESS_EVENT: &str = "platform-package://progress";
 const PLATFORM_PERF_LOG_ENV: &str = "COCKPIT_PLATFORM_PERF_LOG";
 const PLATFORM_PACKAGE_LIST_SLOW_THRESHOLD_MS: u128 = 500;
 const PLATFORM_PACKAGE_ITEM_SLOW_THRESHOLD_MS: u128 = 80;
 const PLATFORM_PACKAGE_UI_ENTRY_SLOW_THRESHOLD_MS: u128 = 200;
+const PLATFORM_UI_DEV_FETCH_TIMEOUT_MS: u64 = 5000;
+const PLATFORM_PACKAGE_DEV_RELOAD_TIMEOUT_SECS: u64 = 10 * 60;
 
 static LOCAL_CONTENT_MISMATCH_LOGGED: LazyLock<Mutex<HashSet<String>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
@@ -352,6 +359,14 @@ pub struct PlatformPackageUiEntry {
     pub source: String,
     #[serde(default)]
     pub style: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformUiDevConfig {
+    pub enabled: bool,
+    pub base_url: Option<String>,
+    pub package_reload_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -771,6 +786,53 @@ fn env_flag_enabled(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn normalize_local_http_url(raw: &str, trim_path_suffix: bool) -> Option<String> {
+    let trimmed = raw.trim().trim_end_matches('/');
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let parsed = Url::parse(trimmed).ok()?;
+    if parsed.scheme() != "http" {
+        return None;
+    }
+    let host = parsed.host_str()?.to_ascii_lowercase();
+    if !matches!(host.as_str(), "127.0.0.1" | "localhost" | "[::1]" | "::1") {
+        return None;
+    }
+    if trim_path_suffix {
+        Some(trimmed.to_string())
+    } else {
+        Some(parsed.to_string().trim_end_matches('/').to_string())
+    }
+}
+
+fn normalize_platform_ui_dev_base_url(raw: &str) -> Option<String> {
+    normalize_local_http_url(raw, true)
+}
+
+fn platform_ui_dev_base_url() -> Option<String> {
+    std::env::var(PLATFORM_UI_DEV_BASE_URL_ENV)
+        .ok()
+        .and_then(|value| normalize_platform_ui_dev_base_url(&value))
+}
+
+fn platform_package_dev_reload_url() -> Option<String> {
+    std::env::var(PLATFORM_PACKAGE_DEV_RELOAD_URL_ENV)
+        .ok()
+        .and_then(|value| normalize_local_http_url(&value, true))
+}
+
+pub fn get_platform_ui_dev_config() -> PlatformUiDevConfig {
+    let base_url = platform_ui_dev_base_url();
+    let package_reload_url = platform_package_dev_reload_url();
+    PlatformUiDevConfig {
+        enabled: base_url.is_some(),
+        base_url,
+        package_reload_url,
+    }
+}
+
 fn validate_remote_download_url(raw: &str) -> Result<(), String> {
     let url = Url::parse(raw).map_err(|err| format!("平台包下载 URL 非法: {}", err))?;
     match url.scheme() {
@@ -1165,7 +1227,9 @@ fn resolve_local_source_archive_size(platform_id: &str, version: &str) -> Option
         return None;
     }
     let repo_root = repo_root_from_current_process()?;
-    let dist_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(BOOTSTRAP_DIST_DIR);
+    let dist_dir = repo_root
+        .join(PLATFORM_PACKAGE_DIR)
+        .join(BOOTSTRAP_DIST_DIR);
     let candidates = [
         dist_dir.join(format!(
             "{}-{}-{}-{}.zip",
@@ -1814,6 +1878,81 @@ fn read_latest_source_manifest_and_root(
     }
 }
 
+fn fetch_platform_ui_dev_text(
+    base_url: &str,
+    platform_id: &str,
+    file_name: &str,
+) -> Result<String, String> {
+    let url = format!("{}/{}/{}", base_url, platform_id, file_name);
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_millis(PLATFORM_UI_DEV_FETCH_TIMEOUT_MS))
+        .build()
+        .map_err(|err| format!("创建平台 UI dev HTTP 客户端失败: {}", err))?;
+    let response = client
+        .get(&url)
+        .send()
+        .map_err(|err| format!("读取平台 UI dev 源失败: url={}, error={}", url, err))?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!(
+            "读取平台 UI dev 源失败: url={}, status={}",
+            url, status
+        ));
+    }
+    response
+        .text()
+        .map_err(|err| format!("解析平台 UI dev 源失败: url={}, error={}", url, err))
+}
+
+fn read_platform_ui_dev_entry(
+    platform_id: &str,
+    manifest: &PlatformPackageManifest,
+    ui: &PlatformPackageUi,
+    base_url: &str,
+    started_at: Instant,
+    validate_elapsed_ms: u128,
+) -> Result<PlatformPackageUiEntry, String> {
+    let source_started_at = Instant::now();
+    let source = fetch_platform_ui_dev_text(base_url, platform_id, "remoteEntry.js")?;
+    let source_read_elapsed_ms = source_started_at.elapsed().as_millis();
+    let style_started_at = Instant::now();
+    let style = match fetch_platform_ui_dev_text(base_url, platform_id, "style.css") {
+        Ok(value) => Some(value),
+        Err(error) => {
+            logger::log_warn(&format!(
+                "[PlatformPackage][UIDev] 平台 UI dev style 不可用，使用空样式: platform={}, error={}",
+                platform_id, error
+            ));
+            Some(String::new())
+        }
+    };
+    let style_read_elapsed_ms = style_started_at.elapsed().as_millis();
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    logger::log_info(&format!(
+        "[PlatformPackage][UIDev] 平台 UI dev entry 加载完成: platform={}, version={}, baseUrl={}, sourceBytes={}, styleBytes={}, validate={}ms, sourceRead={}ms, styleRead={}ms, total={}ms",
+        platform_id,
+        manifest.version,
+        base_url,
+        source.len(),
+        style.as_ref().map(|value| value.len()).unwrap_or(0),
+        validate_elapsed_ms,
+        source_read_elapsed_ms,
+        style_read_elapsed_ms,
+        total_elapsed_ms
+    ));
+
+    Ok(PlatformPackageUiEntry {
+        platform_id: platform_id.to_string(),
+        version: format!("{}+ui-dev", manifest.version),
+        protocol: ui.protocol.clone(),
+        entry: ui.entry.clone(),
+        exports: ui.exports.clone(),
+        sandbox: ui.sandbox.clone(),
+        source,
+        style,
+    })
+}
+
 fn copy_dir_all(source: &Path, target: &Path) -> Result<(), String> {
     if target.exists() {
         fs::remove_dir_all(target).map_err(|err| format!("清理旧平台包目录失败: {}", err))?;
@@ -1942,6 +2081,63 @@ fn install_local_source(
     }
 }
 
+fn should_retry_platform_package_http_status(status: reqwest::StatusCode) -> bool {
+    status.is_server_error()
+        || status == reqwest::StatusCode::REQUEST_TIMEOUT
+        || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+}
+
+fn should_retry_platform_package_download_error(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    [
+        "error sending request",
+        "failed to send request",
+        "timeout",
+        "timed out",
+        "network",
+        "dns",
+        "tls",
+        "ssl",
+        "connection reset",
+        "connection refused",
+        "connection aborted",
+        "broken pipe",
+        "unexpected eof",
+        "temporarily unavailable",
+        "temporary failure",
+        "no route to host",
+        "unreachable",
+    ]
+    .iter()
+    .any(|token| lower.contains(token))
+}
+
+fn wait_before_platform_package_download_retry(
+    app: &AppHandle,
+    platform_id: &str,
+    operation: PlatformPackageOperation,
+    attempt: usize,
+    error: &str,
+    total_bytes: Option<u64>,
+) {
+    logger::log_warn(&format!(
+        "[PlatformPackage] 平台包下载失败，准备重试: platform={}, attempt={}/{}, error={}",
+        platform_id, attempt, PLATFORM_PACKAGE_DOWNLOAD_MAX_ATTEMPTS, error
+    ));
+    emit_platform_package_progress(
+        app,
+        platform_id,
+        operation,
+        PlatformPackageProgressPhase::Downloading,
+        Some(10),
+        Some(0),
+        total_bytes,
+        None,
+    );
+    let delay = PLATFORM_PACKAGE_DOWNLOAD_RETRY_BASE_DELAY_MS.saturating_mul(attempt as u64);
+    std::thread::sleep(Duration::from_millis(delay));
+}
+
 fn download_remote_package_zip(
     app: &AppHandle,
     platform_id: &str,
@@ -2022,127 +2218,196 @@ fn download_remote_package_zip(
         .timeout(Duration::from_secs(10 * 60))
         .build()
         .map_err(|err| format!("创建平台包下载 HTTP 客户端失败: {}", err))?;
-    let mut response = client
-        .get(&artifact.download_url)
-        .send()
-        .map_err(|err| format!("下载平台包失败: {}", err))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "下载平台包失败: HTTP {} ({})",
-            response.status(),
-            artifact.download_url
-        ));
-    }
-    let expected_download_size = artifact
-        .download_size_bytes
-        .filter(|size| *size > 0)
-        .or_else(|| response.content_length().filter(|size| *size > 0));
-
-    let temp_path = zip_path.with_extension("zip.part");
-    let mut temp_file = File::create(&temp_path).map_err(|err| {
-        format!(
-            "创建平台包下载临时文件失败: path={}, error={}",
-            temp_path.display(),
-            err
-        )
-    })?;
-    let mut hasher = Sha256::new();
-    let mut downloaded = 0u64;
-    let mut last_progress_emit = Instant::now();
-    let mut last_progress_percent: Option<u8> = None;
-    let mut last_progress_bytes = 0u64;
-    let mut buffer = [0u8; 1024 * 256];
-    loop {
-        let read = io::Read::read(&mut response, &mut buffer)
-            .map_err(|err| format!("读取平台包下载数据失败: {}", err))?;
-        if read == 0 {
-            break;
-        }
-        downloaded += read as u64;
-        if downloaded > MAX_PLATFORM_PACKAGE_DOWNLOAD_BYTES {
-            let _ = remove_path_if_exists(&temp_path);
-            return Err("平台包下载内容超过预期大小，已停止".to_string());
-        }
-        hasher.update(&buffer[..read]);
-        io::Write::write_all(&mut temp_file, &buffer[..read])
-            .map_err(|err| format!("写入平台包下载临时文件失败: {}", err))?;
-        let progress_percent =
-            expected_download_size.map(|total| scale_progress(10, 65, downloaded, total));
-        let should_emit = progress_percent != last_progress_percent
-            || downloaded.saturating_sub(last_progress_bytes) >= 1024 * 1024
-            || last_progress_emit.elapsed() >= Duration::from_millis(500);
-        if should_emit {
+    let mut last_error: Option<String> = None;
+    for attempt in 1..=PLATFORM_PACKAGE_DOWNLOAD_MAX_ATTEMPTS {
+        if attempt > 1 {
             emit_platform_package_progress(
                 app,
                 platform_id,
                 operation,
                 PlatformPackageProgressPhase::Downloading,
-                progress_percent,
+                Some(10),
+                Some(0),
+                artifact.download_size_bytes,
+                None,
+            );
+        }
+
+        let mut response = match client.get(&artifact.download_url).send() {
+            Ok(response) => response,
+            Err(error) => {
+                let message = format!("下载平台包失败: {}", error);
+                if attempt < PLATFORM_PACKAGE_DOWNLOAD_MAX_ATTEMPTS
+                    && should_retry_platform_package_download_error(&message)
+                {
+                    last_error = Some(message.clone());
+                    wait_before_platform_package_download_retry(
+                        app,
+                        platform_id,
+                        operation,
+                        attempt,
+                        &message,
+                        artifact.download_size_bytes,
+                    );
+                    continue;
+                }
+                return Err(message);
+            }
+        };
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let message = format!("下载平台包失败: HTTP {} ({})", status, artifact.download_url);
+            if attempt < PLATFORM_PACKAGE_DOWNLOAD_MAX_ATTEMPTS
+                && should_retry_platform_package_http_status(status)
+            {
+                last_error = Some(message.clone());
+                wait_before_platform_package_download_retry(
+                    app,
+                    platform_id,
+                    operation,
+                    attempt,
+                    &message,
+                    artifact.download_size_bytes,
+                );
+                continue;
+            }
+            return Err(message);
+        }
+
+        let expected_download_size = artifact
+            .download_size_bytes
+            .filter(|size| *size > 0)
+            .or_else(|| response.content_length().filter(|size| *size > 0));
+        let temp_path = zip_path.with_extension("zip.part");
+        let download_result = (|| -> Result<PathBuf, String> {
+            let mut temp_file = File::create(&temp_path).map_err(|err| {
+                format!(
+                    "创建平台包下载临时文件失败: path={}, error={}",
+                    temp_path.display(),
+                    err
+                )
+            })?;
+            let mut hasher = Sha256::new();
+            let mut downloaded = 0u64;
+            let mut last_progress_emit = Instant::now();
+            let mut last_progress_percent: Option<u8> = None;
+            let mut last_progress_bytes = 0u64;
+            let mut buffer = [0u8; 1024 * 256];
+            loop {
+                let read = io::Read::read(&mut response, &mut buffer)
+                    .map_err(|err| format!("读取平台包下载数据失败: {}", err))?;
+                if read == 0 {
+                    break;
+                }
+                downloaded += read as u64;
+                if downloaded > MAX_PLATFORM_PACKAGE_DOWNLOAD_BYTES {
+                    return Err("平台包下载内容超过预期大小，已停止".to_string());
+                }
+                hasher.update(&buffer[..read]);
+                io::Write::write_all(&mut temp_file, &buffer[..read])
+                    .map_err(|err| format!("写入平台包下载临时文件失败: {}", err))?;
+                let progress_percent =
+                    expected_download_size.map(|total| scale_progress(10, 65, downloaded, total));
+                let should_emit = progress_percent != last_progress_percent
+                    || downloaded.saturating_sub(last_progress_bytes) >= 1024 * 1024
+                    || last_progress_emit.elapsed() >= Duration::from_millis(500);
+                if should_emit {
+                    emit_platform_package_progress(
+                        app,
+                        platform_id,
+                        operation,
+                        PlatformPackageProgressPhase::Downloading,
+                        progress_percent,
+                        Some(downloaded),
+                        expected_download_size,
+                        None,
+                    );
+                    last_progress_emit = Instant::now();
+                    last_progress_percent = progress_percent;
+                    last_progress_bytes = downloaded;
+                }
+            }
+            emit_platform_package_progress(
+                app,
+                platform_id,
+                operation,
+                PlatformPackageProgressPhase::Verifying,
+                Some(78),
                 Some(downloaded),
                 expected_download_size,
                 None,
             );
-            last_progress_emit = Instant::now();
-            last_progress_percent = progress_percent;
-            last_progress_bytes = downloaded;
+            temp_file
+                .sync_all()
+                .map_err(|err| format!("同步平台包下载临时文件失败: {}", err))?;
+            drop(temp_file);
+
+            if let Some(expected_size) = artifact.download_size_bytes {
+                if expected_size > 0 && expected_size != downloaded {
+                    return Err(format!(
+                        "平台包大小校验失败: expected={}, actual={}",
+                        expected_size, downloaded
+                    ));
+                }
+            }
+
+            let actual_sha256 = hex_encode(&hasher.finalize());
+            if !actual_sha256.eq_ignore_ascii_case(&expected_sha256) {
+                return Err(format!(
+                    "平台包 sha256 校验失败: expected={}, actual={}",
+                    expected_sha256, actual_sha256
+                ));
+            }
+
+            if zip_path.exists() {
+                let _ = remove_path_if_exists(&zip_path);
+            }
+            fs::rename(&temp_path, &zip_path).map_err(|err| {
+                format!(
+                    "保存平台包下载缓存失败: from={}, to={}, error={}",
+                    temp_path.display(),
+                    zip_path.display(),
+                    err
+                )
+            })?;
+            emit_platform_package_progress(
+                app,
+                platform_id,
+                operation,
+                PlatformPackageProgressPhase::Verifying,
+                Some(82),
+                Some(downloaded),
+                expected_download_size,
+                None,
+            );
+            Ok(zip_path.clone())
+        })();
+
+        match download_result {
+            Ok(path) => return Ok(path),
+            Err(message) => {
+                let _ = remove_path_if_exists(&zip_path.with_extension("zip.part"));
+                if attempt < PLATFORM_PACKAGE_DOWNLOAD_MAX_ATTEMPTS
+                    && should_retry_platform_package_download_error(&message)
+                {
+                    last_error = Some(message.clone());
+                    wait_before_platform_package_download_retry(
+                        app,
+                        platform_id,
+                        operation,
+                        attempt,
+                        &message,
+                        artifact.download_size_bytes,
+                    );
+                    continue;
+                }
+                return Err(message);
+            }
         }
     }
-    emit_platform_package_progress(
-        app,
-        platform_id,
-        operation,
-        PlatformPackageProgressPhase::Verifying,
-        Some(78),
-        Some(downloaded),
-        expected_download_size,
-        None,
-    );
-    temp_file
-        .sync_all()
-        .map_err(|err| format!("同步平台包下载临时文件失败: {}", err))?;
-    drop(temp_file);
 
-    if let Some(expected_size) = artifact.download_size_bytes {
-        if expected_size > 0 && expected_size != downloaded {
-            let _ = remove_path_if_exists(&temp_path);
-            return Err(format!(
-                "平台包大小校验失败: expected={}, actual={}",
-                expected_size, downloaded
-            ));
-        }
-    }
-
-    let actual_sha256 = hex_encode(&hasher.finalize());
-    if !actual_sha256.eq_ignore_ascii_case(&expected_sha256) {
-        let _ = remove_path_if_exists(&temp_path);
-        return Err(format!(
-            "平台包 sha256 校验失败: expected={}, actual={}",
-            expected_sha256, actual_sha256
-        ));
-    }
-
-    if zip_path.exists() {
-        let _ = remove_path_if_exists(&zip_path);
-    }
-    fs::rename(&temp_path, &zip_path).map_err(|err| {
-        format!(
-            "保存平台包下载缓存失败: from={}, to={}, error={}",
-            temp_path.display(),
-            zip_path.display(),
-            err
-        )
-    })?;
-    emit_platform_package_progress(
-        app,
-        platform_id,
-        operation,
-        PlatformPackageProgressPhase::Verifying,
-        Some(82),
-        Some(downloaded),
-        expected_download_size,
-        None,
-    );
-    Ok(zip_path)
+    Err(last_error.unwrap_or_else(|| "平台包下载失败，请稍后重试".to_string()))
 }
 
 fn extract_zip_safely_with_progress<F>(
@@ -3309,6 +3574,51 @@ pub fn update_platform_package(
     install_platform_package_with_operation(app, platform_id, PlatformPackageOperation::Update)
 }
 
+pub fn reload_platform_package(
+    app: &AppHandle,
+    platform_id: &str,
+) -> Result<PlatformPackageState, String> {
+    ensure_supported_platform(platform_id)?;
+    let reload_url =
+        platform_package_dev_reload_url().ok_or_else(|| "本地平台包重载服务未启用".to_string())?;
+    emit_platform_package_progress(
+        app,
+        platform_id,
+        PlatformPackageOperation::Update,
+        PlatformPackageProgressPhase::Resolving,
+        Some(0),
+        None,
+        None,
+        None,
+    );
+    let mut url =
+        Url::parse(&reload_url).map_err(|err| format!("本地平台包重载 URL 非法: {}", err))?;
+    url.query_pairs_mut().append_pair("platformId", platform_id);
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(
+            PLATFORM_PACKAGE_DEV_RELOAD_TIMEOUT_SECS,
+        ))
+        .build()
+        .map_err(|err| format!("创建本地平台包重载 HTTP 客户端失败: {}", err))?;
+    let response = client.post(url.clone()).send().map_err(|err| {
+        let message = format!("请求本地平台包重载失败: {}", err);
+        emit_platform_package_failure(app, platform_id, PlatformPackageOperation::Update, &message);
+        message
+    })?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().unwrap_or_default();
+        let message = format!("本地平台包重载失败: status={}, body={}", status, body);
+        emit_platform_package_failure(app, platform_id, PlatformPackageOperation::Update, &message);
+        return Err(message);
+    }
+    logger::log_info(&format!(
+        "[PlatformPackage] 本地平台包重载构建完成，开始切换: platform={}",
+        platform_id
+    ));
+    install_platform_package_with_operation(app, platform_id, PlatformPackageOperation::Update)
+}
+
 pub fn uninstall_platform_package(
     app: Option<&AppHandle>,
     platform_id: &str,
@@ -3553,6 +3863,16 @@ pub fn get_platform_package_ui_entry(platform_id: &str) -> Result<PlatformPackag
         .ui
         .clone()
         .ok_or_else(|| format!("平台包未声明 UI runtime: {}", platform_id))?;
+    if let Some(base_url) = platform_ui_dev_base_url() {
+        return read_platform_ui_dev_entry(
+            platform_id,
+            &manifest,
+            &ui,
+            &base_url,
+            started_at,
+            validate_elapsed_ms,
+        );
+    }
     let entry_path = safe_relative_path(&ui.entry, "平台包 UI entry")?;
     let ui_path = current_dir.join(entry_path);
     let source_read_started_at = Instant::now();
@@ -3581,7 +3901,8 @@ pub fn get_platform_package_ui_entry(platform_id: &str) -> Result<PlatformPackag
     };
     let style_read_elapsed_ms = style_read_started_at.elapsed().as_millis();
     let total_elapsed_ms = started_at.elapsed().as_millis();
-    if platform_perf_log_enabled() || total_elapsed_ms >= PLATFORM_PACKAGE_UI_ENTRY_SLOW_THRESHOLD_MS
+    if platform_perf_log_enabled()
+        || total_elapsed_ms >= PLATFORM_PACKAGE_UI_ENTRY_SLOW_THRESHOLD_MS
     {
         logger::log_info(&format!(
             "[PlatformPackage][Perf] 平台包 UI entry 加载完成: platform={}, version={}, sourceBytes={}, styleBytes={}, validate={}ms, sourceRead={}ms, styleRead={}ms, total={}ms",

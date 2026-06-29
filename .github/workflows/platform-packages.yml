@@ -11,6 +11,7 @@ on:
         options:
           - "ci"
           - "test"
+          - "main"
       test_branch:
         description: "Branch used by the test platform-package index"
         required: false
@@ -23,6 +24,11 @@ on:
         type: string
       publish_test_branch:
         description: "Commit unified platform package artifacts and index.test.json to test_branch"
+        required: false
+        default: false
+        type: boolean
+      publish_main_branch:
+        description: "Commit unified platform package artifacts, index.json, and index.seed.json to main"
         required: false
         default: false
         type: boolean
@@ -334,6 +340,8 @@ jobs:
               base_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${TEST_BRANCH}/platform-packages/dist"
             fi
             args+=(--download-base-url "${base_url}")
+          elif [ "${CHANNEL}" = "main" ]; then
+            args+=(--download-base-url "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/platform-packages/dist")
           fi
           npm run package:platform-index -- "${args[@]}"
 
@@ -377,3 +385,33 @@ jobs:
 
           git commit -m "chore: publish test platform packages [skip ci]"
           git push origin "HEAD:${TEST_BRANCH}"
+
+      - name: Publish main platform package branch
+        if: github.event_name == 'workflow_dispatch' && inputs.channel == 'main' && inputs.publish_main_branch == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp_dir="$(mktemp -d)"
+          cp platform-packages/dist-ci/*.zip "${tmp_dir}/"
+          cp platform-packages/dist-ci/index.json "${tmp_dir}/index.json"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --depth=1 origin main:refs/remotes/origin/main
+          git switch -C main origin/main
+
+          mkdir -p platform-packages/dist
+          cp "${tmp_dir}"/*.zip platform-packages/dist/
+          cp "${tmp_dir}/index.json" platform-packages/index.json
+          cp "${tmp_dir}/index.json" platform-packages/index.seed.json
+          echo "Publishing $(find "${tmp_dir}" -maxdepth 1 -type f -name '*.zip' | wc -l | tr -d ' ') platform package zip files to main unified dist."
+
+          git add platform-packages/index.json platform-packages/index.seed.json
+          git add -f platform-packages/dist/*.zip
+          if git diff --cached --quiet; then
+            echo "No main platform package changes to publish."
+            exit 0
+          fi
+
+          git commit -m "chore: publish platform packages [skip ci]"
+          git push origin HEAD:main

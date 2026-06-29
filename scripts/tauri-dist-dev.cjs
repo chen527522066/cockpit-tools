@@ -9,6 +9,7 @@ const PLATFORM_PACKAGE_TEST_INDEX_URL =
 
 const repoRoot = path.resolve(__dirname, '..');
 const devConfigPath = path.join('src-tauri', 'tauri.dev.conf.json');
+const codexApiServicePort = process.env.COCKPIT_CODEX_API_SERVICE_PORT || '12345';
 const buildConfigOverride = JSON.stringify({
   build: {
     beforeBuildCommand: 'node scripts/prepare-tauri.cjs',
@@ -19,7 +20,8 @@ const buildConfigOverride = JSON.stringify({
 const env = {
   ...process.env,
   COCKPIT_TOOLS_PROFILE: process.env.COCKPIT_TOOLS_PROFILE || 'dev',
-  COCKPIT_TOOLS_API_PORT: process.env.COCKPIT_TOOLS_API_PORT || '1456',
+  COCKPIT_CODEX_API_SERVICE_PORT: codexApiServicePort,
+  COCKPIT_TOOLS_API_PORT: codexApiServicePort,
   COCKPIT_PLATFORM_PACKAGE_INDEX_URL:
     process.env.COCKPIT_PLATFORM_PACKAGE_INDEX_URL || PLATFORM_PACKAGE_TEST_INDEX_URL,
   COCKPIT_PLATFORM_PACKAGE_STRICT_LOCAL_SOURCE:

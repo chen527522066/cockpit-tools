@@ -384,6 +384,70 @@
   color: var(--danger);
 }
 
+.platform-package-progress-error {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.platform-package-progress-error-summary {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.platform-package-progress-error-hint {
+  color: color-mix(in srgb, var(--danger) 80%, var(--text-secondary));
+}
+
+.platform-package-progress-error-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.platform-package-progress-error-detail-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--danger) 76%, var(--text-primary));
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.platform-package-progress-error-detail-toggle:hover {
+  color: var(--danger);
+}
+
+.platform-package-progress-error-detail-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.platform-package-progress-error-detail pre {
+  max-height: 96px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 5%, var(--bg-card));
+  color: color-mix(in srgb, var(--danger) 86%, var(--text-primary));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @keyframes platform-package-progress-indeterminate {
   0% {
     transform: translateX(-105%);

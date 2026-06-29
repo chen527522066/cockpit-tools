@@ -72,8 +72,10 @@ export async function mount(container: HTMLElement, hostApi: ZedRemoteHostApi) {
 
   contentRoot.render(
     <React.StrictMode>
-      <div className="ghcp-accounts-page zed-accounts-page zed-platform-ui-root">
-        <ZedAccountsContent />
+      <div className="zed-platform-ui-root">
+        <div className="ghcp-accounts-page zed-accounts-page">
+          <ZedAccountsContent />
+        </div>
       </div>
     </React.StrictMode>,
   );

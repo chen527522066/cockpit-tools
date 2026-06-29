@@ -6,6 +6,7 @@ import {
   installPlatformPackage,
   listPlatformPackages,
   preparePlatformPackageUpdates,
+  reloadPlatformPackage,
   uninstallPlatformPackage,
   updatePlatformPackage,
 } from '../services/platformPackageService';
@@ -333,6 +334,7 @@ interface PlatformPackageStoreState {
   checkUpdate: (platformId: PlatformId) => Promise<PlatformPackageState>;
   installPackage: (platformId: PlatformId) => Promise<PlatformPackageState>;
   updatePackage: (platformId: PlatformId) => Promise<PlatformPackageState>;
+  reloadPackage: (platformId: PlatformId) => Promise<PlatformPackageState>;
   uninstallPackage: (platformId: PlatformId) => Promise<PlatformPackageState>;
   getPackage: (platformId: PlatformId) => PlatformPackageState | null;
   isHotUpdatePlatform: (platformId: PlatformId) => boolean;
@@ -490,6 +492,16 @@ export const usePlatformPackageStore = create<PlatformPackageStoreState>((set, g
 
   updatePackage: async (platformId) => {
     const nextPackage = await updatePlatformPackage(platformId);
+    set((state) => ({
+      packages: upsertPackage(state.packages, nextPackage),
+      initialized: true,
+      error: null,
+    }));
+    return nextPackage;
+  },
+
+  reloadPackage: async (platformId) => {
+    const nextPackage = await reloadPlatformPackage(platformId);
     set((state) => ({
       packages: upsertPackage(state.packages, nextPackage),
       initialized: true,

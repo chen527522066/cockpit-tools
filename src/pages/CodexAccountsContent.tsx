@@ -8441,7 +8441,6 @@ export function CodexAccountsContent() {
       defaultSortBy: "hourly",
       defaultSortDirection: "desc",
     });
-    setActiveTab("wakeup");
   }, [hasDetectableFullQuotaWakeupAccounts, setMessage, t]);
   const exportSelectionCount = getScopedSelectedCount(filteredIds);
   const pagination = usePagination({
@@ -12447,12 +12446,12 @@ export function CodexAccountsContent() {
                       disabled={!hasDetectableFullQuotaWakeupAccounts}
                       title={t(
                         "codex.wakeup.fullQuotaActionTitle",
-                        "打开满额账号唤醒测试，账号默认按 5h 额度从高到低排序。",
+                        "打开账号唤醒测试，账号默认按 5h 额度从高到低排序。",
                       )}
                     >
                       <Power size={14} />
                       <span>
-                        {t("codex.wakeup.fullQuotaAction", "唤醒满额账号")}
+                        {t("codex.wakeup.fullQuotaAction", "唤醒账号")}
                       </span>
                     </button>
                     {errorAccountIds.length > 0 && (
@@ -15553,7 +15552,18 @@ export function CodexAccountsContent() {
         <CodexWakeupContent
           accounts={accounts}
           openPresetManagerSignal={wakeupPresetManagerSignal}
+          onRefreshAccounts={async () => {
+            await fetchAccounts();
+            await fetchCurrentAccount();
+          }}
+        />
+      )}
+
+      {activeTab !== "wakeup" && fullQuotaWakeupOpenRequest && (
+        <CodexWakeupContent
+          accounts={accounts}
           openTestRequest={fullQuotaWakeupOpenRequest}
+          modalOnly
           onRefreshAccounts={async () => {
             await fetchAccounts();
             await fetchCurrentAccount();

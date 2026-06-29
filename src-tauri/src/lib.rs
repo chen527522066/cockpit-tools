@@ -87,17 +87,26 @@ fn restore_platform_adapters_on_startup() {
             "github-copilot",
             modules::platform_adapter::restore_github_copilot_runtime,
         ),
-        ("windsurf", modules::platform_adapter::restore_windsurf_runtime),
+        (
+            "windsurf",
+            modules::platform_adapter::restore_windsurf_runtime,
+        ),
         ("cursor", modules::platform_adapter::restore_cursor_runtime),
         ("gemini", modules::platform_adapter::restore_gemini_runtime),
         ("trae", modules::platform_adapter::restore_trae_runtime),
         ("qoder", modules::platform_adapter::restore_qoder_runtime),
-        ("codebuddy", modules::platform_adapter::restore_codebuddy_runtime),
+        (
+            "codebuddy",
+            modules::platform_adapter::restore_codebuddy_runtime,
+        ),
         (
             "codebuddy_cn",
             modules::platform_adapter::restore_codebuddy_cn_runtime,
         ),
-        ("workbuddy", modules::platform_adapter::restore_workbuddy_runtime),
+        (
+            "workbuddy",
+            modules::platform_adapter::restore_workbuddy_runtime,
+        ),
         (
             "antigravity",
             modules::platform_adapter::restore_antigravity_runtime,
@@ -969,8 +978,10 @@ pub fn run() {
             commands::platform_package::prepare_platform_package_updates,
             commands::platform_package::install_platform_package,
             commands::platform_package::update_platform_package,
+            commands::platform_package::reload_platform_package,
             commands::platform_package::uninstall_platform_package,
             commands::platform_package::get_platform_package_ui_entry,
+            commands::platform_package::get_platform_ui_dev_config,
             // Qoder Instance Commands
             commands::qoder_instance::qoder_get_instance_defaults,
             commands::qoder_instance::qoder_list_instances,

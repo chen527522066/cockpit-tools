@@ -1,6 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 import { PlatformId } from '../types/platform';
-import { PlatformPackageState, PlatformPackageUiEntry } from '../types/platformPackage';
+import {
+  PlatformPackageState,
+  PlatformPackageUiEntry,
+  PlatformUiDevConfig,
+} from '../types/platformPackage';
 
 const PLATFORM_PACKAGE_INVOKE_SLOW_MS = 500;
 
@@ -60,6 +64,12 @@ export async function updatePlatformPackage(platformId: PlatformId): Promise<Pla
   );
 }
 
+export async function reloadPlatformPackage(platformId: PlatformId): Promise<PlatformPackageState> {
+  return await invokePlatformPackage('reload_platform_package', () =>
+    invoke('reload_platform_package', { platformId }),
+  );
+}
+
 export async function uninstallPlatformPackage(platformId: PlatformId): Promise<PlatformPackageState> {
   return await invokePlatformPackage('uninstall_platform_package', () =>
     invoke('uninstall_platform_package', { platformId }),
@@ -71,5 +81,11 @@ export async function getPlatformPackageUiEntry(
 ): Promise<PlatformPackageUiEntry> {
   return await invokePlatformPackage('get_platform_package_ui_entry', () =>
     invoke('get_platform_package_ui_entry', { platformId }),
+  );
+}
+
+export async function getPlatformUiDevConfig(): Promise<PlatformUiDevConfig> {
+  return await invokePlatformPackage('get_platform_ui_dev_config', () =>
+    invoke('get_platform_ui_dev_config'),
   );
 }

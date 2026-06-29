@@ -7996,6 +7996,15 @@
   gap: 20px;
 }
 
+.codex-wakeup-modal-only {
+  display: block;
+  gap: 0;
+}
+
+.codex-wakeup-modal-only > :not(.modal-overlay) {
+  display: none !important;
+}
+
 .codex-wakeup-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);

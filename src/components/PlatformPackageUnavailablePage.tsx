@@ -11,6 +11,7 @@ import {
 } from '../stores/usePlatformPackageStore';
 import { getPlatformLabel, renderPlatformIcon } from '../utils/platformMeta';
 import {
+  formatPlatformPackageOperationError,
   getPlatformPackageStatusText,
   PlatformPackageOperationProgress,
 } from './PlatformPackageToolbar';
@@ -96,9 +97,9 @@ export function PlatformPackageUnavailablePage({
         );
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setOperationError(message);
-      throw error;
+      const displayError = formatPlatformPackageOperationError(error, t);
+      setOperationError(displayError.summary);
+      throw new Error(displayError.summary);
     } finally {
       setActionKey(null);
     }
@@ -160,6 +161,7 @@ export function PlatformPackageUnavailablePage({
             ? t('platformLayout.packageRepair', '修复')
             : t('platformLayout.packageInstallAndOpen', '安装并打开'),
           variant: 'primary',
+          suppressError: true,
           onClick: runInstall,
         },
       ],
