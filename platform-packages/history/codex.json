@@ -1,8 +1,364 @@
 {
   "version": "1",
   "platformId": "codex",
-  "latestVersion": "1.0.1",
+  "latestVersion": "1.0.2",
   "versions": [
+    {
+      "id": "codex",
+      "platformId": "codex",
+      "version": "1.0.2",
+      "apiVersion": 1,
+      "minCoreVersion": "1.0.2",
+      "displayName": "Codex",
+      "entry": "runtime/index.json",
+      "packageMode": "hotUpdate",
+      "installKind": "sidecarAdapter",
+      "ui": {
+        "protocol": "react-remote-esm-v1",
+        "entry": "ui/remoteEntry.js",
+        "style": "ui/style.css",
+        "exports": [
+          "mount",
+          "unmount"
+        ]
+      },
+      "capabilities": [
+        "accounts",
+        "oauth",
+        "quota",
+        "apiService",
+        "localAccess",
+        "modelProviders",
+        "wakeup",
+        "sessions",
+        "threadSync",
+        "runtime",
+        "instances",
+        "cli"
+      ],
+      "changelog": [
+        {
+          "version": "1.0.2",
+          "date": "2026-07-03",
+          "notes": [
+            "Improved Codex account persistence, local API service compatibility, session transfer, batch operations, and sensitive account notes support."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "改进 Codex 账号持久化、本地 API 服务兼容性、会话迁移、批量操作和账号敏感备注支持。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "改進 Codex 帳號持久化、本機 API 服務相容性、會話遷移、批量操作與帳號敏感備註支援。"
+              ]
+            }
+          }
+        },
+        {
+          "version": "1.0.1",
+          "date": "2026-07-02",
+          "notes": [
+            "Removed Codex quota auto-refresh from settings.",
+            "Changed Codex current-account refresh to work independently without relying on quota auto-refresh.",
+            "Changed Codex refresh behavior to avoid default full-account quota scans; authorization keep-alive now only renews due tokens.",
+            "Moved Codex-specific settings to the Codex settings popover, with General settings opening the Codex settings entry.",
+            "Changed platform package replacement to uninstall the old package before installing the downloaded package."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "Codex 设置去掉配额自动刷新。",
+                "Codex 当前账号刷新改为独立生效，不再依赖配额自动刷新。",
+                "Codex 刷新逻辑改为不默认全量扫描账号配额；账号授权保活只续期到期 token。",
+                "Codex 专属设置迁移到 Codex 设置弹框，通用设置只保留跳转入口。",
+                "平台包替换改为先卸载旧包，再安装已下载的新包。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "Codex 設定移除配額自動刷新。",
+                "Codex 目前帳號刷新改為獨立生效，不再依賴配額自動刷新。",
+                "Codex 刷新邏輯改為不預設全量掃描帳號配額；帳號授權保活只續期到期 token。",
+                "Codex 專屬設定遷移到 Codex 設定彈框，通用設定只保留跳轉入口。",
+                "平台包替換改為先解除安裝舊包，再安裝已下載的新包。"
+              ]
+            }
+          }
+        },
+        {
+          "version": "1.0.0",
+          "date": "2026-07-01",
+          "notes": [
+            "Platform has been split into an independent package and now runs independently from the host application."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "平台拆成独立的包独立运行。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "平台拆成獨立的包並獨立運行。"
+              ]
+            }
+          }
+        }
+      ],
+      "contributions": {
+        "platforms": [
+          {
+            "id": "codex",
+            "label": "Codex",
+            "labelKey": "nav.codex",
+            "iconKey": "codex",
+            "page": "codex"
+          }
+        ],
+        "dataPaths": [
+          "codex_accounts.json",
+          "codex_accounts",
+          "codex_instances.json",
+          "codex_account_groups.json",
+          "codex_model_providers.json",
+          "codex_local_access.json",
+          "codex_local_access_stats.json",
+          "codex_local_access_takeover_backups.json",
+          "codex_provider_gateway_sidecars",
+          "codex_wakeup_tasks.json",
+          "codex_wakeup_history.json",
+          "codex_wakeup_runtime_config.json",
+          "codex_wakeup_managed_homes",
+          "codex_session_trash",
+          ".codex-global-state.json"
+        ],
+        "localStorageKeys": [
+          "agtools.codex.accounts.cache",
+          "agtools.codex.accounts.current",
+          "agtools.codex.accounts_view_mode",
+          "agtools.codex.accounts.overview_layout_mode",
+          "agtools.codex.accounts.custom_sort_order.v1",
+          "agtools.codex.accounts.custom_sort_active.v1",
+          "agtools.codex.accounts.filter.Codex",
+          "agtools.codex.apiKeyUsage.cache.v1",
+          "agtools.codex.local_access_entry_expanded.v1",
+          "agtools.codex.local_access_address_kind.v1",
+          "agtools.codex.api_service.gateway_guide.dismissed.v1",
+          "agtools.codex.modelProviders.usage.cache.v1",
+          "agtools.codex.modelProviders.custom_sort_order.v1",
+          "agtools.codex.modelProviders.custom_sort_active.v1",
+          "agtools.codex.wakeup.model_selection",
+          "agtools.codex.instances.cache",
+          "agtools.codex.instances.sort_field",
+          "agtools.codex.instances.sort_direction"
+        ],
+        "nativeBoundaries": []
+      },
+      "artifacts": [
+        {
+          "os": "macos",
+          "arch": "aarch64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-macos-aarch64.zip",
+          "downloadSizeBytes": 14900991,
+          "sha256": "bd4cabf1a0b53e8a95d9e8f2112f6c96dcb5b66de75673e211a41fc7c13c7d08"
+        },
+        {
+          "os": "macos",
+          "arch": "x86_64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-macos-x86_64.zip",
+          "downloadSizeBytes": 15894925,
+          "sha256": "81ccfad2fae7cb2e8d7aa81583bd9c1c6f49104f6af1c5349198417032d77a25"
+        },
+        {
+          "os": "linux",
+          "arch": "x86_64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-linux-x86_64.zip",
+          "downloadSizeBytes": 16416365,
+          "sha256": "ad8f6b516b66eb4faee2ce9b68f598535d1cd9ab2ff02a8f6efbc5e3a6fa1ea4"
+        },
+        {
+          "os": "linux",
+          "arch": "aarch64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-linux-aarch64.zip",
+          "downloadSizeBytes": 15400569,
+          "sha256": "02e26c5ad0805cde957ede64d46fc821d7c5f5e1acafa8942b33386e9ca04bb7"
+        },
+        {
+          "os": "windows",
+          "arch": "x86_64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-windows-x86_64.zip",
+          "downloadSizeBytes": 15672039,
+          "sha256": "75cd7b3887ecb2421e176a7903e78a4244b6328c996938c29620b7b17ca8f6a3"
+        }
+      ],
+      "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-macos-aarch64.zip",
+      "downloadSizeBytes": 14900991,
+      "sha256": "bd4cabf1a0b53e8a95d9e8f2112f6c96dcb5b66de75673e211a41fc7c13c7d08",
+      "adapter": {
+        "protocol": "http-json-v1",
+        "entry": "adapter/macos/cockpit-codex-adapter",
+        "macosEntry": "adapter/macos/cockpit-codex-adapter",
+        "windowsEntry": "adapter/windows/cockpit-codex-adapter.exe",
+        "linuxEntry": "adapter/linux/cockpit-codex-adapter",
+        "methods": [
+          "health.check",
+          "adapter.shutdown",
+          "runtime.restore",
+          "runtime.shutdownForAppExit",
+          "accounts.list",
+          "accounts.current",
+          "accounts.keepaliveDue",
+          "accounts.pickAutoSwitchTarget",
+          "switch.account",
+          "accounts.delete",
+          "accounts.deleteMany",
+          "accounts.addToken",
+          "accounts.addApiKey",
+          "accounts.updateName",
+          "accounts.updateApiKeyCredentials",
+          "accounts.updateTags",
+          "accounts.updateNote",
+          "accounts.loadGroups",
+          "accounts.saveGroups",
+          "accounts.importFromLocal",
+          "accounts.importFromJson",
+          "accounts.importFromFiles",
+          "accounts.batchImport.startFromFiles",
+          "accounts.batchImport.cancel",
+          "accounts.batchImport.resume",
+          "accounts.batchImport.preview",
+          "accounts.batchImport.confirm",
+          "accounts.refreshProfile",
+          "accounts.export",
+          "quota.refresh",
+          "quota.refreshCurrent",
+          "quota.refreshAll",
+          "quota.resetCredits",
+          "quota.consumeResetCredit",
+          "quota.referralInviteEligibility",
+          "quota.referralEligibilityRules",
+          "quota.sendReferralInvites",
+          "quota.refreshSubscriptionInfo",
+          "quota.alertPayload",
+          "accounts.updateApiKeyBoundOAuthAccount",
+          "accounts.refreshApiKeyUsage",
+          "oauth.isPortInUse",
+          "oauth.closePortProcess",
+          "oauth.start",
+          "oauth.complete",
+          "oauth.cancel",
+          "oauth.submitCallbackUrl",
+          "oauth.restorePendingListener",
+          "localAccess.updateBoundOAuthAccount",
+          "config.path",
+          "config.quick.get",
+          "config.quick.save",
+          "config.appSpeed.get",
+          "config.appSpeed.save",
+          "config.apiServiceAppSpeed.get",
+          "config.apiServiceAppSpeed.save",
+          "accounts.updateAppSpeed",
+          "modelProviders.load",
+          "modelProviders.save",
+          "modelProviders.chatTestBatch",
+          "localAccess.getState",
+          "localAccess.rotateApiKey",
+          "localAccess.clearStats",
+          "localAccess.prepareRestart",
+          "localAccess.killPort",
+          "localAccess.removeAccount",
+          "localAccess.createApiKey",
+          "localAccess.rotateNamedApiKey",
+          "localAccess.deleteApiKey",
+          "localAccess.setEnabled",
+          "localAccess.activate",
+          "localAccess.saveAccounts",
+          "localAccess.updatePort",
+          "localAccess.updateRoutingStrategy",
+          "localAccess.updateCustomRouting",
+          "localAccess.updateAccountModelRules",
+          "localAccess.updateModelRules",
+          "localAccess.updateModelPricings",
+          "localAccess.updateRoutingOptions",
+          "localAccess.updateTimeouts",
+          "localAccess.updateTimeoutPresets",
+          "localAccess.updateUpstreamProxyConfig",
+          "localAccess.updateGatewayMode",
+          "localAccess.updateDebugLogs",
+          "localAccess.updateAccessScope",
+          "localAccess.updateClientBaseUrlHost",
+          "localAccess.updateImageGenerationMode",
+          "localAccess.updateApiKey",
+          "localAccess.queryRequestLogs",
+          "localAccess.test",
+          "localAccess.chatTest",
+          "localAccess.chatTestStream",
+          "wakeup.fetchAvailableModels",
+          "wakeup.runtime.ensureReady",
+          "wakeup.crontab.validate",
+          "wakeup.sharedHistory.load",
+          "wakeup.sharedHistory.add",
+          "wakeup.sharedHistory.clear",
+          "wakeup.sharedScope.cancel",
+          "wakeup.sharedScope.release",
+          "wakeup.setOfficialLsVersionMode",
+          "wakeup.verification.loadState",
+          "wakeup.verification.loadHistory",
+          "wakeup.verification.deleteHistory",
+          "wakeup.getCliStatus",
+          "wakeup.updateRuntimeConfig",
+          "wakeup.getOverview",
+          "wakeup.getState",
+          "wakeup.saveState",
+          "wakeup.loadHistory",
+          "wakeup.clearHistory",
+          "wakeup.cancelScope",
+          "wakeup.releaseScope",
+          "settings.setLaunchOnSwitch",
+          "settings.setLocalAccessEntryVisible",
+          "modelProviders.testConnection",
+          "modelProviders.listModels",
+          "modelProviders.queryUsage",
+          "sessions.syncThreadsAcrossInstances",
+          "sessions.syncToInstance",
+          "sessions.visibilityRepairProviders.list",
+          "sessions.visibilityRepairInstances.list",
+          "sessions.visibilityRepair.run",
+          "sessions.list",
+          "sessions.tokenStats",
+          "sessions.moveToTrash",
+          "sessions.listTrash",
+          "sessions.restoreFromTrash",
+          "instances.store.get",
+          "instances.store.replace",
+          "instances.defaults",
+          "instances.list",
+          "instances.create",
+          "instances.update",
+          "instances.delete",
+          "instances.stop",
+          "instances.closeAll",
+          "instances.window.open",
+          "instances.quickConfig.get",
+          "instances.quickConfig.save",
+          "instances.configPath",
+          "instances.launchCommand.get",
+          "wakeup.trigger",
+          "wakeup.test",
+          "wakeup.runTask",
+          "wakeup.runEnabledTasks",
+          "wakeup.scheduler.syncState",
+          "wakeup.scheduler.runEnabledTasks",
+          "wakeup.scheduler.confirmTask",
+          "wakeup.scheduler.cancelTask",
+          "wakeup.scheduler.checkTimeouts",
+          "wakeup.verification.runBatch",
+          "instances.start"
+        ]
+      }
+    },
     {
       "id": "codex",
       "platformId": "codex",

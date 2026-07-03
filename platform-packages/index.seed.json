@@ -1419,9 +1419,9 @@
     {
       "id": "cursor",
       "platformId": "cursor",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "apiVersion": 1,
-      "minCoreVersion": "1.0.0",
+      "minCoreVersion": "1.0.2",
       "displayName": "Cursor",
       "entry": "runtime/index.json",
       "packageMode": "hotUpdate",
@@ -1489,6 +1489,25 @@
         "instances"
       ],
       "changelog": [
+        {
+          "version": "1.0.2",
+          "date": "2026-07-03",
+          "notes": [
+            "Improved Cursor account refresh and OAuth network error details to expose the underlying transport failure chain."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "增强 Cursor 账号刷新和 OAuth 网络错误提示，保留底层传输失败链路，方便定位连接、代理或超时问题。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "增強 Cursor 帳號刷新與 OAuth 網路錯誤提示，保留底層傳輸失敗鏈路，方便定位連線、代理或逾時問題。"
+              ]
+            }
+          }
+        },
         {
           "version": "1.0.1",
           "date": "2026-07-02",
@@ -1561,42 +1580,42 @@
         {
           "os": "macos",
           "arch": "aarch64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.1-macos-aarch64.zip",
-          "downloadSizeBytes": 3911255,
-          "sha256": "3dd49451cb8cb1887d96aea2c7550f2a129275a7244814e4fc8914edbd65ee59"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-macos-aarch64.zip",
+          "downloadSizeBytes": 3925013,
+          "sha256": "f5ef6aa7f0b438919a4856894f63ddacccddd3fd10be7e0bd3e43c7e70b3734f"
         },
         {
           "os": "macos",
           "arch": "x86_64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.1-macos-x86_64.zip",
-          "downloadSizeBytes": 4020396,
-          "sha256": "2bc3ca145e84b591fcfbadbbfa75c6c9c36286f542bbc963c9358b47af55ab89"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-macos-x86_64.zip",
+          "downloadSizeBytes": 4036291,
+          "sha256": "c6372a6f7ce83b4a8ea1aaeddd61d2d13fc9b31080a497c0ade0eefff904ddc8"
         },
         {
           "os": "linux",
           "arch": "x86_64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.1-linux-x86_64.zip",
-          "downloadSizeBytes": 4238058,
-          "sha256": "967e88bd447da478720e4e4aa756c3e1aa650478bf961741a72d9b2c6bd6ad49"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-linux-x86_64.zip",
+          "downloadSizeBytes": 4252019,
+          "sha256": "570cbd66f74ac50656892d1edd449c25a2eca65970b2cb50514b88c7e5126f92"
         },
         {
           "os": "linux",
           "arch": "aarch64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.1-linux-aarch64.zip",
-          "downloadSizeBytes": 4184492,
-          "sha256": "e73b1daf4e5e00fe26826f297e3b2e4027d66fcbf4f475e30c28d8487c2bfb1e"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-linux-aarch64.zip",
+          "downloadSizeBytes": 4198410,
+          "sha256": "39ee2e7e12edd7e0c86fa2c9a0b1025de714364f289620b95e07d7e8f93e03e8"
         },
         {
           "os": "windows",
           "arch": "x86_64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.1-windows-x86_64.zip",
-          "downloadSizeBytes": 4018275,
-          "sha256": "0a7e13eb5b8f9b87d31fc60e0372c1288f80d744e3e7f313d3672ea89e04b21f"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-windows-x86_64.zip",
+          "downloadSizeBytes": 4031841,
+          "sha256": "495f7d0b9b344033282c866055589471523fa88bc2ee2f8dedc327388cbe40f1"
         }
       ],
-      "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.1-macos-aarch64.zip",
-      "downloadSizeBytes": 3911255,
-      "sha256": "3dd49451cb8cb1887d96aea2c7550f2a129275a7244814e4fc8914edbd65ee59"
+      "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-macos-aarch64.zip",
+      "downloadSizeBytes": 3925013,
+      "sha256": "f5ef6aa7f0b438919a4856894f63ddacccddd3fd10be7e0bd3e43c7e70b3734f"
     },
     {
       "id": "gemini",
@@ -2714,9 +2733,9 @@
     {
       "id": "codex",
       "platformId": "codex",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "apiVersion": 1,
-      "minCoreVersion": "1.0.0",
+      "minCoreVersion": "1.0.2",
       "displayName": "Codex",
       "entry": "runtime/index.json",
       "packageMode": "hotUpdate",
@@ -2745,6 +2764,25 @@
         "cli"
       ],
       "changelog": [
+        {
+          "version": "1.0.2",
+          "date": "2026-07-03",
+          "notes": [
+            "Improved Codex account persistence, local API service compatibility, session transfer, batch operations, and sensitive account notes support."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "改进 Codex 账号持久化、本地 API 服务兼容性、会话迁移、批量操作和账号敏感备注支持。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "改進 Codex 帳號持久化、本機 API 服務相容性、會話遷移、批量操作與帳號敏感備註支援。"
+              ]
+            }
+          }
+        },
         {
           "version": "1.0.1",
           "date": "2026-07-02",
@@ -2849,42 +2887,42 @@
         {
           "os": "macos",
           "arch": "aarch64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.1-macos-aarch64.zip",
-          "downloadSizeBytes": 14830983,
-          "sha256": "c0fdcbd8e09489f35d574744c13bc5eae5437dd50e4f9ef05d952ef1b01d4b52"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-macos-aarch64.zip",
+          "downloadSizeBytes": 14900991,
+          "sha256": "bd4cabf1a0b53e8a95d9e8f2112f6c96dcb5b66de75673e211a41fc7c13c7d08"
         },
         {
           "os": "macos",
           "arch": "x86_64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.1-macos-x86_64.zip",
-          "downloadSizeBytes": 15820244,
-          "sha256": "454348bf222b65765f2d95d57f4756b9d5fde5a3d728045f7419f26cd1f811e7"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-macos-x86_64.zip",
+          "downloadSizeBytes": 15894925,
+          "sha256": "81ccfad2fae7cb2e8d7aa81583bd9c1c6f49104f6af1c5349198417032d77a25"
         },
         {
           "os": "linux",
           "arch": "x86_64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.1-linux-x86_64.zip",
-          "downloadSizeBytes": 16338777,
-          "sha256": "2a3bcc80af25a71247a0ca1cdc13be590f42b86b916299149d115c77741ab5fd"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-linux-x86_64.zip",
+          "downloadSizeBytes": 16416365,
+          "sha256": "ad8f6b516b66eb4faee2ce9b68f598535d1cd9ab2ff02a8f6efbc5e3a6fa1ea4"
         },
         {
           "os": "linux",
           "arch": "aarch64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.1-linux-aarch64.zip",
-          "downloadSizeBytes": 15328341,
-          "sha256": "2c2bd97ea23367706f878c857161986d3a697877a5be81e5b12b4cabf78d89de"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-linux-aarch64.zip",
+          "downloadSizeBytes": 15400569,
+          "sha256": "02e26c5ad0805cde957ede64d46fc821d7c5f5e1acafa8942b33386e9ca04bb7"
         },
         {
           "os": "windows",
           "arch": "x86_64",
-          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.1-windows-x86_64.zip",
-          "downloadSizeBytes": 15601485,
-          "sha256": "9b947bafd007893a50632a53c2cd5e0ca474f16128bb8ecb12110619b4b438a2"
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-windows-x86_64.zip",
+          "downloadSizeBytes": 15672039,
+          "sha256": "75cd7b3887ecb2421e176a7903e78a4244b6328c996938c29620b7b17ca8f6a3"
         }
       ],
-      "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.1-macos-aarch64.zip",
-      "downloadSizeBytes": 14830983,
-      "sha256": "c0fdcbd8e09489f35d574744c13bc5eae5437dd50e4f9ef05d952ef1b01d4b52",
+      "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/codex-1.0.2-macos-aarch64.zip",
+      "downloadSizeBytes": 14900991,
+      "sha256": "bd4cabf1a0b53e8a95d9e8f2112f6c96dcb5b66de75673e211a41fc7c13c7d08",
       "adapter": {
         "protocol": "http-json-v1",
         "entry": "adapter/macos/cockpit-codex-adapter",

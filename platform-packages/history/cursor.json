@@ -1,8 +1,209 @@
 {
   "version": "1",
   "platformId": "cursor",
-  "latestVersion": "1.0.1",
+  "latestVersion": "1.0.2",
   "versions": [
+    {
+      "id": "cursor",
+      "platformId": "cursor",
+      "version": "1.0.2",
+      "apiVersion": 1,
+      "minCoreVersion": "1.0.2",
+      "displayName": "Cursor",
+      "entry": "runtime/index.json",
+      "packageMode": "hotUpdate",
+      "installKind": "sidecarAdapter",
+      "adapter": {
+        "protocol": "http-json-v1",
+        "entry": "adapter/macos/cockpit-cursor-adapter",
+        "macosEntry": "adapter/macos/cockpit-cursor-adapter",
+        "windowsEntry": "adapter/windows/cockpit-cursor-adapter.exe",
+        "linuxEntry": "adapter/linux/cockpit-cursor-adapter",
+        "methods": [
+          "health.check",
+          "accounts.list",
+          "accounts.current",
+          "accounts.delete",
+          "accounts.deleteMany",
+          "accounts.importJson",
+          "accounts.importLocal",
+          "accounts.addToken",
+          "accounts.export",
+          "accounts.indexPath",
+          "accounts.refresh",
+          "accounts.refreshAll",
+          "accounts.updateTags",
+          "quota.alertPayload",
+          "oauth.start",
+          "oauth.complete",
+          "oauth.cancel",
+          "switch.inject",
+          "switch.injectDefaultProfile",
+          "instances.store.get",
+          "instances.store.replace",
+          "instance.getDefaults",
+          "instance.list",
+          "instance.create",
+          "instance.update",
+          "instance.delete",
+          "instance.start",
+          "instance.stop",
+          "instance.closeAll",
+          "instance.openWindow",
+          "runtime.detectLaunchPath",
+          "runtime.status",
+          "runtime.startDefault",
+          "runtime.stopDefault",
+          "runtime.restartDefault",
+          "runtime.focusDefault"
+        ]
+      },
+      "ui": {
+        "protocol": "react-remote-esm-v1",
+        "entry": "ui/remoteEntry.js",
+        "style": "ui/style.css",
+        "exports": [
+          "mount",
+          "unmount"
+        ]
+      },
+      "capabilities": [
+        "accounts",
+        "oauth",
+        "switch",
+        "quota",
+        "runtime",
+        "instances"
+      ],
+      "changelog": [
+        {
+          "version": "1.0.2",
+          "date": "2026-07-03",
+          "notes": [
+            "Improved Cursor account refresh and OAuth network error details to expose the underlying transport failure chain."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "增强 Cursor 账号刷新和 OAuth 网络错误提示，保留底层传输失败链路，方便定位连接、代理或超时问题。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "增強 Cursor 帳號刷新與 OAuth 網路錯誤提示，保留底層傳輸失敗鏈路，方便定位連線、代理或逾時問題。"
+              ]
+            }
+          }
+        },
+        {
+          "version": "1.0.1",
+          "date": "2026-07-02",
+          "notes": [
+            "Moved platform-specific settings to each platform settings popover, with General settings opening the matching platform settings entry.",
+            "Changed account authorization keep-alive to renew due tokens without running default full account or quota scans.",
+            "Changed platform package replacement to uninstall the old package before installing the downloaded package."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "各平台专属设置迁移到对应平台设置弹框，通用设置只保留跳转入口。",
+                "账号授权保活改为只续期到期 token，不再默认全量扫描账号或配额。",
+                "平台包替换改为先卸载旧包，再安装已下载的新包。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "各平台專屬設定遷移到對應平台設定彈框，通用設定只保留跳轉入口。",
+                "帳號授權保活改為只續期到期 token，不再預設全量掃描帳號或配額。",
+                "平台包替換改為先解除安裝舊包，再安裝已下載的新包。"
+              ]
+            }
+          }
+        },
+        {
+          "version": "1.0.0",
+          "date": "2026-07-01",
+          "notes": [
+            "Platform has been split into an independent package and now runs independently from the host application."
+          ],
+          "locales": {
+            "zh-CN": {
+              "notes": [
+                "平台拆成独立的包独立运行。"
+              ]
+            },
+            "zh-TW": {
+              "notes": [
+                "平台拆成獨立的包並獨立運行。"
+              ]
+            }
+          }
+        }
+      ],
+      "contributions": {
+        "platforms": [
+          {
+            "id": "cursor",
+            "label": "Cursor",
+            "labelKey": "nav.cursor",
+            "iconKey": "cursor",
+            "page": "cursor"
+          }
+        ],
+        "dataPaths": [
+          "cursor_accounts.json",
+          "cursor_accounts",
+          "cursor_instances.json"
+        ],
+        "localStorageKeys": [
+          "agtools.cursor.accounts.cache",
+          "agtools.cursor.current_account_id",
+          "agtools.cursor.flow_notice_collapsed",
+          "agtools.cursor.instances.cache"
+        ],
+        "nativeBoundaries": []
+      },
+      "artifacts": [
+        {
+          "os": "macos",
+          "arch": "aarch64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-macos-aarch64.zip",
+          "downloadSizeBytes": 3925013,
+          "sha256": "f5ef6aa7f0b438919a4856894f63ddacccddd3fd10be7e0bd3e43c7e70b3734f"
+        },
+        {
+          "os": "macos",
+          "arch": "x86_64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-macos-x86_64.zip",
+          "downloadSizeBytes": 4036291,
+          "sha256": "c6372a6f7ce83b4a8ea1aaeddd61d2d13fc9b31080a497c0ade0eefff904ddc8"
+        },
+        {
+          "os": "linux",
+          "arch": "x86_64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-linux-x86_64.zip",
+          "downloadSizeBytes": 4252019,
+          "sha256": "570cbd66f74ac50656892d1edd449c25a2eca65970b2cb50514b88c7e5126f92"
+        },
+        {
+          "os": "linux",
+          "arch": "aarch64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-linux-aarch64.zip",
+          "downloadSizeBytes": 4198410,
+          "sha256": "39ee2e7e12edd7e0c86fa2c9a0b1025de714364f289620b95e07d7e8f93e03e8"
+        },
+        {
+          "os": "windows",
+          "arch": "x86_64",
+          "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-windows-x86_64.zip",
+          "downloadSizeBytes": 4031841,
+          "sha256": "495f7d0b9b344033282c866055589471523fa88bc2ee2f8dedc327388cbe40f1"
+        }
+      ],
+      "downloadUrl": "https://github.com/jlcodes99/cockpit-tools/releases/download/platform-packages-main/cursor-1.0.2-macos-aarch64.zip",
+      "downloadSizeBytes": 3925013,
+      "sha256": "f5ef6aa7f0b438919a4856894f63ddacccddd3fd10be7e0bd3e43c7e70b3734f"
+    },
     {
       "id": "cursor",
       "platformId": "cursor",
