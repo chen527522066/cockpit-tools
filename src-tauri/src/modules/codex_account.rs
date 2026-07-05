@@ -13,6 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime};
 use toml_edit::{value, Document};
 
 static CODEX_QUOTA_ALERT_LAST_SENT: std::sync::LazyLock<Mutex<HashMap<String, i64>>> =
@@ -65,6 +66,10 @@ const CODEX_MISSING_REFRESH_TOKEN_REAUTH_REASON: &str =
 const CODEX_PROACTIVE_REFRESH_INTERVAL_SECONDS: i64 = 8 * 24 * 60 * 60;
 const CODEX_AUTH_PROJECTION_FILE_NAME: &str = ".cockpit_codex_auth.json";
 const CODEX_AUTH_PROJECTION_WRITER: &str = "cockpit";
+const CODEX_BATCH_IMPORT_SESSIONS_DIR: &str = "codex_batch_import_sessions";
+const CODEX_TOKEN_REFRESH_FILE_LOCK_TIMEOUT_SECONDS: u64 = 120;
+const CODEX_TOKEN_REFRESH_FILE_LOCK_STALE_SECONDS: u64 = 10 * 60;
+const CODEX_TOKEN_REFRESH_FILE_LOCK_POLL_MS: u64 = 100;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -1275,6 +1280,116 @@ fn codex_token_lock_for(account_id: &str) -> Arc<tokio::sync::Mutex<()>> {
         .clone()
 }
 
+struct CodexTokenRefreshFileLock {
+    path: PathBuf,
+}
+
+impl Drop for CodexTokenRefreshFileLock {
+    fn drop(&mut self) {
+        if let Err(err) = fs::remove_dir_all(&self.path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                logger::log_warn(&format!(
+                    "释放 Codex Token 跨进程刷新锁失败: lock_path={}, error={}",
+                    self.path.display(),
+                    err
+                ));
+            }
+        }
+    }
+}
+
+fn codex_token_refresh_file_lock_path(account_id: &str) -> PathBuf {
+    let lock_name = URL_SAFE_NO_PAD.encode(account_id.as_bytes());
+    get_accounts_dir()
+        .join(".locks")
+        .join(format!("token-refresh-{}.lock", lock_name))
+}
+
+fn codex_token_refresh_file_lock_is_stale(path: &Path) -> bool {
+    let Ok(metadata) = fs::metadata(path) else {
+        return false;
+    };
+    let Ok(modified) = metadata.modified() else {
+        return false;
+    };
+    SystemTime::now()
+        .duration_since(modified)
+        .map(|age| age >= Duration::from_secs(CODEX_TOKEN_REFRESH_FILE_LOCK_STALE_SECONDS))
+        .unwrap_or(false)
+}
+
+async fn acquire_codex_token_refresh_file_lock(
+    account_id: &str,
+    reason: &str,
+) -> Result<CodexTokenRefreshFileLock, String> {
+    let path = codex_token_refresh_file_lock_path(account_id);
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("Codex Token 刷新锁路径无效: {}", path.display()))?;
+    fs::create_dir_all(parent)
+        .map_err(|err| format_io_error("创建 Codex Token 刷新锁目录", parent, &err))?;
+
+    let started = Instant::now();
+    loop {
+        match fs::create_dir(&path) {
+            Ok(()) => {
+                let owner_path = path.join("owner");
+                let owner = format!(
+                    "pid={}\naccount_id={}\nreason={}\ncreated_at={}\n",
+                    std::process::id(),
+                    account_id,
+                    reason,
+                    now_timestamp()
+                );
+                if let Err(err) = fs::write(&owner_path, owner) {
+                    logger::log_warn(&format!(
+                        "写入 Codex Token 跨进程刷新锁元数据失败: account_id={}, lock_path={}, error={}",
+                        account_id,
+                        owner_path.display(),
+                        err
+                    ));
+                }
+                return Ok(CodexTokenRefreshFileLock { path });
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
+                if codex_token_refresh_file_lock_is_stale(&path) {
+                    logger::log_warn(&format!(
+                        "清理过期 Codex Token 跨进程刷新锁: account_id={}, lock_path={}",
+                        account_id,
+                        path.display()
+                    ));
+                    if let Err(remove_err) = fs::remove_dir_all(&path) {
+                        logger::log_warn(&format!(
+                            "清理过期 Codex Token 跨进程刷新锁失败: account_id={}, lock_path={}, error={}",
+                            account_id,
+                            path.display(),
+                            remove_err
+                        ));
+                    }
+                    continue;
+                }
+
+                if started.elapsed()
+                    >= Duration::from_secs(CODEX_TOKEN_REFRESH_FILE_LOCK_TIMEOUT_SECONDS)
+                {
+                    return Err(format!(
+                        "等待 Codex Token 刷新锁超时: account_id={}, lock_path={}, reason={}",
+                        account_id,
+                        path.display(),
+                        reason
+                    ));
+                }
+
+                tokio::time::sleep(Duration::from_millis(CODEX_TOKEN_REFRESH_FILE_LOCK_POLL_MS))
+                    .await;
+            }
+            Err(err) => {
+                return Err(format_io_error("创建 Codex Token 刷新锁", &path, &err));
+            }
+        }
+    }
+}
+
 fn mark_token_chain_updated(account: &mut CodexAccount) {
     account.token_generation = account.token_generation.saturating_add(1);
     account.token_updated_at = Some(now_timestamp());
@@ -1695,9 +1810,7 @@ pub fn load_account_index() -> CodexAccountIndex {
             repair_account_index_from_details("索引文件为空").unwrap_or_else(CodexAccountIndex::new)
         }
         Ok(content) => match serde_json::from_str::<CodexAccountIndex>(&content) {
-            Ok(index) if !index.accounts.is_empty() => index,
-            Ok(_) => repair_account_index_from_details("索引账号列表为空")
-                .unwrap_or_else(CodexAccountIndex::new),
+            Ok(index) => index,
             Err(err) => {
                 logger::log_warn(&format!(
                     "[Codex Account] 账号索引解析失败，尝试按详情文件自动修复: path={}, error={}",
@@ -1770,21 +1883,7 @@ fn load_account_index_checked() -> Result<CodexAccountIndex, String> {
     }
 
     match serde_json::from_str::<CodexAccountIndex>(&content) {
-        Ok(index) if !index.accounts.is_empty() => Ok(index),
-        Ok(index) => {
-            logger::log_warn(&format!(
-                "[Codex Account][Repair] 账号索引可解析但列表为空，准备尝试自动修复: path={}",
-                path.display()
-            ));
-            if let Some(repaired) = repair_account_index_from_details("索引账号列表为空") {
-                logger::log_info(&format!(
-                    "[Codex Account][Repair] 空账号列表已自动修复完成: recovered_accounts={}",
-                    repaired.accounts.len()
-                ));
-                return Ok(repaired);
-            }
-            Ok(index)
-        }
+        Ok(index) => Ok(index),
         Err(err) => {
             logger::log_warn(&format!(
                 "[Codex Account][Repair] 账号索引解析失败，准备尝试自动修复: path={}, error={}",
@@ -2704,13 +2803,34 @@ pub fn remove_accounts(account_ids: &[String]) -> Result<(), String> {
     }
 
     let mut index = load_account_index();
-    index
-        .accounts
-        .retain(|account| !remove_ids.contains(&account.id));
+    let accounts_dir = get_accounts_dir();
+    let mut missing_detail_ids = HashSet::new();
+    index.accounts.retain(|account| {
+        if remove_ids.contains(&account.id) {
+            return false;
+        }
+        if !accounts_dir.join(format!("{}.json", account.id)).exists() {
+            missing_detail_ids.insert(account.id.clone());
+            return false;
+        }
+        true
+    });
+    if !missing_detail_ids.is_empty() {
+        logger::log_warn(&format!(
+            "[Codex Account] 删除账号时清理缺失详情文件的孤儿索引: {}",
+            missing_detail_ids
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
     if index
         .current_account_id
         .as_ref()
-        .map(|current_id| remove_ids.contains(current_id))
+        .map(|current_id| {
+            remove_ids.contains(current_id) || missing_detail_ids.contains(current_id)
+        })
         .unwrap_or(false)
     {
         index.current_account_id = None;
@@ -4014,6 +4134,7 @@ async fn refresh_managed_account_locked(
     account_id: &str,
     force: bool,
     reason: &str,
+    observed_generation: Option<u64>,
 ) -> Result<CodexAccount, String> {
     let mut account =
         load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
@@ -4038,11 +4159,44 @@ async fn refresh_managed_account_locked(
             .clone()
             .unwrap_or_else(|| "账号需要重新登录".to_string()));
     }
+    if let Some(observed_generation) = observed_generation {
+        if account.token_generation > observed_generation {
+            if !codex_oauth::is_token_expired(&account.tokens.access_token) {
+                logger::log_info(&format!(
+                    "Codex Token Authority 复用已完成的刷新结果: account_id={}, observed_generation={}, current_generation={}, reason={}",
+                    account.id,
+                    observed_generation,
+                    account.token_generation,
+                    reason
+                ));
+                return Ok(account);
+            }
+            logger::log_warn(&format!(
+                "Codex Token Authority 检测到刷新代际已推进但 access_token 仍过期，继续刷新: account_id={}, observed_generation={}, current_generation={}, reason={}",
+                account.id,
+                observed_generation,
+                account.token_generation,
+                reason
+            ));
+        }
+    }
     if !force && !codex_oauth::is_token_expired(&account.tokens.access_token) {
         return Ok(account);
     }
 
     perform_managed_token_refresh(account, reason, force).await
+}
+
+async fn refresh_managed_account_with_authority(
+    account_id: &str,
+    force: bool,
+    reason: &str,
+    observed_generation: Option<u64>,
+) -> Result<CodexAccount, String> {
+    let lock = codex_token_lock_for(account_id);
+    let _guard = lock.lock().await;
+    let _file_guard = acquire_codex_token_refresh_file_lock(account_id, reason).await?;
+    refresh_managed_account_locked(account_id, force, reason, observed_generation).await
 }
 
 async fn refresh_bound_oauth_account_for_api_key(
@@ -4055,24 +4209,27 @@ async fn refresh_bound_oauth_account_for_api_key(
         .ok_or_else(|| "API Key 账号需先绑定 OAuth 账号".to_string())?
         .to_string();
     let _ = validate_api_key_bound_oauth_account(api_key_account, &bound_id)?;
-    let lock = codex_token_lock_for(&bound_id);
-    let _guard = lock.lock().await;
-    refresh_managed_account_locked(&bound_id, false, reason).await
+    refresh_managed_account_with_authority(&bound_id, false, reason, None).await
 }
 
 pub async fn ensure_managed_account_fresh(account_id: &str) -> Result<CodexAccount, String> {
-    let lock = codex_token_lock_for(account_id);
-    let _guard = lock.lock().await;
-    refresh_managed_account_locked(account_id, false, "prepare").await
+    refresh_managed_account_with_authority(account_id, false, "prepare", None).await
 }
 
 pub async fn force_refresh_managed_account(
     account_id: &str,
     reason: &str,
 ) -> Result<CodexAccount, String> {
-    let lock = codex_token_lock_for(account_id);
-    let _guard = lock.lock().await;
-    refresh_managed_account_locked(account_id, true, reason).await
+    refresh_managed_account_with_authority(account_id, true, reason, None).await
+}
+
+pub async fn force_refresh_managed_account_after_observed(
+    account_id: &str,
+    observed_generation: u64,
+    reason: &str,
+) -> Result<CodexAccount, String> {
+    refresh_managed_account_with_authority(account_id, true, reason, Some(observed_generation))
+        .await
 }
 
 pub async fn keepalive_managed_account(
@@ -4081,6 +4238,7 @@ pub async fn keepalive_managed_account(
 ) -> Result<CodexAccount, String> {
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
+    let _file_guard = acquire_codex_token_refresh_file_lock(account_id, reason).await?;
     let mut account =
         load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
     if account.is_api_key_auth() {
@@ -4165,7 +4323,8 @@ where
 
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
-    let account = refresh_managed_account_locked(account_id, false, reason).await?;
+    let _file_guard = acquire_codex_token_refresh_file_lock(account_id, reason).await?;
+    let account = refresh_managed_account_locked(account_id, false, reason, None).await?;
     write_prepared_account_bundle_to_dir(auth_dir, &account)?;
 
     let result = operation(&account);
@@ -4199,7 +4358,8 @@ pub async fn prepare_account_for_injection_from_auth_dir(
 
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
-    let account = refresh_managed_account_locked(account_id, false, "prepare").await?;
+    let _file_guard = acquire_codex_token_refresh_file_lock(account_id, "prepare").await?;
+    let account = refresh_managed_account_locked(account_id, false, "prepare", None).await?;
     if let Some(dir) = auth_dir {
         write_prepared_account_bundle_to_dir(dir, &account)?;
     }
@@ -4337,7 +4497,8 @@ pub async fn switch_account_managed(account_id: &str) -> Result<CodexAccount, St
 
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
-    let account = refresh_managed_account_locked(account_id, false, "switch").await?;
+    let _file_guard = acquire_codex_token_refresh_file_lock(account_id, "switch").await?;
+    let account = refresh_managed_account_locked(account_id, false, "switch", None).await?;
     switch_account_with_prepared(account_id, account)
 }
 
@@ -5361,13 +5522,13 @@ pub struct CodexFileImportFailure {
     pub error: String,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportStartResult {
     pub session_id: String,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportItem {
     pub item_id: String,
@@ -5386,7 +5547,7 @@ pub struct CodexBatchImportItem {
     pub existing: bool,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportProgress {
     pub session_id: String,
@@ -5401,7 +5562,7 @@ pub struct CodexBatchImportProgress {
     pub current_label: Option<String>,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportPreview {
     pub session_id: String,
@@ -5429,20 +5590,20 @@ struct CodexBatchImportSession {
     items: Vec<CodexBatchImportCachedItem>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct CodexBatchImportSourceItem {
     source: String,
     value: serde_json::Value,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct CodexBatchImportCachedItem {
     preview: CodexBatchImportItem,
     draft: Option<CodexBatchImportDraft>,
     quota: Option<crate::models::codex::CodexQuota>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 enum CodexBatchImportDraft {
     Account(CodexAccount),
     FullToken {
@@ -5456,6 +5617,19 @@ enum CodexBatchImportDraft {
     },
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CodexBatchImportSessionSnapshot {
+    version: u32,
+    status: String,
+    check_quota: bool,
+    source_items: Vec<CodexBatchImportSourceItem>,
+    next_index: usize,
+    total: usize,
+    items: Vec<CodexBatchImportCachedItem>,
+    updated_at: i64,
+}
+
 fn next_codex_batch_import_session_id() -> String {
     let id = CODEX_BATCH_IMPORT_COUNTER.fetch_add(1, Ordering::SeqCst);
     format!(
@@ -5463,6 +5637,155 @@ fn next_codex_batch_import_session_id() -> String {
         chrono::Utc::now().timestamp_millis(),
         id
     )
+}
+
+fn get_codex_batch_import_sessions_dir() -> PathBuf {
+    let data_dir = account::get_data_dir()
+        .or_else(|_| account::resolve_data_dir())
+        .unwrap_or_else(|_| PathBuf::from(".antigravity_cockpit"));
+    let dir = data_dir.join(CODEX_BATCH_IMPORT_SESSIONS_DIR);
+    let _ = fs::create_dir_all(&dir);
+    dir
+}
+
+fn sanitize_codex_batch_import_session_id(session_id: &str) -> Result<String, String> {
+    let trimmed = session_id.trim();
+    if trimmed.is_empty() {
+        return Err("导入会话 ID 为空".to_string());
+    }
+    if !trimmed
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_')
+    {
+        return Err("导入会话 ID 不合法".to_string());
+    }
+    Ok(trimmed.to_string())
+}
+
+fn codex_batch_import_session_snapshot_path(session_id: &str) -> Result<PathBuf, String> {
+    let safe_id = sanitize_codex_batch_import_session_id(session_id)?;
+    Ok(get_codex_batch_import_sessions_dir().join(format!("{}.json", safe_id)))
+}
+
+fn codex_batch_import_snapshot_from_session(
+    session: &CodexBatchImportSession,
+) -> CodexBatchImportSessionSnapshot {
+    CodexBatchImportSessionSnapshot {
+        version: 1,
+        status: session.status.clone(),
+        check_quota: session.check_quota,
+        source_items: session.source_items.clone(),
+        next_index: session.next_index,
+        total: session.total,
+        items: session.items.clone(),
+        updated_at: chrono::Utc::now().timestamp(),
+    }
+}
+
+fn codex_batch_import_session_from_snapshot(
+    snapshot: CodexBatchImportSessionSnapshot,
+) -> CodexBatchImportSession {
+    let status = if snapshot.status == "scanning" {
+        "cancelled".to_string()
+    } else {
+        snapshot.status
+    };
+    CodexBatchImportSession {
+        status,
+        check_quota: snapshot.check_quota,
+        cancel: Arc::new(AtomicBool::new(false)),
+        source_items: snapshot.source_items,
+        next_index: snapshot.next_index,
+        total: snapshot.total,
+        items: snapshot.items,
+    }
+}
+
+fn save_codex_batch_import_session_snapshot(
+    session_id: &str,
+    session: &CodexBatchImportSession,
+) -> Result<(), String> {
+    let path = codex_batch_import_session_snapshot_path(session_id)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| format!("创建导入会话目录失败: {}", error))?;
+    }
+    let snapshot = codex_batch_import_snapshot_from_session(session);
+    let content = serde_json::to_string_pretty(&snapshot)
+        .map_err(|error| format!("序列化导入会话快照失败: {}", error))?;
+    let tmp_path = path.with_extension("json.tmp");
+    fs::write(&tmp_path, content).map_err(|error| {
+        format!(
+            "写入导入会话快照失败: path={}, error={}",
+            tmp_path.display(),
+            error
+        )
+    })?;
+    fs::rename(&tmp_path, &path).map_err(|error| {
+        let _ = fs::remove_file(&tmp_path);
+        format!(
+            "更新导入会话快照失败: path={}, error={}",
+            path.display(),
+            error
+        )
+    })
+}
+
+fn save_codex_batch_import_session_snapshot_best_effort(
+    session_id: &str,
+    session: &CodexBatchImportSession,
+) {
+    if let Err(error) = save_codex_batch_import_session_snapshot(session_id, session) {
+        logger::log_warn(&format!(
+            "[Codex Batch Import] 保存导入会话快照失败: session_id={}, error={}",
+            session_id, error
+        ));
+    }
+}
+
+fn load_codex_batch_import_session_snapshot(
+    session_id: &str,
+) -> Result<Option<CodexBatchImportSession>, String> {
+    let path = codex_batch_import_session_snapshot_path(session_id)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let content = fs::read_to_string(&path).map_err(|error| {
+        format!(
+            "读取导入会话快照失败: path={}, error={}",
+            path.display(),
+            error
+        )
+    })?;
+    let snapshot: CodexBatchImportSessionSnapshot =
+        serde_json::from_str(&content).map_err(|error| {
+            format!(
+                "解析导入会话快照失败: path={}, error={}",
+                path.display(),
+                error
+            )
+        })?;
+    Ok(Some(codex_batch_import_session_from_snapshot(snapshot)))
+}
+
+fn remove_codex_batch_import_session_snapshot(session_id: &str) {
+    if let Ok(path) = codex_batch_import_session_snapshot_path(session_id) {
+        let _ = fs::remove_file(path);
+    }
+}
+
+fn ensure_codex_batch_import_session_loaded(session_id: &str) -> Result<(), String> {
+    {
+        let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        if sessions.contains_key(session_id) {
+            return Ok(());
+        }
+    }
+    let Some(session) = load_codex_batch_import_session_snapshot(session_id)? else {
+        return Err("导入会话不存在".to_string());
+    };
+    let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+    sessions.entry(session_id.to_string()).or_insert(session);
+    Ok(())
 }
 
 fn emit_codex_batch_import_progress(app: &tauri::AppHandle, payload: CodexBatchImportProgress) {
@@ -6049,7 +6372,7 @@ async fn run_codex_batch_import_scan(
     }
 
     let total = values.len() + read_failures.len();
-    {
+    let session_snapshot = {
         let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
         if let Some(session) = sessions.get_mut(&session_id) {
             session.source_items = values;
@@ -6057,13 +6380,19 @@ async fn run_codex_batch_import_scan(
             session.total = total;
             session.items = read_failures;
             session.check_quota = check_quota;
+            Some(session.clone())
+        } else {
+            None
         }
+    };
+    if let Some(session) = session_snapshot {
+        save_codex_batch_import_session_snapshot_best_effort(&session_id, &session);
     }
     run_codex_batch_import_resume(app, session_id).await;
 }
 
 async fn run_codex_batch_import_resume(app: tauri::AppHandle, session_id: String) {
-    let (cancel, check_quota, source_items, start_index, mut items, total) = {
+    let (cancel, check_quota, source_items, start_index, mut items, total, session_snapshot) = {
         let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
         let Some(session) = sessions.get_mut(&session_id) else {
             return;
@@ -6077,8 +6406,10 @@ async fn run_codex_batch_import_resume(app: tauri::AppHandle, session_id: String
             session.next_index,
             session.items.clone(),
             session.total,
+            session.clone(),
         )
     };
+    save_codex_batch_import_session_snapshot_best_effort(&session_id, &session_snapshot);
 
     emit_codex_batch_import_progress(
         &app,
@@ -6107,12 +6438,18 @@ async fn run_codex_batch_import_resume(app: tauri::AppHandle, session_id: String
         .await;
         let current_label = Some(cached.preview.label.clone());
         items.push(cached);
-        {
+        let session_snapshot = {
             let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
             if let Some(session) = sessions.get_mut(&session_id) {
                 session.next_index = index + 1;
                 session.items = items.clone();
+                Some(session.clone())
+            } else {
+                None
             }
+        };
+        if let Some(session) = session_snapshot {
+            save_codex_batch_import_session_snapshot_best_effort(&session_id, &session);
         }
         emit_codex_batch_import_progress(
             &app,
@@ -6150,7 +6487,7 @@ async fn run_codex_batch_import_resume(app: tauri::AppHandle, session_id: String
     } else {
         "ready"
     };
-    let preview = {
+    let (preview, session_snapshot) = {
         let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
         let session =
             sessions
@@ -6166,8 +6503,12 @@ async fn run_codex_batch_import_resume(app: tauri::AppHandle, session_id: String
                 });
         session.status = status.to_string();
         session.items = items;
-        codex_batch_import_preview_from_session(&session_id, session)
+        (
+            codex_batch_import_preview_from_session(&session_id, session),
+            session.clone(),
+        )
     };
+    save_codex_batch_import_session_snapshot_best_effort(&session_id, &session_snapshot);
     emit_codex_batch_import_completed(&app, preview);
 }
 
@@ -6182,20 +6523,19 @@ pub fn start_codex_batch_import_from_files(
     ensure_storage_writable_for_import()?;
     let session_id = next_codex_batch_import_session_id();
     let cancel = Arc::new(AtomicBool::new(false));
+    let session = CodexBatchImportSession {
+        status: "scanning".to_string(),
+        check_quota,
+        cancel,
+        source_items: Vec::new(),
+        next_index: 0,
+        total: 0,
+        items: Vec::new(),
+    };
+    save_codex_batch_import_session_snapshot(&session_id, &session)?;
     {
         let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
-        sessions.insert(
-            session_id.clone(),
-            CodexBatchImportSession {
-                status: "scanning".to_string(),
-                check_quota,
-                cancel,
-                source_items: Vec::new(),
-                next_index: 0,
-                total: 0,
-                items: Vec::new(),
-            },
-        );
+        sessions.insert(session_id.clone(), session);
     }
     let task_session_id = session_id.clone();
     tauri::async_runtime::spawn(async move {
@@ -6205,16 +6545,23 @@ pub fn start_codex_batch_import_from_files(
 }
 
 pub fn cancel_codex_batch_import(session_id: &str) -> Result<(), String> {
-    let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
-    let session = sessions
-        .get(session_id)
-        .ok_or_else(|| "导入会话不存在".to_string())?;
-    session.cancel.store(true, Ordering::SeqCst);
+    ensure_codex_batch_import_session_loaded(session_id)?;
+    let session_snapshot = {
+        let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
+        let session = sessions
+            .get_mut(session_id)
+            .ok_or_else(|| "导入会话不存在".to_string())?;
+        session.cancel.store(true, Ordering::SeqCst);
+        session.status = "cancelled".to_string();
+        session.clone()
+    };
+    save_codex_batch_import_session_snapshot(session_id, &session_snapshot)?;
     Ok(())
 }
 
 pub fn resume_codex_batch_import(app: tauri::AppHandle, session_id: &str) -> Result<(), String> {
     {
+        ensure_codex_batch_import_session_loaded(session_id)?;
         let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
         let session = sessions
             .get_mut(session_id)
@@ -6224,10 +6571,12 @@ pub fn resume_codex_batch_import(app: tauri::AppHandle, session_id: &str) -> Res
         }
         if session.next_index >= session.source_items.len() {
             session.status = "ready".to_string();
+            save_codex_batch_import_session_snapshot(session_id, session)?;
             return Ok(());
         }
         session.cancel.store(false, Ordering::SeqCst);
         session.status = "scanning".to_string();
+        save_codex_batch_import_session_snapshot(session_id, session)?;
     }
 
     let task_session_id = session_id.to_string();
@@ -6238,6 +6587,7 @@ pub fn resume_codex_batch_import(app: tauri::AppHandle, session_id: &str) -> Res
 }
 
 pub fn get_codex_batch_import_preview(session_id: &str) -> Result<CodexBatchImportPreview, String> {
+    ensure_codex_batch_import_session_loaded(session_id)?;
     let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
     let session = sessions
         .get(session_id)
@@ -6250,6 +6600,7 @@ pub fn confirm_codex_batch_import(
     item_ids: &[String],
 ) -> Result<CodexBatchImportConfirmResult, String> {
     ensure_storage_writable_for_import()?;
+    ensure_codex_batch_import_session_loaded(session_id)?;
     let selected: HashSet<String> = item_ids.iter().cloned().collect();
     let cached_items = {
         let sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
@@ -6315,6 +6666,7 @@ pub fn confirm_codex_batch_import(
         let mut sessions = CODEX_BATCH_IMPORT_SESSIONS.lock().unwrap();
         sessions.remove(session_id);
     }
+    remove_codex_batch_import_session_snapshot(session_id);
 
     Ok(CodexBatchImportConfirmResult { imported, failed })
 }
@@ -6446,12 +6798,13 @@ mod tests {
         build_account_storage_id, build_auth_file_value, decode_jwt_payload_value,
         detect_auth_file_plan_type_from_path, ensure_managed_account_fresh,
         extract_codex_import_candidate_from_value, extract_codex_tokens_from_value,
-        extract_user_info, format_refresh_error_for_user, get_accounts_dir,
-        get_accounts_storage_path, get_current_account_from_loaded, import_from_json,
-        is_managed_auth_refresh_due, is_pending_oauth_account, list_accounts_checked, load_account,
-        load_account_index, looks_like_sub2api_export, parse_auth_file_last_refresh,
+        extract_user_info, force_refresh_managed_account_after_observed,
+        format_refresh_error_for_user, get_accounts_dir, get_accounts_storage_path,
+        get_current_account_from_loaded, import_from_json, is_managed_auth_refresh_due,
+        is_pending_oauth_account, list_accounts_checked, load_account, load_account_index,
+        looks_like_sub2api_export, now_timestamp, parse_auth_file_last_refresh,
         parse_codex_account_compat, parse_line_delimited_json_values,
-        read_api_provider_from_config_toml, read_quick_config_from_config_toml,
+        read_api_provider_from_config_toml, read_quick_config_from_config_toml, remove_accounts,
         resolve_api_provider_config, save_account, save_account_index,
         should_accept_authority_snapshot, sync_account_from_auth_dir,
         sync_managed_projection_from_auth_dir, upsert_account, upsert_account_for_reauth,
@@ -6467,10 +6820,7 @@ mod tests {
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
     use std::fs;
     use std::path::Path;
-    use std::sync::{LazyLock, Mutex};
     use std::time::{SystemTime, UNIX_EPOCH};
-
-    static TEST_ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     #[test]
     fn parse_line_delimited_json_values_accepts_one_object_per_line() {
@@ -6736,7 +7086,9 @@ mod tests {
 
     #[test]
     fn load_account_migrates_legacy_bound_oauth_api_key_to_disable_image_generation() {
-        let _lock = TEST_ENV_LOCK.lock().expect("lock test env");
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .expect("lock test env");
         let _env = TestEnvGuard::new("codex-legacy-bound-oauth-migration");
         let mut account = CodexAccount::new_api_key(
             "api-legacy-bound-oauth".to_string(),
@@ -6780,7 +7132,9 @@ mod tests {
 
     #[test]
     fn load_account_respects_explicit_bound_oauth_image_generation_false() {
-        let _lock = TEST_ENV_LOCK.lock().expect("lock test env");
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .expect("lock test env");
         let _env = TestEnvGuard::new("codex-bound-oauth-explicit-false");
         let mut account = CodexAccount::new_api_key(
             "api-bound-oauth-explicit-false".to_string(),
@@ -7143,7 +7497,9 @@ mod tests {
 
     #[test]
     fn upsert_access_token_only_account_uses_access_claims() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-access-token-import-test");
         let access_token = make_jwt(serde_json::json!({
             "email": "access@example.com",
@@ -7195,7 +7551,9 @@ mod tests {
 
     #[test]
     fn upsert_auth_tokens_with_empty_id_token_uses_access_token() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-auth-file-access-token-import-test");
         let access_token = make_jwt(serde_json::json!({
             "email": "auth-access@example.com",
@@ -7227,7 +7585,9 @@ mod tests {
 
     #[test]
     fn import_multiline_pending_oauth_array_creates_pending_account() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-pending-oauth-import-test");
         let content = r#"[
   {
@@ -7274,7 +7634,9 @@ mod tests {
 
     #[test]
     fn upsert_existing_account_keeps_own_refresh_token_when_import_has_none() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-preserve-refresh-token-test");
         let existing = seed_oauth_account(make_codex_tokens(
             "demo@example.com",
@@ -7307,7 +7669,9 @@ mod tests {
 
     #[test]
     fn upsert_reuses_legacy_email_only_account_when_identity_appears() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-legacy-email-only-dedupe-test");
         let email = "legacy@example.com";
         let account_id = "acc-legacy";
@@ -7358,8 +7722,50 @@ mod tests {
     }
 
     #[test]
+    fn remove_accounts_prunes_missing_detail_index_entries() {
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
+        let _env = TestEnvGuard::new("codex-remove-prunes-missing-details-test");
+        let account = seed_oauth_account(make_codex_tokens(
+            "demo@example.com",
+            "acc-current",
+            "org-current",
+            "seed",
+            "rt-existing",
+        ));
+        let missing_id = "api-legacy-bound-oauth".to_string();
+        let mut index = load_account_index();
+        index.accounts.push(CodexAccountSummary {
+            id: missing_id.clone(),
+            email: "missing@example.com".to_string(),
+            plan_type: Some("API_KEY".to_string()),
+            subscription_active_until: None,
+            created_at: 1,
+            last_used: 1,
+        });
+        index.current_account_id = Some(missing_id.clone());
+        save_account_index(&index).expect("save index with missing detail entry");
+
+        let accounts = list_accounts_checked().expect("list should keep readable accounts");
+        assert_eq!(accounts.len(), 1);
+        assert_eq!(accounts[0].id, account.id);
+
+        remove_accounts(&[account.id.clone()]).expect("remove account");
+
+        assert!(load_account(&account.id).is_none());
+        let index = load_account_index();
+        assert!(index.accounts.is_empty());
+        assert!(index.current_account_id.is_none());
+        let accounts = list_accounts_checked().expect("empty index should be valid");
+        assert!(accounts.is_empty());
+    }
+
+    #[test]
     fn reauth_updates_explicit_target_account_even_when_identity_changes() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-explicit-reauth-target-test");
         let email = "reauth@example.com";
         let existing = upsert_account(make_codex_tokens(
@@ -7386,7 +7792,9 @@ mod tests {
 
     #[test]
     fn reauth_removes_generated_duplicate_for_target_identity() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-explicit-reauth-dedupe-test");
         let email = "reauth-duplicate@example.com";
         let existing = upsert_account(make_codex_tokens(
@@ -7416,7 +7824,9 @@ mod tests {
 
     #[test]
     fn upsert_access_token_only_existing_account_keeps_own_refresh_token() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-access-token-preserve-refresh-test");
         let existing = upsert_account(make_codex_tokens(
             "access@example.com",
@@ -7526,8 +7936,44 @@ mod tests {
     }
 
     #[test]
+    fn force_refresh_reuses_newer_generation_without_network_refresh() {
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
+        let _env = TestEnvGuard::new("codex-force-refresh-generation-test");
+        let mut account = seed_oauth_account(make_codex_tokens(
+            "demo@example.com",
+            "acc-current",
+            "org-current",
+            "newer-generation",
+            "rt-newer-generation",
+        ));
+        account.token_generation = 2;
+        account.token_updated_at = Some(now_timestamp());
+        save_account(&account).expect("save newer generation account");
+
+        let runtime = tokio::runtime::Runtime::new().expect("create runtime");
+        let refreshed = runtime
+            .block_on(force_refresh_managed_account_after_observed(
+                &account.id,
+                1,
+                "test observed generation",
+            ))
+            .expect("newer generation should be reused");
+
+        assert_eq!(refreshed.token_generation, 2);
+        assert_eq!(refreshed.tokens.access_token, account.tokens.access_token);
+        assert_eq!(
+            refreshed.tokens.refresh_token.as_deref(),
+            account.tokens.refresh_token.as_deref()
+        );
+    }
+
+    #[test]
     fn missing_refresh_token_reauth_is_cleared_for_access_token_only_accounts() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-access-token-only-reauth-clear-test");
         let mut tokens = make_codex_tokens(
             "demo@example.com",
@@ -7559,7 +8005,9 @@ mod tests {
 
     #[test]
     fn expired_access_token_only_account_requires_reauth_on_prepare() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let _env = TestEnvGuard::new("codex-access-token-only-expired-test");
         let mut tokens = make_codex_tokens(
             "demo@example.com",
@@ -7702,7 +8150,9 @@ mod tests {
 
     #[test]
     fn sync_account_from_auth_dir_updates_store_for_managed_home() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let env = TestEnvGuard::new("codex-auth-dir-sync-test");
 
         let stored = seed_oauth_account(make_codex_tokens(
@@ -7739,7 +8189,9 @@ mod tests {
 
     #[test]
     fn managed_projection_sync_requires_projection_marker() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let env = TestEnvGuard::new("codex-managed-projection-sync-test");
 
         let stored = seed_oauth_account(make_codex_tokens(
@@ -8094,7 +8546,9 @@ multi_agent = true
 
     #[test]
     fn api_key_bundle_bound_to_empty_id_token_oauth_writes_api_key_auth_file() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let env = TestEnvGuard::new("codex-api-key-bound-oauth-auth-file-test");
         let mut oauth_tokens = make_codex_tokens(
             "demo@example.com",
@@ -8149,7 +8603,9 @@ multi_agent = true
 
     #[test]
     fn api_key_bundle_bound_to_full_oauth_keeps_oauth_auth_file() {
-        let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let _lock = crate::modules::test_support::env_lock()
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
         let env = TestEnvGuard::new("codex-api-key-bound-full-oauth-auth-file-test");
         let oauth_account = seed_oauth_account(make_codex_tokens(
             "demo@example.com",

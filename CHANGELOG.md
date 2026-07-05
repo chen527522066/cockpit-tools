@@ -7,6 +7,34 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [1.0.5] - 2026-07-05
+
+### Added
+
+- **Codex can filter by real plan types such as `K12`**: these accounts are easier to find and clean up.
+- **Codex account overview now includes one-click wakeup tests**: OAuth accounts can be selected quickly for wakeup checks.
+- **Codex API Service now supports first-account routing**: requests can stay on the first account in the account pool.
+- **Codex request logs now support estimate recalculation**: historical request estimates can be recalculated with current model prices.
+- **Codex session visibility repair now supports previews**: users can preview the affected scope before running a repair.
+- **Codex sessions now support export previews, import/export, and background progress**: users can confirm the session list, total size, and save location before export, import packages into a target instance, and track transfers with a minimizable progress dialog.
+
+### Changed
+
+- **Improved background performance**: large account lists create less background refresh, request, and UI pressure.
+- **Improved Codex batch import and batch deletion**: flows now support continuation, background progress, and failed-item retry.
+- **Unified bulk selection across platform account pages**: Cursor, Gemini, GitHub Copilot, Kiro, Qoder, Trae, Windsurf, Zed, and CodeBuddy account pages now use a consistent bulk action flow.
+- **Improved top banner stability**: temporary remote config failures no longer make the banner state jump around.
+
+### Fixed
+
+- **Fixed Codex saves possibly overwriting existing configuration fields**.
+- **Fixed Codex token refresh and API Service 401 retry issues**.
+- **Fixed Codex session lists sometimes using inaccurate ordering**.
+- **Fixed app update relaunch being blocked by API Service shutdown failures**.
+- **Improved multi-platform switching, launch path detection, and current-account readback**.
+- **Improved Cursor and Zed error messages**: authorization failures and 401 issues are easier to diagnose.
+
+---
 ## [1.0.4] - 2026-07-04
 
 ### Important Notice

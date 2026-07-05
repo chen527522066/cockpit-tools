@@ -12,6 +12,10 @@ import type {
   CodexSessionTrashSummary,
   CodexTrashedSessionRecord,
   CodexSessionRestoreSummary,
+  CodexSessionExportPreview,
+  CodexSessionExportSummary,
+  CodexSessionImportPreview,
+  CodexSessionImportSummary,
 } from '../types/codex';
 import { createInstanceStore, type InstanceStoreState } from './createInstanceStore';
 
@@ -32,6 +36,25 @@ type CodexInstanceStoreState = InstanceStoreState & {
   moveSessionsToTrashAcrossInstances: (sessionIds: string[]) => Promise<CodexSessionTrashSummary>;
   listTrashedSessionsAcrossInstances: () => Promise<CodexTrashedSessionRecord[]>;
   restoreSessionsFromTrashAcrossInstances: (sessionIds: string[]) => Promise<CodexSessionRestoreSummary>;
+  previewSessionExport: (
+    sessionIds: string[],
+  ) => Promise<CodexSessionExportPreview>;
+  exportSessions: (
+    sessionIds: string[],
+    exportPath: string,
+    transferId?: string | null,
+  ) => Promise<CodexSessionExportSummary>;
+  previewSessionImport: (
+    importFilePath: string,
+    targetInstanceId?: string | null,
+  ) => Promise<CodexSessionImportPreview>;
+  importSessions: (
+    importFilePath: string,
+    targetInstanceId: string,
+    sessionIds: string[],
+    transferId?: string | null,
+  ) => Promise<CodexSessionImportSummary>;
+  openSessionLocation: (sessionId: string) => Promise<void>;
 };
 
 type CodexInstanceStoreHook = {
@@ -108,6 +131,47 @@ const restoreSessionsFromTrashAcrossInstances = async (
   return summary;
 };
 
+const previewSessionExport = async (
+  sessionIds: string[],
+): Promise<CodexSessionExportPreview> => {
+  return await codexInstanceService.previewSessionExport(sessionIds);
+};
+
+const exportSessions = async (
+  sessionIds: string[],
+  exportPath: string,
+  transferId?: string | null,
+): Promise<CodexSessionExportSummary> => {
+  return await codexInstanceService.exportSessions(sessionIds, exportPath, transferId);
+};
+
+const previewSessionImport = async (
+  importFilePath: string,
+  targetInstanceId?: string | null,
+): Promise<CodexSessionImportPreview> => {
+  return await codexInstanceService.previewSessionImport(importFilePath, targetInstanceId);
+};
+
+const importSessions = async (
+  importFilePath: string,
+  targetInstanceId: string,
+  sessionIds: string[],
+  transferId?: string | null,
+): Promise<CodexSessionImportSummary> => {
+  const summary = await codexInstanceService.importSessions(
+    importFilePath,
+    targetInstanceId,
+    sessionIds,
+    transferId,
+  );
+  await typedBaseStore.getState().fetchInstances();
+  return summary;
+};
+
+const openSessionLocation = async (sessionId: string): Promise<void> => {
+  await codexInstanceService.openSessionLocation(sessionId);
+};
+
 typedBaseStore.setState({
   syncThreadsAcrossInstances,
   syncSessionsToInstance,
@@ -119,6 +183,11 @@ typedBaseStore.setState({
   moveSessionsToTrashAcrossInstances,
   listTrashedSessionsAcrossInstances,
   restoreSessionsFromTrashAcrossInstances,
+  previewSessionExport,
+  exportSessions,
+  previewSessionImport,
+  importSessions,
+  openSessionLocation,
 });
 
 export const useCodexInstanceStore = typedBaseStore;
