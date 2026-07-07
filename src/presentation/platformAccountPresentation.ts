@@ -720,14 +720,16 @@ export function buildCodexAccountPresentation(
               : undefined,
         }));
   const additionalQuotaItems =
-    !isCodexChatCompletionsApiKeyAccount(account) && newApiQuotaItems.length === 0
+    !isCodexChatCompletionsApiKeyAccount(account)
       ? getCodexAdditionalQuotaWindows(account.quota).map((window) => {
           const hintText = [window.limitName, window.meteredFeature]
             .filter(Boolean)
             .join(" · ");
+          const limitLabel =
+            window.limitLabel || t("codex.quota.additional", "额外额度");
           return {
             key: window.id,
-            label: `${window.limitLabel} ${window.label}`,
+            label: `${limitLabel} ${window.label}`,
             percentage: window.percentage,
             quotaClass: getCodexQuotaClass(window.percentage),
             valueText: `${window.percentage}%`,

@@ -242,6 +242,21 @@ pub fn run() {
                 modules::webkit_cache_maintenance::checkpoint_webkit_localstorage();
             });
 
+            // 当前主线不再使用 platform-packages；启动时回收旧版本遗留的孤儿 adapter。
+            std::thread::spawn(|| {
+                match modules::process::close_orphaned_legacy_platform_adapter_processes(5) {
+                    Ok(0) => {}
+                    Ok(count) => logger::log_info(&format!(
+                        "[LegacyAdapterCleanup] 已清理旧平台 adapter 进程: count={}",
+                        count
+                    )),
+                    Err(err) => logger::log_warn(&format!(
+                        "[LegacyAdapterCleanup] 清理旧平台 adapter 进程失败: {}",
+                        err
+                    )),
+                }
+            });
+
             // 初始化 Updater 插件
             #[cfg(desktop)]
             {

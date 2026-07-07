@@ -649,7 +649,7 @@ function normalizeCodexAdditionalLimitLabel(
   meteredFeature: string,
 ): string {
   const fallback = limitName || meteredFeature;
-  if (!fallback) return "Additional";
+  if (!fallback) return "";
   return fallback
     .replace(/^gpt[-\s]*/i, "GPT ")
     .replace(/[-_]+/g, " ")
