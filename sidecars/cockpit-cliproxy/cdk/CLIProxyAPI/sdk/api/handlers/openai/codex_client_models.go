@@ -10,7 +10,8 @@ import (
 )
 
 type codexClientModelsPayload struct {
-	Models []map[string]any `json:"models"`
+	ModelOverrides []map[string]any `json:"model_overrides"`
+	Models         []map[string]any `json:"models"`
 }
 
 var (
@@ -26,6 +27,8 @@ var codexClientAllowedReasoningLevels = map[string]struct{}{
 	"medium": {},
 	"high":   {},
 	"xhigh":  {},
+	"max":    {},
+	"ultra":  {},
 }
 
 func (h *OpenAIAPIHandler) codexClientModelsResponse() map[string]any {
@@ -91,6 +94,20 @@ func loadCodexClientModelTemplates() (map[string]map[string]any, map[string]any,
 			if slug == "gpt-5.5" {
 				codexClientDefaultTemplate = cloneCodexClientModelMap(model)
 			}
+		}
+		if codexClientDefaultTemplate == nil {
+			return
+		}
+		for _, override := range payload.ModelOverrides {
+			slug := strings.TrimSpace(stringModelValue(override, "slug"))
+			if slug == "" {
+				continue
+			}
+			model := cloneCodexClientModelMap(codexClientDefaultTemplate)
+			for key, value := range override {
+				model[key] = cloneCodexClientModelValue(value)
+			}
+			codexClientModelTemplates[slug] = model
 		}
 	})
 
@@ -249,6 +266,10 @@ func codexClientReasoningDescription(level string) string {
 		return "Greater reasoning depth for complex problems"
 	case "xhigh":
 		return "Extra high reasoning depth for complex problems"
+	case "max":
+		return "Maximum reasoning depth for the hardest problems"
+	case "ultra":
+		return "Maximum reasoning with automatic task delegation"
 	default:
 		return level
 	}

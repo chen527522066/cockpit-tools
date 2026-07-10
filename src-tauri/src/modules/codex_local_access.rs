@@ -156,14 +156,7 @@ const CODEX_OFFICIAL_EMPTY_HEADERS: &[&str] = &[
     "x-client-request-id",
     "x-responsesapi-include-timing-metrics",
 ];
-const DEFAULT_CODEX_MODELS: &[&str] = &[
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-    "gpt-5.6-luna",
-    "gpt-5.5",
-    "gpt-5.4",
-    "gpt-5.4-mini",
-];
+const LEGACY_DEFAULT_CODEX_MODELS: &[&str] = &["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"];
 const CODEX_IMAGE_MODEL_ID: &str = "gpt-image-2";
 const CODEX_AUTO_REVIEW_MODEL_ID: &str = "codex-auto-review";
 const DEFAULT_IMAGES_MAIN_MODEL: &str = "gpt-5.4-mini";
@@ -1296,28 +1289,17 @@ fn has_date_snapshot_suffix(value: &str) -> bool {
 }
 
 pub(crate) fn supported_codex_model_ids() -> Vec<String> {
-    let mut seen = HashSet::new();
-    let mut model_ids: Vec<String> = codex_wakeup::load_state_for_scheduler()
-        .ok()
-        .map(|state| {
-            state
-                .model_presets
-                .into_iter()
-                .map(|preset| preset.model.trim().to_string())
-                .filter(|model| !model.is_empty())
-                .filter(|model| seen.insert(model.to_ascii_lowercase()))
-                .collect()
-        })
-        .unwrap_or_default();
-
+    let mut model_ids = default_codex_model_ids();
     let mut seen_model_ids: HashSet<String> = model_ids
         .iter()
-        .map(|model| model.trim().to_ascii_lowercase())
-        .filter(|model| !model.is_empty())
+        .map(|model| model.to_ascii_lowercase())
         .collect();
-    for model in DEFAULT_CODEX_MODELS {
-        if seen_model_ids.insert((*model).to_ascii_lowercase()) {
-            model_ids.push((*model).to_string());
+    if let Ok(state) = codex_wakeup::load_state_for_scheduler() {
+        for preset in state.model_presets {
+            let model = preset.model.trim();
+            if !model.is_empty() && seen_model_ids.insert(model.to_ascii_lowercase()) {
+                model_ids.push(model.to_string());
+            }
         }
     }
     if seen_model_ids.insert(CODEX_IMAGE_MODEL_ID.to_string()) {
@@ -1328,6 +1310,17 @@ pub(crate) fn supported_codex_model_ids() -> Vec<String> {
     }
 
     model_ids
+}
+
+fn default_codex_model_ids() -> Vec<String> {
+    codex_protocol::managed_codex_model_ids()
+        .into_iter()
+        .chain(
+            LEGACY_DEFAULT_CODEX_MODELS
+                .iter()
+                .map(|model| model.to_string()),
+        )
+        .collect()
 }
 
 fn account_health_allows_image_generation(health: Option<&RuntimeAccountHealth>) -> bool {
@@ -19020,7 +19013,7 @@ mod tests {
         canonical_model_for_client_model, classify_upstream_error_category,
         cleanup_profile_takeover_without_backup, cleanup_provider_gateway_profile_model_overrides,
         collect_local_access_profile_takeover_dirs_from_store, compare_routing_candidates,
-        extract_usage_capture, insert_local_access_usage_event,
+        default_codex_model_ids, extract_usage_capture, insert_local_access_usage_event,
         inspect_local_access_profile_config, is_codex_local_access_auth_text,
         is_codex_local_access_config_for_api_key, is_image_generation_capability_error,
         is_local_access_eligible_account, is_provider_gateway_eligible_account,
@@ -21337,6 +21330,30 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
     }
 
     #[test]
+    fn api_key_model_visibility_includes_5_6_unless_explicitly_restricted() {
+        let collection = test_local_access_collection(vec!["account-1".to_string()]);
+        let mut api_key = ResolvedLocalApiKey {
+            id: "key-1".to_string(),
+            label: "Key".to_string(),
+            provider_gateway: None,
+            account_ids: Vec::new(),
+            model_prefix: None,
+            allowed_models: Vec::new(),
+            excluded_models: Vec::new(),
+        };
+
+        let models = visible_codex_model_ids_for_api_key(&collection, &api_key, None);
+        for model in ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"] {
+            assert!(models.iter().any(|item| item == model));
+        }
+
+        api_key.allowed_models = vec!["gpt-5.4".to_string()];
+        let restricted = visible_codex_model_ids_for_api_key(&collection, &api_key, None);
+        assert!(restricted.iter().any(|model| model == "gpt-5.4"));
+        assert!(!restricted.iter().any(|model| model.starts_with("gpt-5.6-")));
+    }
+
+    #[test]
     fn provider_gateway_models_are_visible_for_gateway_api_key() {
         let collection = test_local_access_collection(vec!["account-1".to_string()]);
         let api_key = ResolvedLocalApiKey {
@@ -22972,6 +22989,21 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
                 "missing official model {model_id}"
             );
         }
+    }
+
+    #[test]
+    fn default_codex_models_follow_official_order_without_5_2() {
+        assert_eq!(
+            default_codex_model_ids(),
+            vec![
+                "gpt-5.6-sol",
+                "gpt-5.6-terra",
+                "gpt-5.6-luna",
+                "gpt-5.5",
+                "gpt-5.4",
+                "gpt-5.4-mini",
+            ]
+        );
     }
 
     #[tokio::test]

@@ -306,6 +306,20 @@ pub fn run() {
                 modules::codex_local_access::restore_local_access_gateway().await;
             });
 
+            std::thread::spawn(|| {
+                match modules::codex_account::refresh_managed_api_key_model_catalogs_on_startup() {
+                    Ok(refreshed) if refreshed > 0 => info!(
+                        "[Codex Model Catalog] 启动时已刷新受管 API Key 模型目录: count={}",
+                        refreshed
+                    ),
+                    Ok(_) => {}
+                    Err(error) => logger::log_warn(&format!(
+                        "[Codex Model Catalog] 启动时刷新受管 API Key 模型目录失败: {}",
+                        error
+                    )),
+                }
+            });
+
             {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
