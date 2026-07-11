@@ -1073,6 +1073,8 @@
       "qoderAppPath": "Qoder App Path",
       "qoderAppPathDesc": "Leave blank to use the default path",
       "qoderAppPathPlaceholder": "Default path",
+      "zcodeAutoRefresh": "ZCode Auto Refresh",
+      "zcodeAutoRefreshDesc": "Background quota refresh interval",
       "qoderAutoRefresh": "Qoder Auto Refresh",
       "qoderAutoRefreshDesc": "Background auto-refresh frequency",
       "qoderPathSelect": "Select",
@@ -3891,6 +3893,9 @@
       "title": "Qoder Settings",
       "appPath": "Qoder Path"
     },
+    "zcode": {
+      "title": "ZCode Settings"
+    },
     "zed": {
       "title": "Zed Settings",
       "appPath": "Zed Path"
@@ -4581,6 +4586,55 @@
     },
     "empty": {
       "desc": "Click \"Add Account\" to use auth login, local import, or JSON import."
+    }
+  },
+  "zcode": {
+    "search": "Search ZCode accounts...",
+    "flowNotice": {
+      "title": "ZCode account guide",
+      "desc": "Cockpit reads and writes ZCode's encrypted local credentials for real account switching and instance binding.",
+      "permission": "Local scope: ~/.zcode/v2/credentials.json and managed instance directories.",
+      "network": "Network scope: OAuth, user info, subscription, and quota APIs. Accounts are not uploaded to a Cockpit service."
+    },
+    "empty": "No ZCode accounts",
+    "addAccount": "Add ZCode Account",
+    "oauth": {
+      "desc": "Close ZCode, then sign in through the Cockpit authorization window. Cockpit will capture the callback directly.",
+      "title": "ZCode OAuth",
+      "item1": "Official Z.ai and BigModel sign-in.",
+      "item2": "Saves the account and refreshes plan and model quotas after authorization.",
+      "item3": "Use accounts for default-client switching and multi-instance binding.",
+      "urlPlaceholder": "ZCode OAuth URL",
+      "waiting": "Waiting for ZCode OAuth callback...",
+      "openWindow": "Open authorization window",
+      "provider": "Sign-in service",
+      "success": "ZCode OAuth sign-in successful"
+    },
+    "token": {
+      "desc": "Paste a ZCode account JSON exported by Cockpit."
+    },
+    "import": {
+      "localDesc": "Import from encrypted local ZCode credentials or a JSON file.",
+      "localClient": "Import from Local ZCode"
+    },
+    "usageNormal": "Normal",
+    "usageAbnormal": "Error",
+    "usageViewDetail": "Details",
+    "usageDetailTitle": "Usage Details",
+    "usage": "Usage",
+    "quota": {
+      "models": "Model Quota",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Updated: {{time}}",
+      "expireAt": "Expires: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Quota query failed",
+      "empty": "No quota data",
+      "sectionTitle": "Quota"
+    },
+    "instances": {
+      "unsupported": "ZCode multi-instance is available only on macOS, Windows, and Linux."
     }
   },
   "zed": {

@@ -808,6 +808,8 @@
       "qoderAppPath": "مسار تطبيق Qoder",
       "qoderAppPathDesc": "يُستخدم المسار الافتراضي إذا تُرك فارغًا",
       "qoderAppPathPlaceholder": "المسار الافتراضي",
+      "zcodeAutoRefresh": "تحديث ZCode تلقائيًا",
+      "zcodeAutoRefreshDesc": "فاصل تحديث الحصة في الخلفية",
       "qoderAutoRefresh": "تحديث تلقائي لحصة Qoder",
       "qoderAutoRefreshDesc": "تكرار التحديث التلقائي في الخلفية",
       "qoderPathSelect": "اختر",
@@ -3645,6 +3647,9 @@
       "title": "إعدادات WorkBuddy",
       "appPath": "مسار WorkBuddy"
     },
+    "zcode": {
+      "title": "إعدادات ZCode"
+    },
     "zed": {
       "title": "إعدادات Zed",
       "appPath": "مسار Zed"
@@ -4634,6 +4639,55 @@
       "streakRewardCountdown": "يتبقى {{days}} يومًا للحصول على المكافأة الإضافية",
       "streakRewardToday": "المكافأة الإضافية متاحة اليوم!",
       "recentDates": "الأيام الأخيرة: "
+    }
+  },
+  "zcode": {
+    "search": "البحث في حسابات ZCode...",
+    "flowNotice": {
+      "title": "دليل إدارة حسابات ZCode",
+      "desc": "يقرأ Cockpit بيانات اعتماد ZCode المحلية المشفرة ويعيد كتابتها للتبديل الفعلي بين الحسابات وربط النسخ.",
+      "permission": "النطاق المحلي: ~/.zcode/v2/credentials.json وأدلة النسخ المُدارة.",
+      "network": "نطاق الشبكة: واجهات OAuth والمستخدم والاشتراك والحصة. لا تُرفع الحسابات إلى خدمة Cockpit."
+    },
+    "empty": "لا توجد حسابات ZCode",
+    "addAccount": "إضافة حساب ZCode",
+    "oauth": {
+      "desc": "أغلق ZCode، ثم أكمل تسجيل الدخول في نافذة التفويض داخل Cockpit؛ وسيتلقى Cockpit رد الاتصال مباشرةً.",
+      "title": "OAuth لـ ZCode",
+      "item1": "تسجيل الدخول الرسمي عبر Z.ai وBigModel.",
+      "item2": "يحفظ الحساب ويحدّث الخطة وحصص النماذج.",
+      "item3": "استخدم الحسابات لتبديل العميل وربط عدة نسخ.",
+      "urlPlaceholder": "رابط OAuth لـ ZCode",
+      "waiting": "بانتظار رد OAuth من ZCode...",
+      "openWindow": "فتح نافذة التفويض",
+      "provider": "خدمة تسجيل الدخول",
+      "success": "تم تسجيل الدخول إلى ZCode عبر OAuth"
+    },
+    "token": {
+      "desc": "الصق ملف JSON لحساب ZCode مُصدّرًا من Cockpit."
+    },
+    "import": {
+      "localDesc": "استورد بيانات اعتماد ZCode المحلية المشفرة أو ملف JSON.",
+      "localClient": "استيراد من ZCode المحلي"
+    },
+    "usageNormal": "طبيعي",
+    "usageAbnormal": "خطأ",
+    "usageViewDetail": "التفاصيل",
+    "usageDetailTitle": "تفاصيل الاستخدام",
+    "usage": "الاستخدام",
+    "quota": {
+      "models": "حصة النماذج",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "آخر تحديث: {{time}}",
+      "expireAt": "تنتهي: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "فشل استعلام الحصة",
+      "empty": "لا توجد بيانات حصة",
+      "sectionTitle": "الحصة"
+    },
+    "instances": {
+      "unsupported": "تعدد نسخ ZCode متاح فقط على macOS وWindows وLinux."
     }
   },
   "zed": {

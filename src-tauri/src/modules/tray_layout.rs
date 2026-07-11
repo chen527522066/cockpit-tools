@@ -20,13 +20,14 @@ pub const PLATFORM_GEMINI: &str = "gemini";
 pub const PLATFORM_CODEBUDDY: &str = "codebuddy";
 pub const PLATFORM_CODEBUDDY_CN: &str = "codebuddy_cn";
 pub const PLATFORM_QODER: &str = "qoder";
+pub const PLATFORM_ZCODE: &str = "zcode";
 pub const PLATFORM_TRAE: &str = "trae";
 pub const PLATFORM_TRAE_SOLO: &str = "trae_solo";
 pub const PLATFORM_TRAE_CN: &str = "trae_cn";
 pub const PLATFORM_TRAE_SOLO_CN: &str = "trae_solo_cn";
 pub const PLATFORM_WORKBUDDY: &str = "workbuddy";
 
-pub const SUPPORTED_PLATFORM_IDS: [&str; 17] = [
+pub const SUPPORTED_PLATFORM_IDS: [&str; 18] = [
     PLATFORM_CLAUDE_MANAGER,
     PLATFORM_CODEX,
     PLATFORM_ANTIGRAVITY,
@@ -39,6 +40,7 @@ pub const SUPPORTED_PLATFORM_IDS: [&str; 17] = [
     PLATFORM_CODEBUDDY,
     PLATFORM_CODEBUDDY_CN,
     PLATFORM_QODER,
+    PLATFORM_ZCODE,
     PLATFORM_TRAE,
     PLATFORM_TRAE_SOLO,
     PLATFORM_TRAE_CN,
@@ -152,6 +154,7 @@ fn normalize_platform_id(id: &str) -> Option<&'static str> {
         PLATFORM_CODEBUDDY => Some(PLATFORM_CODEBUDDY),
         PLATFORM_CODEBUDDY_CN => Some(PLATFORM_CODEBUDDY_CN),
         PLATFORM_QODER => Some(PLATFORM_QODER),
+        PLATFORM_ZCODE => Some(PLATFORM_ZCODE),
         PLATFORM_TRAE => Some(PLATFORM_TRAE),
         PLATFORM_TRAE_SOLO | "trae-solo" => Some(PLATFORM_TRAE_SOLO),
         PLATFORM_TRAE_CN | "trae-cn" => Some(PLATFORM_TRAE_CN),
@@ -213,6 +216,7 @@ fn normalize_tray_platforms(
         PLATFORM_CODEBUDDY,
         PLATFORM_CODEBUDDY_CN,
         PLATFORM_QODER,
+        PLATFORM_ZCODE,
         PLATFORM_TRAE,
         PLATFORM_TRAE_SOLO,
         PLATFORM_TRAE_CN,

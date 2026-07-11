@@ -1043,7 +1043,18 @@ func visibleModelsForAPIKey(m *manifest, spec *apiKeySpec) []string {
 		return nil
 	}
 	if spec != nil && spec.ProviderGateway != nil {
-		return append([]string(nil), spec.ProviderGateway.UpstreamModels...)
+		models := make([]string, 0, len(spec.ProviderGateway.UpstreamModels))
+		for _, upstreamModel := range spec.ProviderGateway.UpstreamModels {
+			clientModel := upstreamModel
+			for _, alias := range m.ModelAliases {
+				if strings.EqualFold(alias.SourceModel, upstreamModel) {
+					clientModel = alias.Alias
+					break
+				}
+			}
+			models = append(models, clientModel)
+		}
+		return normalizeStringList(models)
 	}
 	models := applyModelFilters(m.ModelIDs, nil, m.ExcludedModels)
 	if spec != nil {
@@ -1081,6 +1092,11 @@ func canonicalModelForClientModel(m *manifest, spec *apiKeySpec, model string) s
 		return codexAutoReviewModel
 	}
 	if spec != nil && spec.ProviderGateway != nil {
+		if m != nil {
+			if source := m.aliasToSource[strings.ToLower(withoutPrefix)]; source != "" {
+				withoutPrefix = source
+			}
+		}
 		return providerGatewayCanonicalModel(spec.ProviderGateway, withoutPrefix)
 	}
 	if m != nil {

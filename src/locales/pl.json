@@ -762,6 +762,8 @@
       "qoderAppPath": "Ścieżka aplikacji Qoder",
       "qoderAppPathDesc": "Pozostaw puste, aby użyć domyślnej ścieżki",
       "qoderAppPathPlaceholder": "Domyślna ścieżka",
+      "zcodeAutoRefresh": "Automatyczne odświeżanie ZCode",
+      "zcodeAutoRefreshDesc": "Interwał odświeżania limitu w tle",
       "qoderAutoRefresh": "Automatyczne odświeżanie limitu Qoder",
       "qoderAutoRefreshDesc": "Częstotliwość automatycznego odświeżania w tle",
       "qoderPathSelect": "Wybierz",
@@ -3599,6 +3601,9 @@
       "title": "Ustawienia WorkBuddy",
       "appPath": "Ścieżka WorkBuddy"
     },
+    "zcode": {
+      "title": "Ustawienia ZCode"
+    },
     "zed": {
       "title": "Ustawienia Zed",
       "appPath": "Ścieżka Zed"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Do nagrody bonusowej pozostało {{days}} dni",
       "streakRewardToday": "Nagroda bonusowa dostępna dzisiaj!",
       "recentDates": "Ostatnie: "
+    }
+  },
+  "zcode": {
+    "search": "Szukaj kont ZCode...",
+    "flowNotice": {
+      "title": "Informacje o kontach ZCode",
+      "desc": "Cockpit odczytuje i zapisuje zaszyfrowane lokalne dane logowania ZCode w celu rzeczywistej zmiany konta i powiązania instancji.",
+      "permission": "Zakres lokalny: ~/.zcode/v2/credentials.json oraz katalogi zarządzanych instancji.",
+      "network": "Zakres sieciowy: API OAuth, użytkownika, subskrypcji i limitów. Konta nie są wysyłane do usługi Cockpit."
+    },
+    "empty": "Brak kont ZCode",
+    "addAccount": "Dodaj konto ZCode",
+    "oauth": {
+      "desc": "Zamknij ZCode i zaloguj się w oknie autoryzacji Cockpit; Cockpit odbierze wywołanie zwrotne bezpośrednio.",
+      "title": "OAuth ZCode",
+      "item1": "Oficjalne logowanie Z.ai i BigModel.",
+      "item2": "Zapisuje konto oraz odświeża plan i limity modeli.",
+      "item3": "Używaj kont do zmiany klienta i wiązania wielu instancji.",
+      "urlPlaceholder": "Adres OAuth ZCode",
+      "waiting": "Oczekiwanie na wywołanie OAuth ZCode...",
+      "openWindow": "Otwórz okno autoryzacji",
+      "provider": "Usługa logowania",
+      "success": "Logowanie OAuth ZCode powiodło się"
+    },
+    "token": {
+      "desc": "Wklej JSON konta ZCode wyeksportowany przez Cockpit."
+    },
+    "import": {
+      "localDesc": "Importuj zaszyfrowane lokalne dane ZCode lub plik JSON.",
+      "localClient": "Importuj z lokalnego ZCode"
+    },
+    "usageNormal": "Prawidłowe",
+    "usageAbnormal": "Błąd",
+    "usageViewDetail": "Szczegóły",
+    "usageDetailTitle": "Szczegóły użycia",
+    "usage": "Użycie",
+    "quota": {
+      "models": "Limit modeli",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Zaktualizowano: {{time}}",
+      "expireAt": "Wygasa: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Błąd pobierania limitu",
+      "empty": "Brak danych limitu",
+      "sectionTitle": "Limit"
+    },
+    "instances": {
+      "unsupported": "Wiele instancji ZCode jest dostępnych tylko w systemach macOS, Windows i Linux."
     }
   },
   "zed": {

@@ -16,6 +16,7 @@ import {
   buildGitHubCopilotAccountPresentation,
   buildKiroAccountPresentation,
   buildQoderAccountPresentation,
+  buildZcodeAccountPresentation,
   buildTraeAccountPresentation,
   buildWindsurfAccountPresentation,
   buildWorkbuddyAccountPresentation,
@@ -49,6 +50,7 @@ import { useKiroAccountStore } from '../stores/useKiroAccountStore';
 import { usePlatformLayoutStore } from '../stores/usePlatformLayoutStore';
 import { useRemoteConfigStore } from '../stores/useRemoteConfigStore';
 import { useQoderAccountStore } from '../stores/useQoderAccountStore';
+import { useZcodeAccountStore } from '../stores/useZcodeAccountStore';
 import { useTraeAccountStore } from '../stores/useTraeAccountStore';
 import { useWindsurfAccountStore } from '../stores/useWindsurfAccountStore';
 import { useWorkbuddyAccountStore } from '../stores/useWorkbuddyAccountStore';
@@ -73,6 +75,7 @@ import {
 } from '../stores/useTraeInstanceStore';
 import { useWindsurfInstanceStore } from '../stores/useWindsurfInstanceStore';
 import { useWorkbuddyInstanceStore } from '../stores/useWorkbuddyInstanceStore';
+import { useZcodeInstanceStore } from '../stores/useZcodeInstanceStore';
 import { ALL_PLATFORM_IDS, PLATFORM_PAGE_MAP, PlatformId } from '../types/platform';
 import type { InstanceProfile } from '../types/instance';
 import { isPrivacyModeEnabledByDefault, maskSensitiveValue } from '../utils/privacy';
@@ -88,6 +91,7 @@ import {
   getRecommendedGitHubCopilotAccount,
   getRecommendedKiroAccount,
   getRecommendedQoderAccount,
+  getRecommendedZcodeAccount,
   getRecommendedTraeAccount,
   getRecommendedWindsurfAccount,
   getRecommendedWorkbuddyAccount,
@@ -132,6 +136,7 @@ type FloatingCardAccount =
   | ReturnType<typeof useCodebuddyAccountStore.getState>['accounts'][number]
   | ReturnType<typeof useCodebuddyCnAccountStore.getState>['accounts'][number]
   | ReturnType<typeof useQoderAccountStore.getState>['accounts'][number]
+  | ReturnType<typeof useZcodeAccountStore.getState>['accounts'][number]
   | ReturnType<typeof useTraeAccountStore.getState>['accounts'][number]
   | ReturnType<typeof useWorkbuddyAccountStore.getState>['accounts'][number]
   | ReturnType<typeof useZedAccountStore.getState>['accounts'][number];
@@ -213,6 +218,8 @@ function resolveInstanceStoreApi(platformId: PlatformId): FloatingCardInstanceSt
       return useTraeSoloCnInstanceStore.getState();
     case 'workbuddy':
       return useWorkbuddyInstanceStore.getState();
+    case 'zcode':
+      return useZcodeInstanceStore.getState();
     case 'zed':
       return null;
   }
@@ -270,6 +277,10 @@ export function FloatingCardWindow() {
     accounts: qoderAccounts,
     currentAccountId: qoderCurrentId,
   } = useQoderAccountStore();
+  const {
+    accounts: zcodeAccounts,
+    currentAccountId: zcodeCurrentId,
+  } = useZcodeAccountStore();
   const {
     accounts: traeAccounts,
     currentAccountId: traeCurrentId,
@@ -464,6 +475,9 @@ export function FloatingCardWindow() {
           break;
         case 'qoder':
           await useQoderAccountStore.getState().fetchAccounts();
+          break;
+        case 'zcode':
+          await useZcodeAccountStore.getState().fetchAccounts();
           break;
         case 'trae':
         case 'trae_solo':
@@ -728,6 +742,10 @@ export function FloatingCardWindow() {
     () => resolveCurrentAccountById(qoderAccounts, qoderCurrentId),
     [qoderAccounts, qoderCurrentId],
   );
+  const zcodeCurrent = useMemo(
+    () => resolveCurrentAccountById(zcodeAccounts, zcodeCurrentId),
+    [zcodeAccounts, zcodeCurrentId],
+  );
   const traeCurrent = useMemo(
     () => resolveCurrentAccountById(traeAccounts, traeCurrentId),
     [traeAccounts, traeCurrentId],
@@ -817,6 +835,11 @@ export function FloatingCardWindow() {
           accounts: zedAccounts,
           actualCurrentAccount: zedCurrent,
         };
+      case 'zcode':
+        return {
+          accounts: zcodeAccounts,
+          actualCurrentAccount: zcodeCurrent,
+        };
     }
   }, [
     agAccounts,
@@ -848,6 +871,8 @@ export function FloatingCardWindow() {
     workbuddyCurrent,
     zedAccounts,
     zedCurrent,
+    zcodeAccounts,
+    zcodeCurrent,
   ]);
 
   const accounts = selectedState.accounts as FloatingCardAccount[];
@@ -886,6 +911,8 @@ export function FloatingCardWindow() {
         return getRecommendedCodebuddyCnAccount(codebuddyCnAccounts, effectiveCurrentId);
       case 'qoder':
         return getRecommendedQoderAccount(qoderAccounts, effectiveCurrentId);
+      case 'zcode':
+        return getRecommendedZcodeAccount(zcodeAccounts, effectiveCurrentId);
       case 'trae':
       case 'trae_solo':
       case 'trae_cn':
@@ -913,6 +940,7 @@ export function FloatingCardWindow() {
     windsurfAccounts,
     workbuddyAccounts,
     zedAccounts,
+    zcodeAccounts,
   ]) as FloatingCardAccount | null;
   const viewedAccountId = viewedAccountIds[selectedPlatform] ?? null;
   const viewedAccount = useMemo(() => {
@@ -986,6 +1014,8 @@ export function FloatingCardWindow() {
         return buildWorkbuddyAccountPresentation(viewedAccount as typeof workbuddyAccounts[number], t);
       case 'zed':
         return buildZedAccountPresentation(viewedAccount as typeof zedAccounts[number], t);
+      case 'zcode':
+        return buildZcodeAccountPresentation(viewedAccount as typeof zcodeAccounts[number], t);
     }
   }, [
     agAccounts,
@@ -1006,6 +1036,7 @@ export function FloatingCardWindow() {
     windsurfAccounts,
     workbuddyAccounts,
     zedAccounts,
+    zcodeAccounts,
   ]);
 
   const isCurrentViewed = Boolean(viewedAccount?.id && viewedAccount.id === currentAccount?.id);
@@ -1076,6 +1107,9 @@ export function FloatingCardWindow() {
             break;
           case 'qoder':
             await useQoderAccountStore.getState().refreshToken(viewedAccount.id);
+            break;
+          case 'zcode':
+            await useZcodeAccountStore.getState().refreshToken(viewedAccount.id);
             break;
           case 'trae':
           case 'trae_solo':
@@ -1191,6 +1225,9 @@ export function FloatingCardWindow() {
             break;
           case 'qoder':
             await useQoderAccountStore.getState().switchAccount(viewedAccount.id);
+            break;
+          case 'zcode':
+            await useZcodeAccountStore.getState().switchAccount(viewedAccount.id);
             break;
           case 'trae':
           case 'trae_solo':

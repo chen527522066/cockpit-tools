@@ -762,6 +762,8 @@
       "qoderAppPath": "Caminho do aplicativo Qoder",
       "qoderAppPathDesc": "Deixe em branco para usar o caminho padrão",
       "qoderAppPathPlaceholder": "Caminho padrão",
+      "zcodeAutoRefresh": "Atualização automática do ZCode",
+      "zcodeAutoRefreshDesc": "Intervalo de atualização da cota em segundo plano",
       "qoderAutoRefresh": "Atualização automática de cota Qoder",
       "qoderAutoRefreshDesc": "Frequência de atualização automática em segundo plano",
       "qoderPathSelect": "Selecionar",
@@ -3599,6 +3601,9 @@
       "title": "Configuracoes do WorkBuddy",
       "appPath": "Caminho do WorkBuddy"
     },
+    "zcode": {
+      "title": "Configurações do ZCode"
+    },
     "zed": {
       "title": "Configurações do Zed",
       "appPath": "Caminho do Zed"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Faltam {{days}} dias para a recompensa bônus",
       "streakRewardToday": "Recompensa bônus disponível hoje!",
       "recentDates": "Recentes: "
+    }
+  },
+  "zcode": {
+    "search": "Buscar contas ZCode...",
+    "flowNotice": {
+      "title": "Guia de contas ZCode",
+      "desc": "O Cockpit lê e regrava as credenciais locais criptografadas do ZCode para troca real de conta e vínculo de instâncias.",
+      "permission": "Escopo local: ~/.zcode/v2/credentials.json e diretórios de instâncias gerenciadas.",
+      "network": "Escopo de rede: APIs de OAuth, usuário, assinatura e cota. As contas não são enviadas a um serviço do Cockpit."
+    },
+    "empty": "Nenhuma conta ZCode",
+    "addAccount": "Adicionar conta ZCode",
+    "oauth": {
+      "desc": "Feche o ZCode e entre pela janela de autorização do Cockpit; o Cockpit receberá o retorno diretamente.",
+      "title": "OAuth do ZCode",
+      "item1": "Login oficial pelo Z.ai e BigModel.",
+      "item2": "Salva a conta e atualiza o plano e as cotas de modelos.",
+      "item3": "Use contas para trocar o cliente e vincular várias instâncias.",
+      "urlPlaceholder": "URL OAuth do ZCode",
+      "waiting": "Aguardando retorno OAuth do ZCode...",
+      "openWindow": "Abrir janela de autorização",
+      "provider": "Serviço de login",
+      "success": "Login OAuth do ZCode concluído"
+    },
+    "token": {
+      "desc": "Cole o JSON de uma conta ZCode exportado pelo Cockpit."
+    },
+    "import": {
+      "localDesc": "Importe credenciais locais criptografadas do ZCode ou um arquivo JSON.",
+      "localClient": "Importar do ZCode local"
+    },
+  "usageNormal": "Regular",
+    "usageAbnormal": "Erro",
+    "usageViewDetail": "Detalhes",
+    "usageDetailTitle": "Detalhes de uso",
+    "usage": "Uso",
+    "quota": {
+      "models": "Cota de modelos",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Atualizado: {{time}}",
+      "expireAt": "Expira: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Falha ao consultar cota",
+      "empty": "Sem dados de cota",
+      "sectionTitle": "Cota"
+    },
+    "instances": {
+      "unsupported": "Várias instâncias do ZCode estão disponíveis apenas no macOS, Windows e Linux."
     }
   },
   "zed": {

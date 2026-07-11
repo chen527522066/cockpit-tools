@@ -10,6 +10,7 @@ import * as geminiService from './geminiService';
 import * as codebuddyService from './codebuddyService';
 import * as codebuddyCnService from './codebuddyCnService';
 import * as qoderService from './qoderService';
+import * as zcodeService from './zcodeService';
 import * as traeService from './traeService';
 import * as workbuddyService from './workbuddyService';
 import * as zedService from './zedService';
@@ -100,6 +101,11 @@ const PLATFORM_ADAPTERS: Record<PlatformId, TransferAdapter> = {
     listAccounts: qoderService.listQoderAccounts,
     exportAccounts: qoderService.exportQoderAccounts,
     importFromJson: qoderService.importQoderFromJson,
+  },
+  zcode: {
+    listAccounts: zcodeService.listZcodeAccounts,
+    exportAccounts: zcodeService.exportZcodeAccounts,
+    importFromJson: zcodeService.importZcodeFromJson,
   },
   trae: {
     listAccounts: traeService.listTraeAccounts,

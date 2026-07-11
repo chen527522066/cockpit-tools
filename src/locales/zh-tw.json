@@ -762,6 +762,8 @@
       "qoderAppPath": "Qoder 應用程式路徑",
       "qoderAppPathDesc": "留白則使用預設路徑",
       "qoderAppPathPlaceholder": "預設路徑",
+      "zcodeAutoRefresh": "ZCode 自動更新",
+      "zcodeAutoRefreshDesc": "背景配額更新間隔",
       "qoderAutoRefresh": "Qoder 自動刷新配額",
       "qoderAutoRefreshDesc": "背景自動更新頻率",
       "qoderPathSelect": "選擇",
@@ -3599,6 +3601,9 @@
       "title": "WorkBuddy 設定",
       "appPath": "WorkBuddy 路徑"
     },
+    "zcode": {
+      "title": "ZCode 設定"
+    },
     "zed": {
       "title": "Zed 設定",
       "appPath": "Zed 路徑"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "再簽 {{days}} 天可得大禮包",
       "streakRewardToday": "今日可獲得大禮包！",
       "recentDates": "近期簽到："
+    }
+  },
+  "zcode": {
+    "search": "搜尋 ZCode 帳號...",
+    "flowNotice": {
+      "title": "ZCode 帳號管理說明",
+      "desc": "Cockpit 讀取並回寫 ZCode 本機加密憑證，用於實際切換帳號與執行個體綁定。",
+      "permission": "本機範圍：~/.zcode/v2/credentials.json 與受管理的執行個體目錄。",
+      "network": "網路範圍：OAuth、使用者資訊、訂閱與配額介面；不會將帳號上傳至 Cockpit 服務。"
+    },
+    "empty": "尚無 ZCode 帳號",
+    "addAccount": "新增 ZCode 帳號",
+    "oauth": {
+      "desc": "關閉 ZCode 後，請在 Cockpit 授權視窗完成登入；回呼將由 Cockpit 直接接收。",
+      "title": "ZCode 授權登入",
+      "item1": "支援 Z.ai 與 BigModel 官方登入。",
+      "item2": "授權後自動儲存帳號並更新方案與模型配額。",
+      "item3": "帳號可用於預設用戶端切換與多開綁定。",
+      "urlPlaceholder": "ZCode OAuth 授權網址",
+      "waiting": "正在等待 ZCode OAuth 回呼...",
+      "openWindow": "開啟授權視窗",
+      "provider": "登入服務",
+      "success": "ZCode OAuth 登入成功"
+    },
+    "token": {
+      "desc": "貼上由 Cockpit 匯出的 ZCode 帳號 JSON。"
+    },
+    "import": {
+      "localDesc": "從本機 ZCode 加密憑證或 JSON 檔案匯入帳號。",
+      "localClient": "從本機 ZCode 匯入"
+    },
+    "usageNormal": "正常",
+    "usageAbnormal": "異常",
+    "usageViewDetail": "查看詳情",
+    "usageDetailTitle": "用量狀態詳情",
+    "usage": "用量狀態",
+    "quota": {
+      "models": "模型配額",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "更新：{{time}}",
+      "expireAt": "到期：{{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "配額查詢失敗",
+      "empty": "尚無配額資料",
+      "sectionTitle": "配額"
+    },
+    "instances": {
+      "unsupported": "ZCode 多開僅支援 macOS、Windows 與 Linux。"
     }
   },
   "zed": {

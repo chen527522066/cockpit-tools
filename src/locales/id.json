@@ -808,6 +808,8 @@
       "qoderAppPath": "Path Aplikasi Qoder",
       "qoderAppPathDesc": "Kosongkan untuk menggunakan path default",
       "qoderAppPathPlaceholder": "Path default",
+      "zcodeAutoRefresh": "Pembaruan Otomatis ZCode",
+      "zcodeAutoRefreshDesc": "Interval pembaruan kuota di latar belakang",
       "qoderAutoRefresh": "Auto Refresh Kuota Qoder",
       "qoderAutoRefreshDesc": "Frekuensi auto-refresh di latar belakang",
       "qoderPathSelect": "Pilih",
@@ -3734,6 +3736,9 @@
       "title": "Qoder Settings​",
       "appPath": "Qoder Path​"
     },
+    "zcode": {
+      "title": "Pengaturan ZCode"
+    },
     "zed": {
       "title": "Zed Settings​",
       "appPath": "Zed Path​"
@@ -4429,6 +4434,55 @@
     },
     "empty": {
       "desc": "Klik \"Tambah Akun\" untuk menggunakan login auth, import lokal, atau import JSON."
+    }
+  },
+  "zcode": {
+    "search": "Cari akun ZCode...",
+    "flowNotice": {
+      "title": "Panduan akun ZCode",
+      "desc": "Cockpit membaca dan menulis ulang kredensial lokal terenkripsi ZCode untuk pergantian akun nyata dan pengikatan instans.",
+      "permission": "Cakupan lokal: ~/.zcode/v2/credentials.json dan direktori instans terkelola.",
+      "network": "Cakupan jaringan: API OAuth, pengguna, langganan, dan kuota. Akun tidak diunggah ke layanan Cockpit."
+    },
+    "empty": "Belum ada akun ZCode",
+    "addAccount": "Tambah Akun ZCode",
+    "oauth": {
+      "desc": "Tutup ZCode, lalu masuk melalui jendela otorisasi Cockpit; Cockpit akan menerima callback secara langsung.",
+      "title": "OAuth ZCode",
+      "item1": "Login resmi melalui Z.ai dan BigModel.",
+      "item2": "Menyimpan akun dan memperbarui paket serta kuota model.",
+      "item3": "Gunakan akun untuk berganti klien dan mengikat banyak instans.",
+      "urlPlaceholder": "URL OAuth ZCode",
+      "waiting": "Menunggu callback OAuth ZCode...",
+      "openWindow": "Buka jendela otorisasi",
+      "provider": "Layanan login",
+      "success": "Login OAuth ZCode berhasil"
+    },
+    "token": {
+      "desc": "Tempel JSON akun ZCode yang diekspor oleh Cockpit."
+    },
+    "import": {
+      "localDesc": "Impor kredensial lokal ZCode terenkripsi atau berkas JSON.",
+      "localClient": "Impor dari ZCode Lokal"
+    },
+  "usageNormal": "Baik",
+    "usageAbnormal": "Galat",
+    "usageViewDetail": "Detail",
+    "usageDetailTitle": "Detail Penggunaan",
+    "usage": "Penggunaan",
+    "quota": {
+      "models": "Kuota Model",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Diperbarui: {{time}}",
+      "expireAt": "Berakhir: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Kueri kuota gagal",
+      "empty": "Belum ada data kuota",
+      "sectionTitle": "Kuota"
+    },
+    "instances": {
+      "unsupported": "Multi-instans ZCode hanya tersedia di macOS, Windows, dan Linux."
     }
   },
   "zed": {

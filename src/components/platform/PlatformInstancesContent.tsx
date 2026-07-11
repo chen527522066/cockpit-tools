@@ -27,7 +27,8 @@ type InstancesAppType =
   | 'trae_solo'
   | 'trae_cn'
   | 'trae_solo_cn'
-  | 'workbuddy';
+  | 'workbuddy'
+  | 'zcode';
 
 interface PlatformInstancesContentProps<TAccount extends AccountLike> {
   instanceStore: InstanceStoreState;

@@ -7,12 +7,12 @@
 [![GitHub release](https://img.shields.io/github/v/release/jlcodes99/cockpit-tools?style=flat)](https://github.com/jlcodes99/cockpit-tools/releases)
 [![GitHub issues](https://img.shields.io/github/issues/jlcodes99/cockpit-tools)](https://github.com/jlcodes99/cockpit-tools/issues)
 
-一款**通用的 AI IDE 账号管理工具**，目前支持 **Antigravity IDE**、**Codex**、**GitHub Copilot**、**Windsurf**、**Kiro**、**Cursor**、**Gemini Cli**、**CodeBuddy**、**CodeBuddy CN**、**Qoder**、**Trae**、**TRAE SOLO**、**Trae CN**、**TRAE SOLO CN** 和 **Zed**，并支持多账号多实例并行运行。
+一款**通用的 AI IDE 账号管理工具**，目前支持 **Antigravity IDE**、**Codex**、**GitHub Copilot**、**Windsurf**、**Kiro**、**Cursor**、**Gemini Cli**、**CodeBuddy**、**CodeBuddy CN**、**Qoder**、**Trae**、**TRAE SOLO**、**Trae CN**、**TRAE SOLO CN**、**Zed** 和 **ZCode**，并支持多账号多实例并行运行。
 
 
 > 本工具旨在帮助用户高效管理多个 AI IDE 账号，支持一键切换、配额监控、自动唤醒与应用多开并行运行，助您充分利用不同账号的资源。
 
-**功能**：一键切号 · 多账号管理 · 应用多开 · 配额监控 · 唤醒任务 · 插件联动 · GitHub Copilot 管理 · Windsurf 管理 · Kiro 管理 · Cursor 管理 · Gemini Cli 管理 · CodeBuddy 管理 · CodeBuddy CN 管理 · Qoder 管理 · Trae 套件管理 · Zed 管理
+**功能**：一键切号 · 多账号管理 · 应用多开 · 配额监控 · 唤醒任务 · 插件联动 · GitHub Copilot 管理 · Windsurf 管理 · Kiro 管理 · Cursor 管理 · Gemini Cli 管理 · CodeBuddy 管理 · CodeBuddy CN 管理 · Qoder 管理 · Trae 套件管理 · Zed 管理 · ZCode 管理
 
 **语言**：支持 18 种语言
 
@@ -55,7 +55,7 @@
 
 全新的可视化仪表盘，为您提供一站式的状态概览：
 
-- **十五平台支持**：同时展示 Antigravity IDE、Codex、GitHub Copilot、Windsurf、Kiro、Cursor、Gemini Cli、CodeBuddy、CodeBuddy CN、Qoder、Trae、TRAE SOLO、Trae CN、TRAE SOLO CN 与 Zed 的账号状态
+- **十六平台支持**：同时展示 Antigravity IDE、Codex、GitHub Copilot、Windsurf、Kiro、Cursor、Gemini Cli、CodeBuddy、CodeBuddy CN、Qoder、Trae、TRAE SOLO、Trae CN、TRAE SOLO CN、Zed 与 ZCode 的账号状态
 - **配额监控**：实时查看各模型剩余配额、重置时间
 - **快捷操作**：一键刷新、一键唤醒
 - **可视化进度**：直观的进度条展示配额消耗情况
@@ -238,10 +238,26 @@ Codex 同样支持多账号多实例并行运行。比如同时打开两个 Code
 - **批量管理**：支持标签、筛选、导出与批量删除/刷新
 - **切号注入**：支持切号后按 Zed 客户端真实落盘规则应用账号，并可按需重启官方客户端
 
-### 14. 通用设置
+### 14. ZCode 账号管理
+
+- **官方登录**：关闭 ZCode 后，可在 Cockpit 内置授权窗口完成 Z.ai 或 BigModel OAuth；窗口直接拦截 `zcode://` 官方回调并保存账号
+- **导入导出**：支持读取本机 `~/.zcode/v2/credentials.json` 加密凭据、JSON 导入导出与账号备份
+- **配额视图**：查询订阅套餐与按模型拆分的额度，并保留套餐原始值
+- **批量管理**：支持标签、搜索、套餐筛选、导出与批量删除/刷新
+- **真实切号**：按 ZCode 官方凭据格式加密并回写默认客户端登录数据
+
+#### 14.1 ZCode 应用多开
+
+支持 ZCode 多实例管理，每个受管实例使用独立的 Electron 用户数据、会话数据和 ZCode 数据目录。
+
+- **账号绑定**：每个实例可绑定不同账号，也可跟随当前账号
+- **独立运行**：实例凭据和业务数据互相隔离
+- **生命周期管理**：支持启动、停止、聚焦与批量关闭实例
+
+### 15. 通用设置
 
 - **个性化设置**：主题切换、语言设置、自动刷新间隔
-- **平台配置**：统一管理 CodeBuddy CN / Qoder / Trae 套件 / Zed 等平台的启动路径与配额预警
+- **平台配置**：统一管理 CodeBuddy CN / Qoder / Trae 套件 / Zed / ZCode 等平台配置与配额预警
 
 > ![Settings](docs/images/settings_page.png)
 
@@ -256,7 +272,8 @@ Codex 同样支持多账号多实例并行运行。比如同时打开两个 Code
   - `~/.antigravity_cockpit`：Antigravity IDE 账号、配置、WebSocket 状态等
   - `~/.codex`：Codex 官方当前登录 `auth.json`
   - `~/.gemini`：Gemini Cli 本地会话文件（如 `oauth_creds.json`、`google_accounts.json`、`settings.json`）
-  - 系统本地应用数据目录下 `com.antigravity.cockpit-tools`：Codex / GitHub Copilot / Windsurf / Kiro / Cursor / Gemini Cli / CodeBuddy / CodeBuddy CN / Qoder / Trae 套件 / Zed 多账号索引等
+  - `~/.zcode/v2`：ZCode 官方当前登录加密凭据与配额缓存
+  - 系统本地应用数据目录下 `com.antigravity.cockpit-tools`：Codex / GitHub Copilot / Windsurf / Kiro / Cursor / Gemini Cli / CodeBuddy / CodeBuddy CN / Qoder / Trae 套件 / Zed / ZCode 多账号索引等
 - **WebSocket 默认仅本机访问**：监听 `127.0.0.1`，默认端口 `19528`，可在设置中关闭或改端口。
 - **什么时候会联网**：OAuth 登录、Token 刷新、配额查询、版本更新检查等官方接口请求。
 - **macOS 隐私权限弹窗说明**：在 Cockpit Tools 中启动 Codex/agent 后，如果 agent 执行的 shell 命令访问桌面、文稿、下载、照片等受保护目录，macOS 可能会把权限请求显示为“Cockpit Tools 想要访问……”。这是因为这些命令是 Cockpit Tools 启动的子进程，系统会把权限归因到宿主应用；这不等同于 Cockpit Tools 主程序主动扫描这些目录。是否允许取决于你是否信任当前 agent 任务和它将要执行的命令；不确定时可以选择拒绝，或先把项目放在普通工作目录中运行。

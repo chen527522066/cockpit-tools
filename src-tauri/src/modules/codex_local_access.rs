@@ -66,6 +66,7 @@ const CODEX_LOCAL_ACCESS_LOGS_DB_FILE: &str = "codex_local_access_logs.sqlite";
 const CODEX_LOCAL_ACCESS_TAKEOVER_BACKUPS_FILE: &str = "codex_local_access_takeover_backups.json";
 const CODEX_LOCAL_ACCESS_SIDECAR_DIR: &str = "codex_local_access_sidecar";
 const CODEX_PROVIDER_GATEWAY_SIDECAR_DIR: &str = "codex_provider_gateway_sidecars";
+const CODEX_PROVIDER_GATEWAY_MODEL_SLOTS: [&str; 3] = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"];
 const CODEX_PROVIDER_GATEWAY_STATE_FILE: &str = "state.json";
 const CODEX_LOCAL_ACCESS_SIDECAR_CONFIG_FILE: &str = "config.json";
 const CODEX_LOCAL_ACCESS_SIDECAR_MANIFEST_FILE: &str = "manifest.json";
@@ -1839,7 +1840,10 @@ fn visible_codex_model_ids_for_api_key(
             .map(|model| model.trim().to_ascii_lowercase())
             .filter(|model| !model.is_empty())
             .collect();
-        for model in &provider_gateway.upstream_models {
+        for model in apply_model_aliases_to_ids(
+            provider_gateway.upstream_models.clone(),
+            &collection.model_aliases,
+        ) {
             let model = model.trim();
             if !model.is_empty() && seen.insert(model.to_ascii_lowercase()) {
                 visible.push(model.to_string());
@@ -11590,6 +11594,49 @@ fn provider_gateway_default_model_for_account(account: &CodexAccount) -> String 
         .unwrap_or_default()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProviderGatewayModelSlot {
+    client_model: String,
+    upstream_model: String,
+}
+
+fn provider_gateway_model_slots(models: &[String]) -> Vec<ProviderGatewayModelSlot> {
+    normalize_provider_gateway_models(models.iter().map(String::as_str).collect())
+        .into_iter()
+        .zip(CODEX_PROVIDER_GATEWAY_MODEL_SLOTS)
+        .map(|(upstream_model, client_model)| ProviderGatewayModelSlot {
+            client_model: client_model.to_string(),
+            upstream_model,
+        })
+        .collect()
+}
+
+fn apply_provider_gateway_model_slots(
+    collection: &mut CodexLocalAccessCollection,
+    models: &[String],
+) {
+    let slots = provider_gateway_model_slots(models);
+    let client_models: HashSet<String> = slots
+        .iter()
+        .map(|slot| slot.client_model.to_ascii_lowercase())
+        .collect();
+    let upstream_models: HashSet<String> = slots
+        .iter()
+        .map(|slot| slot.upstream_model.to_ascii_lowercase())
+        .collect();
+    collection.model_aliases.retain(|alias| {
+        !client_models.contains(&alias.alias.to_ascii_lowercase())
+            && !upstream_models.contains(&alias.source_model.to_ascii_lowercase())
+    });
+    collection
+        .model_aliases
+        .extend(slots.into_iter().map(|slot| CodexLocalAccessModelAlias {
+            source_model: slot.upstream_model,
+            alias: slot.client_model,
+            fork: false,
+        }));
+}
+
 fn provider_gateway_wire_api_for_account(account: &CodexAccount) -> String {
     if account.auth_mode != CodexAuthMode::Apikey {
         return "responses".to_string();
@@ -11834,6 +11881,7 @@ fn build_provider_gateway_collection_for_profile(
     }
 
     let provider_gateway = provider_gateway_for_account(account)?;
+    apply_provider_gateway_model_slots(&mut collection, &provider_gateway.upstream_models);
     let key = provider_gateway_profile_api_key(profile_dir, &account.id)?;
     let now = now_ms();
     collection.api_key = key.clone();
@@ -12447,10 +12495,12 @@ fn write_local_access_profile_model_override(
 
 fn write_provider_gateway_model_catalog(
     profile_dir: &Path,
-    models: &[String],
+    slots: &[ProviderGatewayModelSlot],
 ) -> Result<(), String> {
-    let mut model_ids =
-        normalize_provider_gateway_models(models.iter().map(String::as_str).collect());
+    let mut model_ids = slots
+        .iter()
+        .map(|slot| slot.client_model.clone())
+        .collect::<Vec<_>>();
     if !model_ids
         .iter()
         .any(|model| model.eq_ignore_ascii_case(CODEX_AUTO_REVIEW_MODEL_ID))
@@ -12458,7 +12508,33 @@ fn write_provider_gateway_model_catalog(
         model_ids.push(CODEX_AUTO_REVIEW_MODEL_ID.to_string());
     }
 
-    let client_models = codex_protocol::build_codex_client_models_response(&model_ids);
+    let mut client_models = codex_protocol::build_codex_client_models_response(&model_ids);
+    if let Some(models) = client_models
+        .get_mut("models")
+        .and_then(Value::as_array_mut)
+    {
+        for model in models {
+            let Some(slug) = model.get("slug").and_then(Value::as_str) else {
+                continue;
+            };
+            let Some(slot) = slots
+                .iter()
+                .find(|slot| slot.client_model.eq_ignore_ascii_case(slug))
+            else {
+                continue;
+            };
+            if let Some(object) = model.as_object_mut() {
+                object.insert(
+                    "display_name".to_string(),
+                    Value::String(slot.upstream_model.clone()),
+                );
+                object.insert(
+                    "description".to_string(),
+                    Value::String(slot.upstream_model.clone()),
+                );
+            }
+        }
+    }
     let catalog = json!({
         "models": client_models
             .get("models")
@@ -12491,24 +12567,56 @@ fn provider_model_backup_path(profile_dir: &Path) -> PathBuf {
     profile_dir.join(CODEX_PROVIDER_MODEL_BACKUP_FILE)
 }
 
-fn read_provider_model_backup(profile_dir: &Path) -> Option<String> {
+#[derive(Debug, Default)]
+struct ProviderModelOverrideState {
+    previous_model: Option<String>,
+    managed_models: HashSet<String>,
+}
+
+fn read_provider_model_backup(profile_dir: &Path) -> Option<ProviderModelOverrideState> {
     let content = std::fs::read_to_string(provider_model_backup_path(profile_dir)).ok()?;
     let parsed = serde_json::from_str::<Value>(&content).ok()?;
-    parsed
-        .get("model")
+    let previous_model = parsed
+        .get("previous_model")
+        .or_else(|| parsed.get("model"))
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .map(str::to_string)
+        .map(str::to_string);
+    let managed_models = parsed
+        .get("managed_models")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_ascii_lowercase)
+        .collect();
+    Some(ProviderModelOverrideState {
+        previous_model,
+        managed_models,
+    })
 }
 
-fn save_provider_model_backup(profile_dir: &Path, model: &str) -> Result<(), String> {
-    let model = model.trim();
-    if model.is_empty() {
-        return Ok(());
+fn save_provider_model_backup(
+    profile_dir: &Path,
+    previous_model: Option<&str>,
+    provider_models: &[String],
+) -> Result<(), String> {
+    let previous_model = previous_model
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let managed_models =
+        normalize_provider_gateway_models(provider_models.iter().map(String::as_str).collect());
+    if previous_model.is_none() && managed_models.is_empty() {
+        return delete_provider_model_backup(profile_dir);
     }
-    let content = serde_json::to_string_pretty(&json!({ "model": model }))
-        .map_err(|e| format!("生成 Codex provider 模型备份失败: {}", e))?;
+    let content = serde_json::to_string_pretty(&json!({
+        "previous_model": previous_model,
+        "managed_models": managed_models,
+    }))
+    .map_err(|e| format!("生成 Codex provider 模型备份失败: {}", e))?;
     write_string_atomic(&provider_model_backup_path(profile_dir), &content)
         .map_err(|e| format!("写入 Codex provider 模型备份失败: {}", e))
 }
@@ -12529,34 +12637,28 @@ fn backup_current_profile_model_before_provider_gateway(
     let config_path = profile_config_path(profile_dir);
     let existing = std::fs::read_to_string(&config_path).unwrap_or_default();
     if existing.trim().is_empty() {
-        delete_provider_model_backup(profile_dir)?;
-        return Ok(());
+        return save_provider_model_backup(profile_dir, None, provider_models);
     }
     let doc = crate::modules::codex_config_format::read_codex_config_doc_from_str(&existing)
         .map_err(|e| format!("解析 Codex config.toml 失败: {}", e))?;
-    let Some(model) = doc
+    let current_model = doc
         .get("model")
         .and_then(|item| item.as_str())
         .map(str::trim)
-        .filter(|value| !value.is_empty())
-    else {
-        delete_provider_model_backup(profile_dir)?;
-        return Ok(());
-    };
-    if provider_models
-        .iter()
-        .any(|item| item.trim().eq_ignore_ascii_case(model))
-    {
-        delete_provider_model_backup(profile_dir)?;
-        return Ok(());
-    }
-    save_provider_model_backup(profile_dir, model)
+        .filter(|value| !value.is_empty());
+    let previous_model = current_model.filter(|model| {
+        !provider_models
+            .iter()
+            .any(|item| item.trim().eq_ignore_ascii_case(model))
+    });
+    save_provider_model_backup(profile_dir, previous_model, provider_models)
 }
 
 pub fn cleanup_provider_gateway_profile_model_overrides(profile_dir: &Path) -> Result<(), String> {
     let catalog_path = profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE);
-    let previous_model = read_provider_model_backup(profile_dir);
-    let mut managed_models = HashSet::new();
+    let override_state = read_provider_model_backup(profile_dir).unwrap_or_default();
+    let previous_model = override_state.previous_model;
+    let mut managed_models = override_state.managed_models;
     if let Ok(content) = std::fs::read_to_string(&catalog_path) {
         if let Ok(parsed) = serde_json::from_str::<Value>(&content) {
             if let Some(models) = parsed.get("models").and_then(Value::as_array) {
@@ -12633,18 +12735,22 @@ pub async fn activate_provider_gateway_for_dir(
         .ok_or_else(|| format!("供应商网关账号不存在: {}", account_id))?;
     let (collection, key, provider_gateway) =
         build_provider_gateway_collection_for_profile(profile_dir, &account)?;
+    let model_slots = provider_gateway_model_slots(&provider_gateway.upstream_models);
     save_profile_takeover_backup(profile_dir, &key)?;
     write_local_access_profile_takeover(profile_dir, &collection, Some(&key)).await?;
     cleanup_provider_gateway_profile_model_overrides(profile_dir)?;
     backup_current_profile_model_before_provider_gateway(
         profile_dir,
-        &provider_gateway.upstream_models,
+        &model_slots
+            .iter()
+            .map(|slot| slot.client_model.clone())
+            .collect::<Vec<_>>(),
     )?;
-    if !provider_gateway.upstream_model.trim().is_empty() {
-        write_local_access_profile_model_override(profile_dir, &provider_gateway.upstream_model)?;
+    if let Some(default_slot) = model_slots.first() {
+        write_local_access_profile_model_override(profile_dir, &default_slot.client_model)?;
     }
-    if !provider_gateway.upstream_models.is_empty() {
-        write_provider_gateway_model_catalog(profile_dir, &provider_gateway.upstream_models)?;
+    if !model_slots.is_empty() {
+        write_provider_gateway_model_catalog(profile_dir, &model_slots)?;
     }
     ensure_runtime_loaded_without_start().await?;
     let runtime = gateway_runtime().lock().await;
@@ -12873,18 +12979,22 @@ pub async fn ensure_provider_gateway_for_dir(
         .ok_or_else(|| format!("供应商网关账号不存在: {}", account_id))?;
     let (collection, key, provider_gateway) =
         build_provider_gateway_collection_for_profile(profile_dir, &account)?;
+    let model_slots = provider_gateway_model_slots(&provider_gateway.upstream_models);
     save_profile_takeover_backup(profile_dir, &key)?;
     write_local_access_profile_takeover(profile_dir, &collection, Some(&key)).await?;
     cleanup_provider_gateway_profile_model_overrides(profile_dir)?;
     backup_current_profile_model_before_provider_gateway(
         profile_dir,
-        &provider_gateway.upstream_models,
+        &model_slots
+            .iter()
+            .map(|slot| slot.client_model.clone())
+            .collect::<Vec<_>>(),
     )?;
-    if !provider_gateway.upstream_model.trim().is_empty() {
-        write_local_access_profile_model_override(profile_dir, &provider_gateway.upstream_model)?;
+    if let Some(default_slot) = model_slots.first() {
+        write_local_access_profile_model_override(profile_dir, &default_slot.client_model)?;
     }
-    if !provider_gateway.upstream_models.is_empty() {
-        write_provider_gateway_model_catalog(profile_dir, &provider_gateway.upstream_models)?;
+    if !model_slots.is_empty() {
+        write_provider_gateway_model_catalog(profile_dir, &model_slots)?;
     }
 
     let runtime_key = provider_gateway_runtime_key(profile_dir, account_id);
@@ -14791,7 +14901,7 @@ pub async fn update_local_access_bound_oauth_account(
     bound_oauth_use_local_gateway: bool,
     bound_oauth_quota_reserve: Option<CodexLocalAccessQuotaReserve>,
 ) -> Result<CodexLocalAccessState, String> {
-    ensure_runtime_loaded().await?;
+    ensure_runtime_loaded_without_start().await?;
 
     let maybe_collection = {
         let runtime = gateway_runtime().lock().await;
@@ -14838,6 +14948,7 @@ pub async fn update_local_access_bound_oauth_account(
     }
 
     ensure_gateway_matches_runtime().await?;
+    ensure_local_access_profile_takeovers_from_runtime().await?;
     snapshot_state().await
 }
 
@@ -19615,14 +19726,14 @@ mod tests {
         prepare_sidecar_launch_config_in_dir, prepare_websocket_initial_request,
         profile_base_url_matches, provider_gateway_bound_oauth_account_id_for_account,
         provider_gateway_default_model_for_account,
-        provider_gateway_image_generation_mode_for_account, provider_gateway_models_for_account,
-        read_http_request, recover_invalid_stats_file, remove_account_refs_from_collection,
-        remove_codex_local_access_config, reprice_request_logs_for_collection,
-        request_image_generation_mode, resolve_plan_rank, resolve_supported_model_alias,
-        resolve_upstream_target, restore_config_toml_from_takeover_backup,
-        sanitize_collection_with_accounts, scutil_proxy_map,
-        should_retry_single_account_upstream_status, should_treat_response_as_stream,
-        should_try_next_account, sidecar_account_manifest_value,
+        provider_gateway_image_generation_mode_for_account, provider_gateway_model_slots,
+        provider_gateway_models_for_account, read_http_request, recover_invalid_stats_file,
+        remove_account_refs_from_collection, remove_codex_local_access_config,
+        reprice_request_logs_for_collection, request_image_generation_mode, resolve_plan_rank,
+        resolve_supported_model_alias, resolve_upstream_target,
+        restore_config_toml_from_takeover_backup, sanitize_collection_with_accounts,
+        scutil_proxy_map, should_retry_single_account_upstream_status,
+        should_treat_response_as_stream, should_try_next_account, sidecar_account_manifest_value,
         sidecar_api_key_account_scope_values, sidecar_auth_file_name,
         sidecar_auth_json_for_account, sidecar_auths_dir,
         sidecar_cached_account_usable_after_prepare_error, sidecar_codex_api_key_auth_id,
@@ -20059,48 +20170,85 @@ HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings
     }
 
     #[test]
-    fn provider_gateway_writes_model_catalog_json() {
+    fn provider_gateway_model_slots_are_stable_and_bounded() {
+        let slots = provider_gateway_model_slots(&[
+            "deepseek-v4-pro".to_string(),
+            "deepseek-v4-flash".to_string(),
+            "deepseek-v4-lite".to_string(),
+            "deepseek-v4-extra".to_string(),
+        ]);
+
+        assert_eq!(
+            slots
+                .iter()
+                .map(|slot| (slot.client_model.as_str(), slot.upstream_model.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("gpt-5.5", "deepseek-v4-pro"),
+                ("gpt-5.4", "deepseek-v4-flash"),
+                ("gpt-5.4-mini", "deepseek-v4-lite"),
+            ]
+        );
+    }
+
+    #[test]
+    fn provider_gateway_writes_static_catalog_for_chat_completions_models() {
         let profile_dir = std::env::temp_dir().join(format!(
-            "cockpit-provider-model-catalog-test-{}",
+            "cockpit-provider-model-override-state-test-{}",
             chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
         ));
         fs::create_dir_all(&profile_dir).expect("create temp profile");
 
-        write_provider_gateway_model_catalog(
-            &profile_dir,
-            &[
-                "deepseek-v4-flash".to_string(),
-                "deepseek-v4-pro".to_string(),
-            ],
-        )
-        .expect("write model catalog");
+        let slots = provider_gateway_model_slots(&[
+            "deepseek-v4-pro".to_string(),
+            "deepseek-v4-flash".to_string(),
+        ]);
+        let client_models = slots
+            .iter()
+            .map(|slot| slot.client_model.clone())
+            .collect::<Vec<_>>();
+        backup_current_profile_model_before_provider_gateway(&profile_dir, &client_models)
+            .expect("track provider models");
+        write_local_access_profile_model_override(&profile_dir, "gpt-5.5")
+            .expect("write model override");
+        write_provider_gateway_model_catalog(&profile_dir, &slots)
+            .expect("write provider model catalog");
 
-        let cache_path = profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE);
-        let content = fs::read_to_string(&cache_path).expect("read model catalog");
-        let parsed: Value = serde_json::from_str(&content).expect("parse models cache");
-        let models = parsed
+        let catalog: Value = serde_json::from_str(
+            &fs::read_to_string(profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE))
+                .expect("read provider model catalog"),
+        )
+        .expect("parse provider model catalog");
+        let models = catalog
             .get("models")
             .and_then(Value::as_array)
             .expect("models should be an array");
-
-        assert!(models.iter().any(|model| {
-            model.get("slug").and_then(Value::as_str) == Some("deepseek-v4-flash")
-                && model.get("display_name").and_then(Value::as_str) == Some("deepseek-v4-flash")
-                && model.get("visibility").and_then(Value::as_str) == Some("list")
-        }));
-        assert!(models
-            .iter()
-            .any(|model| { model.get("slug").and_then(Value::as_str) == Some("deepseek-v4-pro") }));
-        assert!(models.iter().any(|model| {
-            model.get("slug").and_then(Value::as_str) == Some(CODEX_AUTO_REVIEW_MODEL_ID)
-                && model.get("visibility").and_then(Value::as_str) == Some("hide")
-        }));
+        for (model_id, display_name) in [
+            ("gpt-5.5", "deepseek-v4-pro"),
+            ("gpt-5.4", "deepseek-v4-flash"),
+        ] {
+            assert!(models.iter().any(|model| {
+                model.get("slug").and_then(Value::as_str) == Some(model_id)
+                    && model.get("display_name").and_then(Value::as_str) == Some(display_name)
+                    && model.get("visibility").and_then(Value::as_str) == Some("list")
+            }));
+        }
         let config =
             fs::read_to_string(profile_dir.join(CODEX_PROFILE_CONFIG_FILE)).expect("read config");
         assert!(config.contains(&format!(
             "model_catalog_json = \"{}\"",
             CODEX_PROVIDER_MODEL_CATALOG_FILE
         )));
+        assert!(config.contains("model = \"gpt-5.5\""));
+
+        cleanup_provider_gateway_profile_model_overrides(&profile_dir).expect("cleanup overrides");
+
+        let config =
+            fs::read_to_string(profile_dir.join(CODEX_PROFILE_CONFIG_FILE)).expect("read config");
+        assert!(!config.contains("model_catalog_json"));
+        assert!(!config.contains("model = \"gpt-5.5\""));
+        assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE).exists());
+        assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_BACKUP_FILE).exists());
 
         let _ = fs::remove_dir_all(&profile_dir);
     }
@@ -20113,16 +20261,19 @@ HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings
         ));
         fs::create_dir_all(&profile_dir).expect("create temp profile");
 
-        write_provider_gateway_model_catalog(
-            &profile_dir,
-            &[
-                "deepseek-v4-pro".to_string(),
-                "deepseek-v4-flash".to_string(),
-            ],
+        fs::write(
+            profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE),
+            r#"{"models":[{"slug":"deepseek-v4-pro"},{"slug":"deepseek-v4-flash"}]}"#,
         )
-        .expect("write model catalog");
-        write_local_access_profile_model_override(&profile_dir, "deepseek-v4-pro")
-            .expect("write model override");
+        .expect("write stale model catalog");
+        fs::write(
+            profile_dir.join(CODEX_PROFILE_CONFIG_FILE),
+            format!(
+                "model_catalog_json = \"{}\"\nmodel = \"deepseek-v4-pro\"\n",
+                CODEX_PROVIDER_MODEL_CATALOG_FILE
+            ),
+        )
+        .expect("write stale config");
 
         cleanup_provider_gateway_profile_model_overrides(&profile_dir).expect("cleanup overrides");
 
@@ -20153,14 +20304,6 @@ HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings
             ],
         )
         .expect("backup official model");
-        write_provider_gateway_model_catalog(
-            &profile_dir,
-            &[
-                "deepseek-v4-pro".to_string(),
-                "deepseek-v4-flash".to_string(),
-            ],
-        )
-        .expect("write model catalog");
         write_local_access_profile_model_override(&profile_dir, "deepseek-v4-pro")
             .expect("write provider model");
 
@@ -23900,7 +24043,7 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
     }
 
     #[tokio::test]
-    async fn local_access_takeover_writes_model_catalog_for_official_client() {
+    async fn local_access_takeover_uses_dynamic_model_discovery() {
         let profile_dir = make_temp_dir("codex-local-access-model-catalog-test");
         let mut collection = test_local_access_collection(Vec::new());
         collection.api_key = "local-service-key".to_string();
@@ -23911,27 +24054,9 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
 
         let config =
             fs::read_to_string(profile_dir.join(CODEX_PROFILE_CONFIG_FILE)).expect("read config");
-        assert!(config.contains(&format!(
-            "model_catalog_json = \"{}\"",
-            CODEX_PROVIDER_MODEL_CATALOG_FILE
-        )));
-
-        let catalog_path = profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE);
-        let catalog: Value =
-            serde_json::from_str(&fs::read_to_string(&catalog_path).expect("read catalog"))
-                .expect("parse catalog");
-        let models = catalog
-            .get("models")
-            .and_then(Value::as_array)
-            .expect("models should be an array");
-        for model_id in ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"] {
-            assert!(
-                models
-                    .iter()
-                    .any(|model| model.get("slug").and_then(Value::as_str) == Some(model_id)),
-                "catalog missing official model {model_id}"
-            );
-        }
+        assert!(config.contains("model_provider = \"codex_local_access\""));
+        assert!(!config.contains("model_catalog_json"));
+        assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE).exists());
 
         fs::remove_dir_all(&profile_dir).expect("cleanup temp dir");
     }

@@ -7,11 +7,11 @@ English · [Portuguese (BR)](README.pt-br.md) · [简体中文](README.md)
 [![GitHub release](https://img.shields.io/github/v/release/jlcodes99/cockpit-tools?style=flat)](https://github.com/jlcodes99/cockpit-tools/releases)
 [![GitHub issues](https://img.shields.io/github/issues/jlcodes99/cockpit-tools)](https://github.com/jlcodes99/cockpit-tools/issues)
 
-A **universal AI IDE account management tool**, currently supporting **Antigravity IDE**, **Codex**, **GitHub Copilot**, **Windsurf**, **Kiro**, **Cursor**, **Gemini Cli**, **CodeBuddy**, **CodeBuddy CN**, **Qoder**, **Trae**, **TRAE SOLO**, **Trae CN**, **TRAE SOLO CN**, and **Zed**, with multi-instance parallel workflows.
+A **universal AI IDE account management tool**, currently supporting **Antigravity IDE**, **Codex**, **GitHub Copilot**, **Windsurf**, **Kiro**, **Cursor**, **Gemini Cli**, **CodeBuddy**, **CodeBuddy CN**, **Qoder**, **Trae**, **TRAE SOLO**, **Trae CN**, **TRAE SOLO CN**, **Zed**, and **ZCode**, with multi-instance parallel workflows.
 
 > Designed to help users efficiently manage multiple AI IDE accounts, this tool supports one-click switching, quota monitoring, wake-up tasks, and multi-instance parallel runs, helping you fully utilize resources from different accounts.
 
-**Features**: One-click Switch · Multi-account Management · Multi-instance · Quota Monitoring · Wake-up Tasks · Plugin Integration · GitHub Copilot Management · Windsurf Management · Kiro Management · Cursor Management · Gemini Cli Management · CodeBuddy Management · CodeBuddy CN Management · Qoder Management · Trae Suite Management · Zed Management
+**Features**: One-click Switch · Multi-account Management · Multi-instance · Quota Monitoring · Wake-up Tasks · Plugin Integration · GitHub Copilot Management · Windsurf Management · Kiro Management · Cursor Management · Gemini Cli Management · CodeBuddy Management · CodeBuddy CN Management · Qoder Management · Trae Suite Management · Zed Management · ZCode Management
 
 **Languages**: Supports 18 languages
 
@@ -54,7 +54,7 @@ A **universal AI IDE account management tool**, currently supporting **Antigravi
 
 A brand new visual dashboard providing a one-stop status overview:
 
-- **Fifteen-Platform Support**: Simultaneously displays Antigravity IDE, Codex, GitHub Copilot, Windsurf, Kiro, Cursor, Gemini Cli, CodeBuddy, CodeBuddy CN, Qoder, Trae, TRAE SOLO, Trae CN, TRAE SOLO CN, and Zed account status
+- **Sixteen-Platform Support**: Simultaneously displays Antigravity IDE, Codex, GitHub Copilot, Windsurf, Kiro, Cursor, Gemini Cli, CodeBuddy, CodeBuddy CN, Qoder, Trae, TRAE SOLO, Trae CN, TRAE SOLO CN, Zed, and ZCode account status
 - **Quota Monitoring**: Real-time view of remaining quotas and reset times for each model
 - **Quick Actions**: One-click refresh, one-click wake-up
 - **Visual Progress**: Intuitive progress bars showing quota consumption
@@ -237,10 +237,26 @@ Manage original Trae client instances with isolated profiles and lifecycle contr
 - **Batch Operations**: Supports tags, filters, export, and batch delete/refresh
 - **Switch Injection**: Applies the selected account back to the official Zed client using the client's real local persistence rules and restarts the client when needed
 
-### 14. General Settings
+### 14. ZCode Account Management
+
+- **Official Sign-in**: With ZCode closed, complete Z.ai or BigModel OAuth in Cockpit's built-in authorization window; it captures the official `zcode://` callback directly and saves the account
+- **Import and Export**: Read encrypted local credentials from `~/.zcode/v2/credentials.json`, import or export JSON, and back up accounts
+- **Quota View**: Query subscription plans and per-model quotas while preserving raw plan values
+- **Batch Operations**: Tags, search, plan filters, export, and batch delete/refresh
+- **Real Account Switching**: Encrypt and write the selected account back using ZCode's official credential format
+
+#### 14.1 ZCode Multi-Instance
+
+Manage ZCode instances with separate Electron user data, session data, and ZCode data directories.
+
+- **Account Binding**: Bind a different account to each instance or follow the current account
+- **Isolated Runtime**: Instance credentials and application data remain separate
+- **Lifecycle Controls**: Start, stop, focus, and close all managed instances
+
+### 15. General Settings
 
 - **Personalized Settings**: Theme switching, language settings, auto-refresh interval
-- **Platform Controls**: Centralized CodeBuddy CN/Qoder/Trae suite/Zed launch-path and quota-alert settings
+- **Platform Controls**: Centralized CodeBuddy CN/Qoder/Trae suite/Zed/ZCode platform and quota-alert settings
 
 > ![Settings](docs/images/settings_page.png)
 
@@ -255,7 +271,8 @@ These are the most common security questions answered directly:
   - `~/.antigravity_cockpit`: Antigravity IDE accounts, configs, WebSocket status, etc.
   - `~/.codex`: official Codex current login `auth.json`
   - `~/.gemini`: Gemini Cli local session files (for example `oauth_creds.json`, `google_accounts.json`, `settings.json`)
-  - local app data folder under `com.antigravity.cockpit-tools`: Codex / GitHub Copilot / Windsurf / Kiro / Cursor / Gemini Cli / CodeBuddy / CodeBuddy CN / Qoder / Trae suite / Zed multi-account index data, etc.
+  - `~/.zcode/v2`: ZCode encrypted credentials for the current official sign-in and quota cache
+  - local app data folder under `com.antigravity.cockpit-tools`: Codex / GitHub Copilot / Windsurf / Kiro / Cursor / Gemini Cli / CodeBuddy / CodeBuddy CN / Qoder / Trae suite / Zed / ZCode multi-account index data, etc.
 - **WebSocket is local-only by default**: binds to `127.0.0.1`, default port `19528`; you can disable it or change the port in Settings.
 - **When network access happens**: OAuth login, token refresh, quota fetching, update checks, and other official API requests.
 - **macOS privacy permission prompts**: after you start Codex/agent from Cockpit Tools, if an agent-run shell command accesses protected folders such as Desktop, Documents, Downloads, or Photos, macOS may show the request as "Cockpit Tools would like to access...". This happens because those commands are child processes launched by Cockpit Tools, so macOS attributes the request to the host app; it does not by itself mean the Cockpit Tools main process is actively scanning those folders. Grant access only when you trust the current agent task and the commands it is going to run. If unsure, deny the prompt or run the project from a normal working directory first.

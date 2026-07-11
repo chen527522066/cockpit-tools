@@ -762,6 +762,8 @@
       "qoderAppPath": "Qoder 앱 경로",
       "qoderAppPathDesc": "비워두면 기본 경로를 사용합니다",
       "qoderAppPathPlaceholder": "기본 경로",
+      "zcodeAutoRefresh": "ZCode 자동 새로 고침",
+      "zcodeAutoRefreshDesc": "백그라운드 할당량 갱신 간격",
       "qoderAutoRefresh": "Qoder 자동 할당량 갱신",
       "qoderAutoRefreshDesc": "백그라운드 자동 갱신 빈도",
       "qoderPathSelect": "선택",
@@ -3599,6 +3601,9 @@
       "title": "WorkBuddy 설정",
       "appPath": "WorkBuddy 경로"
     },
+    "zcode": {
+      "title": "ZCode 설정"
+    },
     "zed": {
       "title": "Zed 설정",
       "appPath": "Zed 경로"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "보너스 보상까지 {{days}}일 남음",
       "streakRewardToday": "오늘 보너스 보상을 받을 수 있습니다!",
       "recentDates": "최근: "
+    }
+  },
+  "zcode": {
+    "search": "ZCode 계정 검색...",
+    "flowNotice": {
+      "title": "ZCode 계정 관리 안내",
+      "desc": "Cockpit은 실제 계정 전환과 인스턴스 연결을 위해 ZCode의 암호화된 로컬 자격 증명을 읽고 다시 씁니다.",
+      "permission": "로컬 범위: ~/.zcode/v2/credentials.json 및 관리형 인스턴스 디렉터리.",
+      "network": "네트워크 범위: OAuth, 사용자 정보, 구독 및 할당량 API. 계정을 Cockpit 서비스에 업로드하지 않습니다."
+    },
+    "empty": "ZCode 계정 없음",
+    "addAccount": "ZCode 계정 추가",
+    "oauth": {
+      "desc": "ZCode를 종료한 뒤 Cockpit 인증 창에서 로그인하세요. 콜백은 Cockpit이 직접 수신합니다.",
+      "title": "ZCode OAuth 인증",
+      "item1": "Z.ai 및 BigModel 공식 로그인 지원.",
+      "item2": "인증 후 계정을 저장하고 요금제와 모델 할당량을 새로 고칩니다.",
+      "item3": "기본 클라이언트 전환과 다중 인스턴스 연결에 사용할 수 있습니다.",
+      "urlPlaceholder": "ZCode OAuth 인증 URL",
+      "waiting": "ZCode OAuth 콜백 대기 중...",
+      "openWindow": "인증 창 열기",
+      "provider": "로그인 서비스",
+      "success": "ZCode OAuth 로그인 성공"
+    },
+    "token": {
+      "desc": "Cockpit에서 내보낸 ZCode 계정 JSON을 붙여 넣으세요."
+    },
+    "import": {
+      "localDesc": "암호화된 로컬 ZCode 자격 증명 또는 JSON 파일에서 가져옵니다.",
+      "localClient": "로컬 ZCode에서 가져오기"
+    },
+    "usageNormal": "정상",
+    "usageAbnormal": "오류",
+    "usageViewDetail": "상세",
+    "usageDetailTitle": "사용량 상세",
+    "usage": "사용량",
+    "quota": {
+      "models": "모델 할당량",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "업데이트: {{time}}",
+      "expireAt": "만료: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "할당량 조회 실패",
+      "empty": "할당량 데이터 없음",
+      "sectionTitle": "할당량"
+    },
+    "instances": {
+      "unsupported": "ZCode 다중 인스턴스는 macOS, Windows, Linux에서만 지원됩니다."
     }
   },
   "zed": {

@@ -17,6 +17,7 @@ import type {
   WorkbuddyOfficialQuotaResource,
 } from "../types/workbuddy";
 import type { ZedAccount } from "../types/zed";
+import type { ZcodeAccount } from "../types/zcode";
 import {
   formatResetTimeDisplay,
   getAntigravityTierBadge,
@@ -122,6 +123,12 @@ import {
   getZedPlanBadge,
   getZedUsage,
 } from "../types/zed";
+import {
+  getZcodeAccountDisplayEmail,
+  getZcodePlanBadge,
+  getZcodeQuotaGroups,
+  getZcodeUsage,
+} from "../types/zcode";
 import type { DisplayGroup } from "../services/groupService";
 
 type Translate = {
@@ -1188,6 +1195,63 @@ export function buildWorkbuddyAccountPresentation(
       t,
       "workbuddy.usageNormal",
       "workbuddy.usageAbnormal",
+    ),
+  };
+}
+
+export function buildZcodeAccountPresentation(
+  account: ZcodeAccount,
+  t: Translate,
+): UnifiedAccountPresentation {
+  const planLabel = getZcodePlanBadge(account);
+  const usage = getZcodeUsage(account);
+  const quotaItems: UnifiedQuotaMetric[] = [];
+
+  getZcodeQuotaGroups(account, t).forEach((group) => {
+    group.items.forEach((resource, index) => {
+      if (resource.total <= 0 && resource.remain <= 0 && resource.used <= 0) {
+        return;
+      }
+      const remainPercent =
+        resource.remainPercent ??
+        (resource.total > 0 ? (resource.remain / resource.total) * 100 : null);
+      quotaItems.push({
+        key: `${group.key}_${resource.packageCode || index}`,
+        label: resource.packageName || group.label,
+        percentage: clampPercent(resource.usedPercent),
+        progressPercent: clampPercent(resource.usedPercent),
+        quotaClass: getRemainingQuotaClass(remainPercent ?? 0),
+        valueText: t("zcode.quota.usedOfTotal", {
+          used: formatQuotaNumber(resource.used),
+          total: formatQuotaNumber(resource.total),
+          defaultValue: "{{used}} / {{total}}",
+        }),
+        resetText: resolveResourceTimeText(
+          resource,
+          t,
+          "zcode.quota.updatedAt",
+          "zcode.quota.expireAt",
+        ),
+        resetAt: resource.refreshAt ?? resource.expireAt,
+        used: resource.used,
+        total: resource.total,
+        left: resource.remain,
+        showProgress: true,
+      });
+    });
+  });
+
+  return {
+    id: account.id,
+    displayName: getZcodeAccountDisplayEmail(account),
+    planLabel,
+    planClass: resolveSimplePlanClass(planLabel),
+    quotaItems,
+    ...buildUsageStatusSubline(
+      usage.isNormal,
+      t,
+      "zcode.usageNormal",
+      "zcode.usageAbnormal",
     ),
   };
 }

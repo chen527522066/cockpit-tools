@@ -127,6 +127,9 @@ pub struct UserConfig {
     /// Qoder 自动刷新间隔（分钟），-1 表示禁用
     #[serde(default = "default_qoder_auto_refresh")]
     pub qoder_auto_refresh_minutes: i32,
+    /// ZCode 自动刷新间隔（分钟），-1 表示禁用
+    #[serde(default = "default_zcode_auto_refresh")]
+    pub zcode_auto_refresh_minutes: i32,
     /// Trae 自动刷新间隔（分钟），-1 表示禁用
     #[serde(default = "default_trae_auto_refresh")]
     pub trae_auto_refresh_minutes: i32,
@@ -629,6 +632,9 @@ fn default_workbuddy_auto_refresh() -> i32 {
 fn default_qoder_auto_refresh() -> i32 {
     10
 }
+fn default_zcode_auto_refresh() -> i32 {
+    10
+}
 fn default_trae_auto_refresh() -> i32 {
     10
 }
@@ -976,6 +982,7 @@ impl Default for UserConfig {
             codebuddy_cn_auto_refresh_minutes: default_codebuddy_cn_auto_refresh(),
             workbuddy_auto_refresh_minutes: default_workbuddy_auto_refresh(),
             qoder_auto_refresh_minutes: default_qoder_auto_refresh(),
+            zcode_auto_refresh_minutes: default_zcode_auto_refresh(),
             trae_auto_refresh_minutes: default_trae_auto_refresh(),
             trae_solo_auto_refresh_minutes: default_trae_auto_refresh(),
             trae_cn_auto_refresh_minutes: default_trae_auto_refresh(),
@@ -1375,6 +1382,19 @@ pub fn load_user_config() -> Result<UserConfig, String> {
                 .unwrap_or_else(default_qoder_auto_refresh);
             obj.insert(
                 "qoder_auto_refresh_minutes".to_string(),
+                json!(inherited_refresh),
+            );
+        }
+
+        if !obj.contains_key("zcode_auto_refresh_minutes") {
+            let inherited_refresh = obj
+                .get("qoder_auto_refresh_minutes")
+                .or_else(|| obj.get("gemini_auto_refresh_minutes"))
+                .and_then(|v| v.as_i64())
+                .map(|v| v as i32)
+                .unwrap_or_else(default_zcode_auto_refresh);
+            obj.insert(
+                "zcode_auto_refresh_minutes".to_string(),
                 json!(inherited_refresh),
             );
         }

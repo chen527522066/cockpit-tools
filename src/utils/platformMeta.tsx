@@ -15,6 +15,7 @@ import { QoderIcon } from '../components/icons/QoderIcon';
 import { TraeCnIcon, TraeIcon, TraeSoloCnIcon, TraeSoloIcon } from '../components/icons/TraeIcon';
 import { WorkbuddyIcon } from '../components/icons/WorkbuddyIcon';
 import { ZedIcon } from '../components/icons/ZedIcon';
+import { ZcodeIcon } from '../components/icons/ZcodeIcon';
 
 export function getPlatformLabel(platformId: PlatformId, _t: TFunction): string {
   switch (platformId) {
@@ -44,6 +45,8 @@ export function getPlatformLabel(platformId: PlatformId, _t: TFunction): string 
       return _t('nav.codebuddyCn', 'CodeBuddy CN');
     case 'qoder':
       return _t('nav.qoder', 'Qoder');
+    case 'zcode':
+      return 'ZCode';
     case 'trae':
       return _t('nav.trae', 'Trae');
     case 'trae_solo':
@@ -87,6 +90,8 @@ export function renderPlatformIcon(platformId: PlatformId, size = 20): ReactNode
       return <CodebuddyIcon style={{ width: size, height: size }} />;
     case 'qoder':
       return <QoderIcon style={{ width: size, height: size }} />;
+    case 'zcode':
+      return <ZcodeIcon size={size} />;
     case 'trae':
       return <TraeIcon style={{ width: size, height: size }} />;
     case 'trae_solo':

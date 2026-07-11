@@ -93,6 +93,8 @@ pub struct GeneralConfig {
     pub workbuddy_auto_refresh_minutes: i32,
     /// Qoder 自动刷新间隔（分钟），-1 表示禁用
     pub qoder_auto_refresh_minutes: i32,
+    /// ZCode 自动刷新间隔（分钟），-1 表示禁用
+    pub zcode_auto_refresh_minutes: i32,
     /// Trae 自动刷新间隔（分钟），-1 表示禁用
     pub trae_auto_refresh_minutes: i32,
     pub trae_solo_auto_refresh_minutes: i32,
@@ -1971,6 +1973,7 @@ pub fn save_network_config(
         codebuddy_cn_auto_refresh_minutes: current.codebuddy_cn_auto_refresh_minutes,
         workbuddy_auto_refresh_minutes: current.workbuddy_auto_refresh_minutes,
         qoder_auto_refresh_minutes: current.qoder_auto_refresh_minutes,
+        zcode_auto_refresh_minutes: current.zcode_auto_refresh_minutes,
         trae_auto_refresh_minutes: current.trae_auto_refresh_minutes,
         trae_solo_auto_refresh_minutes: current.trae_solo_auto_refresh_minutes,
         trae_cn_auto_refresh_minutes: current.trae_cn_auto_refresh_minutes,
@@ -2307,6 +2310,7 @@ pub fn get_general_config(app: tauri::AppHandle) -> Result<GeneralConfig, String
         codebuddy_cn_auto_refresh_minutes: user_config.codebuddy_cn_auto_refresh_minutes,
         workbuddy_auto_refresh_minutes: user_config.workbuddy_auto_refresh_minutes,
         qoder_auto_refresh_minutes: user_config.qoder_auto_refresh_minutes,
+        zcode_auto_refresh_minutes: user_config.zcode_auto_refresh_minutes,
         trae_auto_refresh_minutes: user_config.trae_auto_refresh_minutes,
         trae_solo_auto_refresh_minutes: user_config.trae_solo_auto_refresh_minutes,
         trae_cn_auto_refresh_minutes: user_config.trae_cn_auto_refresh_minutes,
@@ -2417,7 +2421,7 @@ pub fn get_general_config(app: tauri::AppHandle) -> Result<GeneralConfig, String
     };
 
     modules::logger::log_info(&format!(
-        "[StartupPerf][SystemCommand] get_general_config completed in {}ms: auto_refresh={}, codex={}, zed={}, ghcp={}, windsurf={}, kiro={}, cursor={}, gemini={}, codebuddy={}, codebuddy_cn={}, workbuddy={}, qoder={}, trae={}, auto_switch={}",
+        "[StartupPerf][SystemCommand] get_general_config completed in {}ms: auto_refresh={}, codex={}, zed={}, ghcp={}, windsurf={}, kiro={}, cursor={}, gemini={}, codebuddy={}, codebuddy_cn={}, workbuddy={}, qoder={}, zcode={}, trae={}, auto_switch={}",
         started.elapsed().as_millis(),
         result.auto_refresh_minutes,
         result.codex_auto_refresh_minutes,
@@ -2431,6 +2435,7 @@ pub fn get_general_config(app: tauri::AppHandle) -> Result<GeneralConfig, String
         result.codebuddy_cn_auto_refresh_minutes,
         result.workbuddy_auto_refresh_minutes,
         result.qoder_auto_refresh_minutes,
+        result.zcode_auto_refresh_minutes,
         result.trae_auto_refresh_minutes,
         result.auto_switch_enabled
     ));
@@ -2462,6 +2467,7 @@ pub fn save_general_config(
     codebuddy_cn_auto_refresh_minutes: Option<i32>,
     workbuddy_auto_refresh_minutes: Option<i32>,
     qoder_auto_refresh_minutes: Option<i32>,
+    zcode_auto_refresh_minutes: Option<i32>,
     trae_auto_refresh_minutes: Option<i32>,
     trae_solo_auto_refresh_minutes: Option<i32>,
     trae_cn_auto_refresh_minutes: Option<i32>,
@@ -2740,6 +2746,8 @@ pub fn save_general_config(
             .unwrap_or(current.workbuddy_auto_refresh_minutes),
         qoder_auto_refresh_minutes: qoder_auto_refresh_minutes
             .unwrap_or(current.qoder_auto_refresh_minutes),
+        zcode_auto_refresh_minutes: zcode_auto_refresh_minutes
+            .unwrap_or(current.zcode_auto_refresh_minutes),
         trae_auto_refresh_minutes: trae_auto_refresh_minutes
             .unwrap_or(current.trae_auto_refresh_minutes),
         trae_solo_auto_refresh_minutes: trae_solo_auto_refresh_minutes

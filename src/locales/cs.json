@@ -762,6 +762,8 @@
       "qoderAppPath": "Cesta k aplikaci Qoder",
       "qoderAppPathDesc": "Pokud je prázdné, použije se výchozí cesta",
       "qoderAppPathPlaceholder": "Výchozí cesta",
+      "zcodeAutoRefresh": "Automatická aktualizace ZCode",
+      "zcodeAutoRefreshDesc": "Interval aktualizace kvóty na pozadí",
       "qoderAutoRefresh": "Automatické obnovení kvóty Qoder",
       "qoderAutoRefreshDesc": "Frekvence automatického obnovení na pozadí",
       "qoderPathSelect": "Vybrat",
@@ -3599,6 +3601,9 @@
       "title": "Nastavení WorkBuddy",
       "appPath": "Cesta WorkBuddy"
     },
+    "zcode": {
+      "title": "Nastavení ZCode"
+    },
     "zed": {
       "title": "Nastavení Zed",
       "appPath": "Cesta k Zed"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Do bonusové odměny zbývá {{days}} dní",
       "streakRewardToday": "Bonusová odměna je dnes dostupná!",
       "recentDates": "Nedávno: "
+    }
+  },
+  "zcode": {
+    "search": "Hledat účty ZCode...",
+    "flowNotice": {
+      "title": "Správa účtů ZCode",
+      "desc": "Cockpit čte a zapisuje šifrované místní přihlašovací údaje ZCode pro skutečné přepínání účtů a propojení instancí.",
+      "permission": "Místní rozsah: ~/.zcode/v2/credentials.json a adresáře spravovaných instancí.",
+      "network": "Síťový rozsah: API OAuth, uživatele, předplatného a kvót. Účty se neodesílají do služby Cockpit."
+    },
+    "empty": "Žádné účty ZCode",
+    "addAccount": "Přidat účet ZCode",
+    "oauth": {
+      "desc": "Zavřete ZCode a přihlaste se v autorizačním okně Cockpit; zpětné volání převezme Cockpit přímo.",
+      "title": "OAuth ZCode",
+      "item1": "Oficiální přihlášení přes Z.ai a BigModel.",
+      "item2": "Uloží účet a obnoví tarif a kvóty modelů.",
+      "item3": "Účty lze použít pro přepnutí klienta a vazbu více instancí.",
+      "urlPlaceholder": "Adresa OAuth ZCode",
+      "waiting": "Čeká se na zpětné volání OAuth ZCode...",
+      "openWindow": "Otevřít autorizační okno",
+      "provider": "Přihlašovací služba",
+      "success": "Přihlášení OAuth ZCode bylo úspěšné"
+    },
+    "token": {
+      "desc": "Vložte JSON účtu ZCode exportovaný z Cockpit."
+    },
+    "import": {
+      "localDesc": "Importujte šifrované místní údaje ZCode nebo soubor JSON.",
+      "localClient": "Importovat z místního ZCode"
+    },
+    "usageNormal": "V pořádku",
+    "usageAbnormal": "Chyba",
+    "usageViewDetail": "Podrobnosti",
+    "usageDetailTitle": "Podrobnosti využití",
+    "usage": "Využití",
+    "quota": {
+      "models": "Kvóta modelů",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Aktualizováno: {{time}}",
+      "expireAt": "Vyprší: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Dotaz na kvótu selhal",
+      "empty": "Žádná data kvóty",
+      "sectionTitle": "Kvóta"
+    },
+    "instances": {
+      "unsupported": "Více instancí ZCode je dostupných pouze v systémech macOS, Windows a Linux."
     }
   },
   "zed": {

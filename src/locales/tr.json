@@ -762,6 +762,8 @@
       "qoderAppPath": "Qoder Uygulama Yolu",
       "qoderAppPathDesc": "Boş bırakırsanız varsayılan yol kullanılır",
       "qoderAppPathPlaceholder": "Varsayılan yol",
+      "zcodeAutoRefresh": "ZCode Otomatik Yenileme",
+      "zcodeAutoRefreshDesc": "Arka planda kota yenileme aralığı",
       "qoderAutoRefresh": "Qoder Otomatik Kota Yenileme",
       "qoderAutoRefreshDesc": "Arka planda otomatik yenileme sıklığı",
       "qoderPathSelect": "Seç",
@@ -3599,6 +3601,9 @@
       "title": "WorkBuddy Ayarları",
       "appPath": "WorkBuddy Yolu"
     },
+    "zcode": {
+      "title": "ZCode Ayarları"
+    },
     "zed": {
       "title": "Zed Ayarları",
       "appPath": "Zed Yolu"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Bonus ödüle {{days}} gün kaldı",
       "streakRewardToday": "Bonus ödül bugün kullanılabilir!",
       "recentDates": "Son: "
+    }
+  },
+  "zcode": {
+    "search": "ZCode hesaplarını ara...",
+    "flowNotice": {
+      "title": "ZCode hesap yönetimi",
+      "desc": "Cockpit, gerçek hesap geçişi ve örnek bağlama için ZCode'un şifreli yerel kimlik bilgilerini okur ve geri yazar.",
+      "permission": "Yerel kapsam: ~/.zcode/v2/credentials.json ve yönetilen örnek dizinleri.",
+      "network": "Ağ kapsamı: OAuth, kullanıcı, abonelik ve kota API'leri. Hesaplar Cockpit hizmetine yüklenmez."
+    },
+    "empty": "ZCode hesabı yok",
+    "addAccount": "ZCode Hesabı Ekle",
+    "oauth": {
+      "desc": "ZCode'u kapatıp Cockpit yetkilendirme penceresinde oturum açın; geri çağrıyı Cockpit doğrudan alır.",
+      "title": "ZCode OAuth Yetkilendirmesi",
+      "item1": "Resmî Z.ai ve BigModel oturumu.",
+      "item2": "Hesabı kaydeder, planı ve model kotalarını yeniler.",
+      "item3": "Hesapları istemci geçişi ve çoklu örnek bağlama için kullanın.",
+      "urlPlaceholder": "ZCode OAuth URL'si",
+      "waiting": "ZCode OAuth geri çağrısı bekleniyor...",
+      "openWindow": "Yetkilendirme penceresini aç",
+      "provider": "Oturum hizmeti",
+      "success": "ZCode OAuth oturumu açıldı"
+    },
+    "token": {
+      "desc": "Cockpit tarafından dışa aktarılan ZCode hesap JSON'unu yapıştırın."
+    },
+    "import": {
+      "localDesc": "Şifreli yerel ZCode kimlik bilgilerini veya JSON dosyasını içe aktarın.",
+      "localClient": "Yerel ZCode'dan Aktar"
+    },
+  "usageNormal": "Sorunsuz",
+    "usageAbnormal": "Hata",
+    "usageViewDetail": "Ayrıntılar",
+    "usageDetailTitle": "Kullanım Ayrıntıları",
+    "usage": "Kullanım",
+    "quota": {
+      "models": "Model Kotası",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Güncellendi: {{time}}",
+      "expireAt": "Bitiş: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Kota sorgusu başarısız",
+      "empty": "Kota verisi yok",
+      "sectionTitle": "Kota"
+    },
+    "instances": {
+      "unsupported": "ZCode çoklu örnekleri yalnızca macOS, Windows ve Linux'ta kullanılabilir."
     }
   },
   "zed": {

@@ -21,7 +21,8 @@ type PlatformInstanceCommandPrefix =
   | "codebuddy_cn"
   | "qoder"
   | "trae"
-  | "workbuddy";
+  | "workbuddy"
+  | "zcode";
 
 type InstancePayload = {
   name: string;

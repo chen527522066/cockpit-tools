@@ -1,4 +1,4 @@
-import { useMemo, useCallback, Fragment, useState, useEffect, type ComponentType } from 'react';
+import { useMemo, useCallback, Fragment, useState, useEffect, type ComponentType, type ReactNode } from 'react';
 import {
   Plus, RefreshCw, Download, Upload, Trash2, X, Globe, KeyRound, Database,
   Copy, Check, RotateCw, LayoutGrid, List, Search,
@@ -42,7 +42,7 @@ interface CheckinModalProps<TAccount extends CodebuddySuiteAccountBase> {
 
 export interface CodebuddySuiteAccountsPlatformConfig<TAccount extends CodebuddySuiteAccountBase> {
   pageClassName: string;
-  quickSettingsType: 'codebuddy_cn' | 'workbuddy';
+  quickSettingsType?: 'codebuddy_cn' | 'workbuddy' | 'zcode';
   searchPlaceholderKey: string;
   searchPlaceholderDefault: string;
   flowNotice: {
@@ -74,24 +74,29 @@ export interface CodebuddySuiteAccountsPlatformConfig<TAccount extends Codebuddy
   oauthUrlInputPlaceholderDefault: string;
   oauthWaitingKey: string;
   oauthWaitingDefault: string;
+  oauthOpenButtonKey?: string;
+  oauthOpenButtonDefault?: string;
   tokenDescKey: string;
   tokenDescDefault: string;
   importLocalDescKey: string;
   importLocalDescDefault: string;
   importLocalClientKey: string;
   importLocalClientDefault: string;
-  syncButtonTitle: (t: UseProviderAccountsPageReturn['t']) => string;
-  syncSuccessMessage: (t: UseProviderAccountsPageReturn['t'], count: number) => string;
-  syncFailedMessage: (t: UseProviderAccountsPageReturn['t'], error: string) => string;
-  runSync: () => Promise<number>;
+  syncButtonTitle?: (t: UseProviderAccountsPageReturn['t']) => string;
+  syncSuccessMessage?: (t: UseProviderAccountsPageReturn['t'], count: number) => string;
+  syncFailedMessage?: (t: UseProviderAccountsPageReturn['t'], error: string) => string;
+  runSync?: () => Promise<number>;
   getDisplayEmail: (account: TAccount) => string;
   getPlanBadge: (account: TAccount) => string;
+  getSearchText?: (account: TAccount) => string;
   getUsage: (account: TAccount) => CodebuddyUsage;
   getQuotaGroups: (account: TAccount, t: (key: string, defaultValue?: string) => string) => QuotaCategoryGroup[];
   hasQuotaData: (account: TAccount, groups: QuotaCategoryGroup[]) => boolean;
-  usagePrefix: 'codebuddy' | 'workbuddy';
-  quotaPrefix: 'codebuddy' | 'workbuddy';
+  usagePrefix: string;
+  quotaPrefix: string;
   tableUsageClassName: string;
+  oauthProviderControl?: ReactNode;
+  showMfaQuickCode?: boolean;
   CheckinModal?: ComponentType<CheckinModalProps<TAccount>>;
 }
 
@@ -146,6 +151,9 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
     oauthPolling, oauthTimedOut,
     oauthPrepareError, oauthCompleteError,
     handleCopyOauthUrl, handleCopyOauthUserCode, handleRetryOauth, handleOpenOauthUrl,
+    oauthManualCallbackInput, setOauthManualCallbackInput,
+    oauthManualCallbackSubmitting, oauthManualCallbackError,
+    oauthSupportsManualCallback, handleSubmitOauthCallbackUrl,
     handleInjectToVSCode,
     isFlowNoticeCollapsed, setIsFlowNoticeCollapsed,
     currentAccountId, formatDate, normalizeTag,
@@ -178,14 +186,15 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
   }, []);
 
   const handleSync = useCallback(async () => {
+    if (!platformConfig.runSync) return;
     setSyncing(true);
     setSyncMessage(null);
     try {
       const count = await platformConfig.runSync();
-      setSyncMessage(platformConfig.syncSuccessMessage(t, count));
+      setSyncMessage(platformConfig.syncSuccessMessage?.(t, count) ?? null);
       setTimeout(() => setSyncMessage(null), 3000);
     } catch (err) {
-      setSyncMessage(platformConfig.syncFailedMessage(t, String(err)));
+      setSyncMessage(platformConfig.syncFailedMessage?.(t, String(err)) ?? String(err));
     } finally {
       setSyncing(false);
     }
@@ -204,6 +213,7 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
     tagFilter,
     sortDirection,
     getPlanBadge: platformConfig.getPlanBadge,
+    getSearchText: platformConfig.getSearchText,
     isAbnormalAccount,
     normalizeTag,
     groupByTag,
@@ -239,7 +249,9 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
   const exportSelectionCount = getScopedSelectedCount(filteredIds);
   const pagination = usePagination({
     items: filteredAccounts,
-    storageKey: buildPaginationPageSizeStorageKey(platformConfig.quickSettingsType),
+    storageKey: buildPaginationPageSizeStorageKey(
+      platformConfig.quickSettingsType ?? platformConfig.pageClassName,
+    ),
   });
   const paginatedAccounts = pagination.pageItems;
   const paginatedIds = useMemo(
@@ -494,9 +506,11 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
         </div>
         <div className="toolbar-right">
           <button className="btn btn-primary icon-only" onClick={() => openAddModal('oauth')} title={t('common.shared.addAccount', '添加账号')}><Plus size={14} /></button>
-          <button className="btn btn-secondary icon-only" onClick={handleSync} disabled={syncing || accounts.length === 0} title={platformConfig.syncButtonTitle(t)}>
-            {syncing ? <RefreshCw size={14} className="loading-spinner" /> : <ArrowRightLeft size={14} />}
-          </button>
+          {platformConfig.runSync && platformConfig.syncButtonTitle && (
+            <button className="btn btn-secondary icon-only" onClick={handleSync} disabled={syncing || accounts.length === 0} title={platformConfig.syncButtonTitle(t)}>
+              {syncing ? <RefreshCw size={14} className="loading-spinner" /> : <ArrowRightLeft size={14} />}
+            </button>
+          )}
           {CheckinModal && (
             <button className="btn btn-secondary icon-only" onClick={() => setShowCheckinModal(true)} disabled={accounts.length === 0} title={t('workbuddy.checkin.modalTitle', '每日签到')}>
               <CalendarCheck size={14} />
@@ -514,7 +528,9 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
             title={exportSelectionCount > 0 ? `${t('common.shared.export.title', '导出')} (${exportSelectionCount})` : t('common.shared.export.title', '导出')}>
             <Upload size={14} />
           </button>
-          <QuickSettingsPopover type={platformConfig.quickSettingsType} />
+          {platformConfig.quickSettingsType && (
+            <QuickSettingsPopover type={platformConfig.quickSettingsType} />
+          )}
         </div>
       </div>
 
@@ -637,12 +653,15 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
       />
 
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content ghcp-add-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay account-add-modal-overlay">
+          <div
+            className={`modal-content ghcp-add-modal ${platformConfig.pageClassName}-add-modal`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <button className="btn btn-secondary icon-only" onClick={closeAddModal} title={t('common.back', '返回')} aria-label={t('common.back', '返回')}><ChevronLeft size={14} /></button>
               <h2>{t(platformConfig.addAccountTitleKey, platformConfig.addAccountTitleDefault)}</h2>
-              <button className="modal-close" onClick={closeAddModal}><X size={18} /></button>
+              <button className="modal-close" onClick={closeAddModal} aria-label={t('common.close', '关闭')}><X size={18} /></button>
             </div>
             <div className="modal-tabs">
               <button className={`modal-tab ${addTab === 'oauth' ? 'active' : ''}`} onClick={() => openAddModal('oauth')}><Globe size={14} /> {t('common.shared.addModal.oauth', '授权登录')}</button>
@@ -650,20 +669,13 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
               <button className={`modal-tab ${addTab === 'json' ? 'active' : ''}`} onClick={() => openAddModal('json')}><Database size={14} />{t('common.shared.addModal.import', '本地导入')}</button>
             </div>
             <div className="modal-body">
-              <MfaQuickCodeSelect />
+              {platformConfig.showMfaQuickCode !== false && <MfaQuickCodeSelect />}
               {addTab === 'oauth' && (
                 <div className="add-section oauth-section">
+                  {platformConfig.oauthProviderControl}
                   <p className="section-desc">
                     {t(platformConfig.oauthDescKey, platformConfig.oauthDescDefault)}
                   </p>
-                  <div className={`${platformConfig.oauthFeatureCardClassName} oauth`}>
-                    <p className="feature-title">{t(platformConfig.oauthFeatureTitleKey, platformConfig.oauthFeatureTitleDefault)}</p>
-                    <ul className="feature-list">
-                      <li>{t(platformConfig.oauthFeatureItem1Key, platformConfig.oauthFeatureItem1Default)}</li>
-                      <li>{t(platformConfig.oauthFeatureItem2Key, platformConfig.oauthFeatureItem2Default)}</li>
-                      <li>{t(platformConfig.oauthFeatureItem3Key, platformConfig.oauthFeatureItem3Default)}</li>
-                    </ul>
-                  </div>
                   {oauthPrepareError ? (
                     <div className="add-status error">
                       <CircleAlert size={16} />
@@ -703,7 +715,12 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
                       )}
                       <button className="btn btn-primary btn-full" onClick={handleOpenOauthUrl}>
                         <Globe size={16} />
-                        {t('common.shared.oauth.openBrowser', '在浏览器中打开')}
+                        {platformConfig.oauthOpenButtonKey
+                          ? t(
+                              platformConfig.oauthOpenButtonKey,
+                              platformConfig.oauthOpenButtonDefault ?? '打开授权窗口',
+                            )
+                          : t('common.shared.oauth.openBrowser', '在浏览器中打开')}
                       </button>
                       {oauthPolling && (
                         <div className="add-status loading">
@@ -722,6 +739,36 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
                           )}
                         </div>
                       )}
+                      {oauthSupportsManualCallback && (
+                        <div className="oauth-manual-callback">
+                          <label>{t('common.shared.oauth.manualCallbackLabel', '手动提交回调链接')}</label>
+                          <div className="oauth-url-box">
+                            <input
+                              type="text"
+                              value={oauthManualCallbackInput}
+                              onChange={(event) => setOauthManualCallbackInput(event.target.value)}
+                              placeholder={t('common.shared.oauth.manualCallbackPlaceholder', '粘贴完整回调链接')}
+                            />
+                            <button
+                              onClick={() => void handleSubmitOauthCallbackUrl()}
+                              disabled={oauthManualCallbackSubmitting || !oauthManualCallbackInput.trim()}
+                              title={t('common.confirm', '确认')}
+                            >
+                              {oauthManualCallbackSubmitting ? (
+                                <RefreshCw size={16} className="loading-spinner" />
+                              ) : (
+                                <Check size={16} />
+                              )}
+                            </button>
+                          </div>
+                          {oauthManualCallbackError && (
+                            <div className="add-status error">
+                              <CircleAlert size={16} />
+                              <span>{oauthManualCallbackError}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <p className="oauth-hint">{t('common.shared.oauth.hint', 'Once authorized, this window will update automatically')}</p>
                     </div>
                   ) : (
@@ -730,6 +777,14 @@ export function CodebuddySuiteAccountsSharedView<TAccount extends CodebuddySuite
                       <span>{t('common.shared.oauth.preparing', '正在准备授权信息...')}</span>
                     </div>
                   )}
+                  <div className={`oauth-feature-card ${platformConfig.oauthFeatureCardClassName} oauth`}>
+                    <p className="feature-title">{t(platformConfig.oauthFeatureTitleKey, platformConfig.oauthFeatureTitleDefault)}</p>
+                    <ul className="feature-list">
+                      <li>{t(platformConfig.oauthFeatureItem1Key, platformConfig.oauthFeatureItem1Default)}</li>
+                      <li>{t(platformConfig.oauthFeatureItem2Key, platformConfig.oauthFeatureItem2Default)}</li>
+                      <li>{t(platformConfig.oauthFeatureItem3Key, platformConfig.oauthFeatureItem3Default)}</li>
+                    </ul>
+                  </div>
                 </div>
               )}
               {addTab === 'token' && (

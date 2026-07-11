@@ -1133,6 +1133,8 @@
       "qoderAppPath": "Qoder 启动路径",
       "qoderAppPathDesc": "留空则使用默认路径",
       "qoderAppPathPlaceholder": "默认路径",
+      "zcodeAutoRefresh": "ZCode 自动刷新",
+      "zcodeAutoRefreshDesc": "后台配额刷新间隔",
       "qoderAutoRefresh": "Qoder 自动刷新配额",
       "qoderAutoRefreshDesc": "后台自动更新频率",
       "qoderPathSelect": "选择",
@@ -3891,6 +3893,9 @@
       "title": "Qoder 设置",
       "appPath": "Qoder 路径"
     },
+    "zcode": {
+      "title": "ZCode 设置"
+    },
     "zed": {
       "title": "Zed 设置",
       "appPath": "Zed 路径"
@@ -4581,6 +4586,55 @@
     },
     "empty": {
       "desc": "点击“添加账号”，可使用授权登录、本机导入或 JSON 导入。"
+    }
+  },
+  "zcode": {
+    "search": "搜索 ZCode 账号...",
+    "flowNotice": {
+      "title": "ZCode 账号管理说明",
+      "desc": "Cockpit 读取并回写 ZCode 本地加密凭据，用于真实切号与实例绑定。",
+      "permission": "本地范围：~/.zcode/v2/credentials.json 与受管实例目录。",
+      "network": "网络范围：OAuth、用户信息、订阅与配额接口；不会将账号上传到 Cockpit 服务。"
+    },
+    "empty": "暂无 ZCode 账号",
+    "addAccount": "添加 ZCode 账号",
+    "oauth": {
+      "desc": "关闭 ZCode 后，在 Cockpit 授权窗口完成登录；回调将由 Cockpit 直接接收。",
+      "title": "ZCode 授权登录",
+      "item1": "支持 Z.ai 与 BigModel 官方登录。",
+      "item2": "授权后自动保存账号并刷新套餐与模型额度。",
+      "item3": "账号可用于默认客户端切号和多开实例绑定。",
+      "urlPlaceholder": "ZCode OAuth 授权地址",
+      "waiting": "等待 ZCode OAuth 回调...",
+      "openWindow": "打开授权窗口",
+      "provider": "登录服务",
+      "success": "ZCode OAuth 登录成功"
+    },
+    "token": {
+      "desc": "粘贴由 Cockpit 导出的 ZCode 账号 JSON。"
+    },
+    "import": {
+      "localDesc": "从本机 ZCode 加密凭据或 JSON 文件导入账号。",
+      "localClient": "从本机 ZCode 导入"
+    },
+    "usageNormal": "正常",
+    "usageAbnormal": "异常",
+    "usageViewDetail": "查看详情",
+    "usageDetailTitle": "用量状态详情",
+    "usage": "用量状态",
+    "quota": {
+      "models": "模型额度",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "更新：{{time}}",
+      "expireAt": "到期：{{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "配额查询失败",
+      "empty": "暂无配额数据",
+      "sectionTitle": "配额"
+    },
+    "instances": {
+      "unsupported": "ZCode 多开仅支持 macOS、Windows 和 Linux。"
     }
   },
   "zed": {

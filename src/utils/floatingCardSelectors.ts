@@ -21,6 +21,7 @@ import type { WorkbuddyAccount } from '../types/workbuddy';
 import { getWorkbuddyOfficialQuotaModel } from '../types/workbuddy';
 import type { ZedAccount } from '../types/zed';
 import { getZedUsage } from '../types/zed';
+import type { ZcodeAccount } from '../types/zcode';
 
 export const GHCP_CURRENT_ACCOUNT_ID_KEY = 'agtools.github_copilot.current_account_id';
 export const WINDSURF_CURRENT_ACCOUNT_ID_KEY = 'agtools.windsurf.current_account_id';
@@ -30,6 +31,7 @@ export const GEMINI_CURRENT_ACCOUNT_ID_KEY = 'agtools.gemini.current_account_id'
 export const CODEBUDDY_CURRENT_ACCOUNT_ID_KEY = 'agtools.codebuddy.current_account_id';
 export const CODEBUDDY_CN_CURRENT_ACCOUNT_ID_KEY = 'agtools.codebuddycn.current_account_id';
 export const QODER_CURRENT_ACCOUNT_ID_KEY = 'agtools.qoder.current_account_id';
+export const ZCODE_CURRENT_ACCOUNT_ID_KEY = 'agtools.zcode.current_account_id';
 export const TRAE_CURRENT_ACCOUNT_ID_KEY = 'agtools.trae.current_account_id';
 export const TRAE_SOLO_CURRENT_ACCOUNT_ID_KEY = 'agtools.trae_solo.current_account_id';
 export const TRAE_CN_CURRENT_ACCOUNT_ID_KEY = 'agtools.trae_cn.current_account_id';
@@ -52,6 +54,7 @@ export type StoredCurrentPlatformId =
   | 'codebuddy'
   | 'codebuddy_cn'
   | 'qoder'
+  | 'zcode'
   | 'trae'
   | 'trae_solo'
   | 'trae_cn'
@@ -68,6 +71,7 @@ const CURRENT_ACCOUNT_STORAGE_KEYS: Record<StoredCurrentPlatformId, string> = {
   codebuddy: CODEBUDDY_CURRENT_ACCOUNT_ID_KEY,
   codebuddy_cn: CODEBUDDY_CN_CURRENT_ACCOUNT_ID_KEY,
   qoder: QODER_CURRENT_ACCOUNT_ID_KEY,
+  zcode: ZCODE_CURRENT_ACCOUNT_ID_KEY,
   trae: TRAE_CURRENT_ACCOUNT_ID_KEY,
   trae_solo: TRAE_SOLO_CURRENT_ACCOUNT_ID_KEY,
   trae_cn: TRAE_CN_CURRENT_ACCOUNT_ID_KEY,
@@ -467,6 +471,35 @@ export function getRecommendedQoderAccount(
     const usedPercent = subscription.totalUsagePercentage ?? subscription.userQuota.percentage ?? 101;
     return {
       remaining: 100 - usedPercent,
+      freshness: account.last_used || account.created_at || 0,
+    };
+  };
+
+  return others.reduce((best, candidate) => {
+    const bestScore = getScore(best);
+    const candidateScore = getScore(candidate);
+    if (candidateScore.remaining !== bestScore.remaining) {
+      return candidateScore.remaining > bestScore.remaining ? candidate : best;
+    }
+    return candidateScore.freshness > bestScore.freshness ? candidate : best;
+  });
+}
+
+export function getRecommendedZcodeAccount(
+  accounts: ZcodeAccount[],
+  currentId: string | null | undefined,
+): ZcodeAccount | null {
+  if (accounts.length <= 1) return null;
+  const others = accounts.filter((account) => account.id !== currentId);
+  if (others.length === 0) return null;
+
+  const getScore = (account: ZcodeAccount) => {
+    const total = toFiniteNumber(account.quota_total);
+    const remaining = toFiniteNumber(account.quota_remaining);
+    return {
+      remaining: total != null && total > 0 && remaining != null
+        ? (remaining / total) * 100
+        : -1,
       freshness: account.last_used || account.created_at || 0,
     };
   };

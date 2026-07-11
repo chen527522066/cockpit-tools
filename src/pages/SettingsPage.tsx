@@ -59,6 +59,7 @@ import { useCodebuddyAccountStore } from '../stores/useCodebuddyAccountStore';
 import { useCodebuddyCnAccountStore } from '../stores/useCodebuddyCnAccountStore';
 import { useWorkbuddyAccountStore } from '../stores/useWorkbuddyAccountStore';
 import { useQoderAccountStore } from '../stores/useQoderAccountStore';
+import { useZcodeAccountStore } from '../stores/useZcodeAccountStore';
 import { useTraeAccountStore } from '../stores/useTraeAccountStore';
 import { useZedAccountStore } from '../stores/useZedAccountStore';
 import { getGitHubCopilotAccountDisplayEmail } from '../types/githubCopilot';
@@ -70,6 +71,7 @@ import { getClaudeAccountDisplayEmail } from '../types/claude';
 import { getCodebuddyAccountDisplayEmail } from '../types/codebuddy';
 import { getWorkbuddyAccountDisplayEmail } from '../types/workbuddy';
 import { getQoderAccountDisplayEmail } from '../types/qoder';
+import { getZcodeAccountDisplayEmail } from '../types/zcode';
 import {
   getTraeAccountDisplayEmail,
   getTraeAccountPlatformId,
@@ -162,6 +164,7 @@ interface GeneralConfig {
   codebuddy_cn_auto_refresh_minutes: number;
   workbuddy_auto_refresh_minutes: number;
   qoder_auto_refresh_minutes: number;
+  zcode_auto_refresh_minutes: number;
   trae_auto_refresh_minutes: number;
   trae_solo_auto_refresh_minutes: number;
   trae_cn_auto_refresh_minutes: number;
@@ -274,12 +277,13 @@ const FALLBACK_PLATFORM_SETTINGS_ORDER: Record<PlatformId, number> = {
   codebuddy: 9,
   codebuddy_cn: 10,
   qoder: 11,
-  trae: 12,
-  trae_solo: 13,
-  trae_cn: 14,
-  trae_solo_cn: 15,
-  workbuddy: 16,
-  zed: 17,
+  zcode: 12,
+  trae: 13,
+  trae_solo: 14,
+  trae_cn: 15,
+  trae_solo_cn: 16,
+  workbuddy: 17,
+  zed: 18,
 };
 type UpdateCheckSource = 'auto' | 'manual';
 type UpdateCheckFinishedDetail = {
@@ -462,6 +466,7 @@ export function SettingsPage() {
   const [codebuddyCnAutoRefresh, setCodebuddyCnAutoRefresh] = useState('10');
   const [workbuddyAutoRefresh, setWorkbuddyAutoRefresh] = useState('10');
   const [qoderAutoRefresh, setQoderAutoRefresh] = useState('10');
+  const [zcodeAutoRefresh, setZcodeAutoRefresh] = useState('10');
   const [traeAutoRefresh, setTraeAutoRefresh] = useState('10');
   const [traeSoloAutoRefresh, setTraeSoloAutoRefresh] = useState('10');
   const [traeCnAutoRefresh, setTraeCnAutoRefresh] = useState('10');
@@ -504,6 +509,7 @@ export function SettingsPage() {
   const [workbuddyAutoRefreshCustomMode, setWorkbuddyAutoRefreshCustomMode] = useState(false);
   const [codebuddyQuotaAlertThresholdCustomMode, setCodebuddyQuotaAlertThresholdCustomMode] = useState(false);
   const [qoderAutoRefreshCustomMode, setQoderAutoRefreshCustomMode] = useState(false);
+  const [zcodeAutoRefreshCustomMode, setZcodeAutoRefreshCustomMode] = useState(false);
   const [qoderQuotaAlertThresholdCustomMode, setQoderQuotaAlertThresholdCustomMode] = useState(false);
   const [traeAutoRefreshCustomMode, setTraeAutoRefreshCustomMode] = useState(false);
   const [traeQuotaAlertThresholdCustomMode, setTraeQuotaAlertThresholdCustomMode] = useState(false);
@@ -844,6 +850,7 @@ export function SettingsPage() {
       !codebuddyCnAutoRefresh.trim() ||
       !workbuddyAutoRefresh.trim() ||
       !qoderAutoRefresh.trim() ||
+      !zcodeAutoRefresh.trim() ||
       !traeAutoRefresh.trim() ||
       !traeSoloAutoRefresh.trim() ||
       !traeCnAutoRefresh.trim() ||
@@ -865,6 +872,7 @@ export function SettingsPage() {
     const codebuddyCnAutoRefreshNum = parseInt(codebuddyCnAutoRefresh, 10) || -1;
     const workbuddyAutoRefreshNum = parseInt(workbuddyAutoRefresh, 10) || -1;
     const qoderAutoRefreshNum = parseInt(qoderAutoRefresh, 10) || -1;
+    const zcodeAutoRefreshNum = parseInt(zcodeAutoRefresh, 10) || -1;
     const traeAutoRefreshNum = parseInt(traeAutoRefresh, 10) || -1;
     const traeSoloAutoRefreshNum = parseInt(traeSoloAutoRefresh, 10) || -1;
     const traeCnAutoRefreshNum = parseInt(traeCnAutoRefresh, 10) || -1;
@@ -919,6 +927,7 @@ export function SettingsPage() {
           codebuddyCnAutoRefreshMinutes: codebuddyCnAutoRefreshNum,
           workbuddyAutoRefreshMinutes: workbuddyAutoRefreshNum,
           qoderAutoRefreshMinutes: qoderAutoRefreshNum,
+          zcodeAutoRefreshMinutes: zcodeAutoRefreshNum,
           traeAutoRefreshMinutes: traeAutoRefreshNum,
           traeSoloAutoRefreshMinutes: traeSoloAutoRefreshNum,
           traeCnAutoRefreshMinutes: traeCnAutoRefreshNum,
@@ -1073,6 +1082,7 @@ export function SettingsPage() {
     zedAutoRefresh,
     workbuddyAutoRefresh,
     qoderAutoRefresh,
+    zcodeAutoRefresh,
     cursorAutoRefresh,
     geminiAutoRefresh,
     closeBehavior,
@@ -1429,6 +1439,7 @@ export function SettingsPage() {
       setCodebuddyCnAutoRefresh(String(config.codebuddy_cn_auto_refresh_minutes ?? 10));
       setWorkbuddyAutoRefresh(String(config.workbuddy_auto_refresh_minutes ?? 10));
       setQoderAutoRefresh(String(config.qoder_auto_refresh_minutes ?? 10));
+      setZcodeAutoRefresh(String(config.zcode_auto_refresh_minutes ?? 10));
       setTraeAutoRefresh(String(config.trae_auto_refresh_minutes ?? 10));
       setTraeSoloAutoRefresh(String(config.trae_solo_auto_refresh_minutes ?? 10));
       setTraeCnAutoRefresh(String(config.trae_cn_auto_refresh_minutes ?? 10));
@@ -1507,6 +1518,7 @@ export function SettingsPage() {
       setCodebuddyCnAutoRefreshCustomMode(false);
       setWorkbuddyAutoRefreshCustomMode(false);
       setQoderAutoRefreshCustomMode(false);
+      setZcodeAutoRefreshCustomMode(false);
       setTraeAutoRefreshCustomMode(false);
       setTraeSoloAutoRefreshCustomMode(false);
       setTraeCnAutoRefreshCustomMode(false);
@@ -2093,6 +2105,8 @@ export function SettingsPage() {
         return parseRefresh(workbuddyAutoRefresh) > 0;
       case 'qoder':
         return parseRefresh(qoderAutoRefresh) > 0;
+      case 'zcode':
+        return parseRefresh(zcodeAutoRefresh) > 0;
       case 'trae':
         return parseRefresh(traeAutoRefresh) > 0;
       case 'trae_solo':
@@ -2247,6 +2261,8 @@ export function SettingsPage() {
         return getProviderAccounts(useWorkbuddyAccountStore, getWorkbuddyAccountDisplayEmail);
       case 'qoder':
         return getProviderAccounts(useQoderAccountStore, getQoderAccountDisplayEmail);
+      case 'zcode':
+        return getProviderAccounts(useZcodeAccountStore, getZcodeAccountDisplayEmail);
       case 'trae':
         return getTraeAccounts('trae');
       case 'trae_solo':
@@ -2701,6 +2717,7 @@ export function SettingsPage() {
   const codebuddyCnAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(codebuddyCnAutoRefresh);
   const workbuddyAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(workbuddyAutoRefresh);
   const qoderAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(qoderAutoRefresh);
+  const zcodeAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(zcodeAutoRefresh);
   const traeAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(traeAutoRefresh);
   const traeSoloAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(traeSoloAutoRefresh);
   const traeCnAutoRefreshIsPreset = REFRESH_PRESET_VALUES.includes(traeCnAutoRefresh);
@@ -5445,6 +5462,82 @@ export function SettingsPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              <div style={{ order: platformSettingsOrder.zcode }}>
+                <div className="group-title">{t('quickSettings.zcode.title', 'ZCode 设置')}</div>
+                <div className="settings-group">
+                  <div className="settings-row">
+                    <div className="row-label">
+                      <div className="row-title">{t('settings.general.zcodeAutoRefresh', 'ZCode 自动刷新配额')}</div>
+                      <div className="row-desc">{t('settings.general.zcodeAutoRefreshDesc', '后台自动更新频率')}</div>
+                    </div>
+                    <div className="row-control">
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {zcodeAutoRefreshCustomMode ? (
+                          <div className="settings-inline-input" style={{ minWidth: '120px', width: 'auto' }}>
+                            <input
+                              type="number"
+                              min={1}
+                              max={999}
+                              className="settings-select settings-select--input-mode settings-select--with-unit"
+                              value={zcodeAutoRefresh}
+                              placeholder={t('quickSettings.inputMinutes', '输入分钟数')}
+                              onChange={(event) => setZcodeAutoRefresh(sanitizeNumberInput(event.target.value))}
+                              onBlur={() => {
+                                const normalized = normalizeNumberInput(zcodeAutoRefresh, 1, 999);
+                                if (REFRESH_PRESET_VALUES.includes(normalized)) {
+                                  setZcodeAutoRefreshCustomMode(false);
+                                }
+                                setZcodeAutoRefresh(normalized);
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                  event.preventDefault();
+                                  const normalized = normalizeNumberInput(zcodeAutoRefresh, 1, 999);
+                                  setZcodeAutoRefreshCustomMode(false);
+                                  setZcodeAutoRefresh(normalized);
+                                }
+                              }}
+                            />
+                            <span className="settings-input-unit">{t('settings.general.minutes')}</span>
+                          </div>
+                        ) : (
+                          <select
+                            className="settings-select"
+                            style={{ minWidth: '120px', width: 'auto' }}
+                            value={zcodeAutoRefresh}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              if (value === 'custom') {
+                                setZcodeAutoRefreshCustomMode(true);
+                                setZcodeAutoRefresh(zcodeAutoRefresh !== '-1' ? zcodeAutoRefresh : '1');
+                                return;
+                              }
+                              setZcodeAutoRefreshCustomMode(false);
+                              setZcodeAutoRefresh(value);
+                            }}
+                          >
+                            {!zcodeAutoRefreshIsPreset && (
+                              <option value={zcodeAutoRefresh}>
+                                {zcodeAutoRefresh} {t('settings.general.minutes')}
+                              </option>
+                            )}
+                            <option value="-1">{t('settings.general.autoRefreshDisabled')}</option>
+                            <option value="2">2 {t('settings.general.minutes')}</option>
+                            <option value="5">5 {t('settings.general.minutes')}</option>
+                            <option value="10">10 {t('settings.general.minutes')}</option>
+                            <option value="15">15 {t('settings.general.minutes')}</option>
+                            <option value="custom">{t('settings.general.autoRefreshCustom')}</option>
+                          </select>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {renderCurrentAccountRefreshRow('zcode')}
+                  {renderAccountLevelRefreshConfig('zcode')}
                 </div>
               </div>
 

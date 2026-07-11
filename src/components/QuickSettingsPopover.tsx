@@ -68,6 +68,7 @@ interface GeneralConfig {
   codebuddy_auto_refresh_minutes: number;
   codebuddy_cn_auto_refresh_minutes: number;
   qoder_auto_refresh_minutes: number;
+  zcode_auto_refresh_minutes: number;
   trae_auto_refresh_minutes: number;
   trae_solo_auto_refresh_minutes: number;
   trae_cn_auto_refresh_minutes: number;
@@ -175,6 +176,7 @@ export type QuickSettingsType =
   | 'codebuddy'
   | 'codebuddy_cn'
   | 'qoder'
+  | 'zcode'
   | 'trae'
   | 'trae_solo'
   | 'trae_cn'
@@ -400,6 +402,8 @@ const getCurrentAccountRefreshPlatformForType = (
       return 'codebuddy_cn';
     case 'qoder':
       return 'qoder';
+    case 'zcode':
+      return 'zcode';
     case 'trae':
       return 'trae';
     case 'trae_solo':
@@ -929,6 +933,7 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
       case 'codebuddy': return 'codebuddy_auto_refresh_minutes';
       case 'codebuddy_cn': return 'codebuddy_cn_auto_refresh_minutes';
       case 'qoder': return 'qoder_auto_refresh_minutes';
+      case 'zcode': return 'zcode_auto_refresh_minutes';
       case 'trae': return 'trae_auto_refresh_minutes';
       case 'trae_solo': return 'trae_solo_auto_refresh_minutes';
       case 'trae_cn': return 'trae_cn_auto_refresh_minutes';
@@ -965,6 +970,7 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
           codebuddyCnAutoRefreshMinutes: merged.codebuddy_cn_auto_refresh_minutes,
           workbuddyAutoRefreshMinutes: merged.workbuddy_auto_refresh_minutes,
           qoderAutoRefreshMinutes: merged.qoder_auto_refresh_minutes,
+          zcodeAutoRefreshMinutes: merged.zcode_auto_refresh_minutes,
           traeAutoRefreshMinutes: merged.trae_auto_refresh_minutes,
           traeSoloAutoRefreshMinutes: merged.trae_solo_auto_refresh_minutes,
           traeCnAutoRefreshMinutes: merged.trae_cn_auto_refresh_minutes,
@@ -1230,6 +1236,8 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
           return 'CodeBuddy CN';
         case 'qoder':
           return 'Qoder';
+        case 'zcode':
+          return 'ZCode';
         case 'trae':
           return 'Trae';
         case 'trae_solo':
@@ -1353,6 +1361,8 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
         return t('quickSettings.refreshInterval', '配额自动刷新');
       case 'qoder':
         return t('quickSettings.refreshInterval', '配额自动刷新');
+      case 'zcode':
+        return t('quickSettings.refreshInterval', '配额自动刷新');
       case 'trae':
       case 'trae_solo':
       case 'trae_cn':
@@ -1365,7 +1375,7 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
     }
   };
 
-  const showAppPathSection = type !== 'gemini';
+  const showAppPathSection = type !== 'gemini' && type !== 'zcode';
   const antigravityLaunchOnSwitch = config?.antigravity_launch_on_switch ?? true;
 
   const getAppPath = (): string => {
@@ -1393,6 +1403,8 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
         return config.codebuddy_cn_app_path;
       case 'qoder':
         return config.qoder_app_path;
+      case 'zcode':
+        return '';
       case 'trae':
         return config.trae_app_path;
       case 'trae_solo':
@@ -1434,6 +1446,8 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
         return t('quickSettings.codebuddyCn.appPath', 'CodeBuddy CN 路径');
       case 'qoder':
         return t('quickSettings.qoder.appPath', 'Qoder 路径');
+      case 'zcode':
+        return '';
       case 'trae':
         return t('quickSettings.trae.appPath', 'Trae 路径');
       case 'trae_solo':
@@ -1473,6 +1487,8 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
         return 'codebuddy_cn';
       case 'qoder':
         return 'qoder';
+      case 'zcode':
+        return 'antigravity';
       case 'trae':
         return 'trae';
       case 'trae_solo':
@@ -3240,7 +3256,7 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
               </div>
             )}
 
-            {type !== 'antigravity' && (
+            {type !== 'antigravity' && type !== 'zcode' && (
               <div className="qs-section qs-section--highlight">
                 <div className="qs-section-header">
                   <Zap size={15} />

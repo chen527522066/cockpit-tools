@@ -762,6 +762,8 @@
       "qoderAppPath": "Đường dẫn ứng dụng Qoder",
       "qoderAppPathDesc": "Để trống để sử dụng đường dẫn mặc định",
       "qoderAppPathPlaceholder": "Đường dẫn mặc định",
+      "zcodeAutoRefresh": "Tự động làm mới ZCode",
+      "zcodeAutoRefreshDesc": "Khoảng làm mới hạn mức trong nền",
       "qoderAutoRefresh": "Tự động làm mới hạn ngạch Qoder",
       "qoderAutoRefreshDesc": "Tần suất tự động làm mới nền",
       "qoderPathSelect": "Chọn",
@@ -3599,6 +3601,9 @@
       "title": "Cài đặt WorkBuddy",
       "appPath": "Đường dẫn WorkBuddy"
     },
+    "zcode": {
+      "title": "Cài đặt ZCode"
+    },
     "zed": {
       "title": "Cài đặt Zed",
       "appPath": "Đường dẫn Zed"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Còn {{days}} ngày nữa để nhận thưởng bonus",
       "streakRewardToday": "Hôm nay có thể nhận thưởng bonus!",
       "recentDates": "Gần đây: "
+    }
+  },
+  "zcode": {
+    "search": "Tìm tài khoản ZCode...",
+    "flowNotice": {
+      "title": "Hướng dẫn quản lý ZCode",
+      "desc": "Cockpit đọc và ghi lại thông tin đăng nhập ZCode cục bộ đã mã hóa để chuyển tài khoản thực và liên kết phiên bản.",
+      "permission": "Phạm vi cục bộ: ~/.zcode/v2/credentials.json và thư mục phiên bản được quản lý.",
+      "network": "Phạm vi mạng: API OAuth, người dùng, gói đăng ký và hạn mức. Tài khoản không được tải lên dịch vụ Cockpit."
+    },
+    "empty": "Chưa có tài khoản ZCode",
+    "addAccount": "Thêm tài khoản ZCode",
+    "oauth": {
+      "desc": "Đóng ZCode rồi đăng nhập trong cửa sổ ủy quyền của Cockpit; Cockpit sẽ nhận callback trực tiếp.",
+      "title": "OAuth ZCode",
+      "item1": "Đăng nhập chính thức qua Z.ai và BigModel.",
+      "item2": "Lưu tài khoản và làm mới gói cùng hạn mức mô hình.",
+      "item3": "Dùng tài khoản để đổi trình khách và liên kết nhiều phiên bản.",
+      "urlPlaceholder": "URL OAuth ZCode",
+      "waiting": "Đang chờ callback OAuth ZCode...",
+      "openWindow": "Mở cửa sổ ủy quyền",
+      "provider": "Dịch vụ đăng nhập",
+      "success": "Đăng nhập OAuth ZCode thành công"
+    },
+    "token": {
+      "desc": "Dán JSON tài khoản ZCode đã xuất từ Cockpit."
+    },
+    "import": {
+      "localDesc": "Nhập thông tin ZCode cục bộ đã mã hóa hoặc tệp JSON.",
+      "localClient": "Nhập từ ZCode cục bộ"
+    },
+    "usageNormal": "Bình thường",
+    "usageAbnormal": "Lỗi",
+    "usageViewDetail": "Chi tiết",
+    "usageDetailTitle": "Chi tiết sử dụng",
+    "usage": "Mức dùng",
+    "quota": {
+      "models": "Hạn mức mô hình",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Đã cập nhật: {{time}}",
+      "expireAt": "Hết hạn: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Truy vấn hạn mức thất bại",
+      "empty": "Chưa có dữ liệu hạn mức",
+      "sectionTitle": "Hạn mức"
+    },
+    "instances": {
+      "unsupported": "Nhiều phiên bản ZCode chỉ hỗ trợ macOS, Windows và Linux."
     }
   },
   "zed": {

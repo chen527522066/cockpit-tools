@@ -2240,6 +2240,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
 
   const handleOpenOauthUrl = useCallback(async () => {
     if (!oauthUrl) return;
+    setOauthCompleteError(null);
     oauthLog('用户点击打开授权链接', {
       loginId: oauthLoginIdRef.current,
       authUrl: oauthUrl,
@@ -2252,11 +2253,13 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
       }
     } catch (e) {
       console.error('打开授权链接失败:', e);
+      const msg = String(e).replace(/^Error:\s*/, '');
+      setOauthCompleteError(`${t('common.shared.oauth.failed', '授权失败')}: ${msg}`);
       await navigator.clipboard.writeText(oauthUrl).catch(() => {});
       setOauthUrlCopied(true);
       setTimeout(() => setOauthUrlCopied(false), 1200);
     }
-  }, [oauthUrl, oauthLog, oauthService]);
+  }, [oauthUrl, oauthLog, oauthService, t]);
 
   const oauthSupportsManualCallback = useMemo(
     () => Boolean(oauthService?.submitCallbackUrl && oauthCallbackUrl),

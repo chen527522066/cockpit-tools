@@ -16,6 +16,7 @@ export type Page =
   | 'codebuddy'
   | 'codebuddy-cn'
   | 'qoder'
+  | 'zcode'
   | 'trae'
   | 'trae-solo'
   | 'trae-cn'

@@ -762,6 +762,8 @@
       "qoderAppPath": "Qoder App-Pfad",
       "qoderAppPathDesc": "Wenn leer, wird der Standardpfad verwendet",
       "qoderAppPathPlaceholder": "Standardpfad",
+      "zcodeAutoRefresh": "ZCode automatisch aktualisieren",
+      "zcodeAutoRefreshDesc": "Intervall der Kontingentaktualisierung im Hintergrund",
       "qoderAutoRefresh": "Qoder Auto-Aktualisierung",
       "qoderAutoRefreshDesc": "Häufigkeit der automatischen Aktualisierung im Hintergrund",
       "qoderPathSelect": "Auswählen",
@@ -3599,6 +3601,9 @@
       "title": "WorkBuddy-Einstellungen",
       "appPath": "WorkBuddy-Pfad"
     },
+    "zcode": {
+      "title": "ZCode-Einstellungen"
+    },
     "zed": {
       "title": "Zed-Einstellungen",
       "appPath": "Zed-Pfad"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Noch {{days}} Tage bis zur Bonusbelohnung",
       "streakRewardToday": "Bonusbelohnung heute verfügbar!",
       "recentDates": "Kürzlich: "
+    }
+  },
+  "zcode": {
+    "search": "ZCode-Konten suchen...",
+    "flowNotice": {
+      "title": "Hinweise zur ZCode-Kontoverwaltung",
+      "desc": "Cockpit liest und schreibt die verschlüsselten lokalen ZCode-Zugangsdaten für echten Kontowechsel und Instanzbindung.",
+      "permission": "Lokaler Umfang: ~/.zcode/v2/credentials.json und verwaltete Instanzverzeichnisse.",
+      "network": "Netzwerkumfang: OAuth-, Benutzer-, Abonnement- und Kontingent-APIs. Konten werden nicht an einen Cockpit-Dienst hochgeladen."
+    },
+    "empty": "Keine ZCode-Konten",
+    "addAccount": "ZCode-Konto hinzufügen",
+    "oauth": {
+      "desc": "Schließen Sie ZCode und melden Sie sich im Autorisierungsfenster von Cockpit an; Cockpit empfängt den Rückruf direkt.",
+      "title": "OAuth-Anmeldung für ZCode",
+      "item1": "Offizielle Anmeldung über Z.ai und BigModel.",
+      "item2": "Speichert das Konto und aktualisiert Tarif und Modellkontingente.",
+      "item3": "Konten für Clientwechsel und Mehrinstanzbindung verwenden.",
+      "urlPlaceholder": "ZCode-OAuth-URL",
+      "waiting": "Warte auf ZCode-OAuth-Rückruf...",
+      "openWindow": "Autorisierungsfenster öffnen",
+      "provider": "Anmeldedienst",
+      "success": "ZCode-OAuth-Anmeldung erfolgreich"
+    },
+    "token": {
+      "desc": "Fügen Sie ein von Cockpit exportiertes ZCode-Konto-JSON ein."
+    },
+    "import": {
+      "localDesc": "Aus verschlüsselten lokalen ZCode-Zugangsdaten oder einer JSON-Datei importieren.",
+      "localClient": "Aus lokalem ZCode importieren"
+    },
+  "usageNormal": "In Ordnung",
+    "usageAbnormal": "Fehler",
+    "usageViewDetail": "Details",
+    "usageDetailTitle": "Nutzungsdetails",
+    "usage": "Nutzung",
+    "quota": {
+      "models": "Modellkontingent",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Aktualisiert: {{time}}",
+      "expireAt": "Läuft ab: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Kontingentabfrage fehlgeschlagen",
+      "empty": "Keine Kontingentdaten",
+      "sectionTitle": "Kontingent"
+    },
+    "instances": {
+      "unsupported": "ZCode-Mehrinstanzen sind nur unter macOS, Windows und Linux verfügbar."
     }
   },
   "zed": {

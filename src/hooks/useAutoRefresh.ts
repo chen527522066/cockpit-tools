@@ -12,6 +12,7 @@ import { useCodebuddyAccountStore } from '../stores/useCodebuddyAccountStore';
 import { useCodebuddyCnAccountStore } from '../stores/useCodebuddyCnAccountStore';
 import { useWorkbuddyAccountStore } from '../stores/useWorkbuddyAccountStore';
 import { useQoderAccountStore } from '../stores/useQoderAccountStore';
+import { useZcodeAccountStore } from '../stores/useZcodeAccountStore';
 import { useTraeAccountStore } from '../stores/useTraeAccountStore';
 import { useZedAccountStore } from '../stores/useZedAccountStore';
 import { getGitHubCopilotAccountDisplayEmail } from '../types/githubCopilot';
@@ -23,6 +24,7 @@ import { getClaudeAccountDisplayEmail } from '../types/claude';
 import { getCodebuddyAccountDisplayEmail } from '../types/codebuddy';
 import { getWorkbuddyAccountDisplayEmail } from '../types/workbuddy';
 import { getQoderAccountDisplayEmail } from '../types/qoder';
+import { getZcodeAccountDisplayEmail } from '../types/zcode';
 import {
   getTraeAccountDisplayEmail,
   getTraeAccountPlatformId,
@@ -59,6 +61,7 @@ interface GeneralConfig {
   codebuddy_cn_auto_refresh_minutes: number;
   workbuddy_auto_refresh_minutes: number;
   qoder_auto_refresh_minutes: number;
+  zcode_auto_refresh_minutes: number;
   trae_auto_refresh_minutes: number;
   trae_solo_auto_refresh_minutes: number;
   trae_cn_auto_refresh_minutes: number;
@@ -186,6 +189,7 @@ function getCurrentAccountEmails(): Record<CurrentAccountRefreshPlatform, string
     codebuddy_cn: getProviderEmail(useCodebuddyCnAccountStore, getCodebuddyAccountDisplayEmail),
     workbuddy: getProviderEmail(useWorkbuddyAccountStore, getWorkbuddyAccountDisplayEmail),
     qoder: getProviderEmail(useQoderAccountStore, getQoderAccountDisplayEmail),
+    zcode: getProviderEmail(useZcodeAccountStore, getZcodeAccountDisplayEmail),
     trae: getTraeProviderEmail('trae'),
     trae_solo: getTraeProviderEmail('trae_solo'),
     trae_cn: getTraeProviderEmail('trae_cn'),
@@ -232,6 +236,9 @@ export function useAutoRefresh() {
   const refreshAllQoderTokens = useQoderAccountStore((state) => state.refreshAllTokens);
   const fetchCurrentQoderAccountId = useQoderAccountStore((state) => state.fetchCurrentAccountId);
   const refreshQoderToken = useQoderAccountStore((state) => state.refreshToken);
+  const refreshAllZcodeTokens = useZcodeAccountStore((state) => state.refreshAllTokens);
+  const fetchCurrentZcodeAccountId = useZcodeAccountStore((state) => state.fetchCurrentAccountId);
+  const refreshZcodeToken = useZcodeAccountStore((state) => state.refreshToken);
   const fetchTraeAccounts = useTraeAccountStore((state) => state.fetchAccounts);
   const refreshTraeToken = useTraeAccountStore((state) => state.refreshToken);
   const refreshAllZedTokens = useZedAccountStore((state) => state.refreshAllTokens);
@@ -262,6 +269,8 @@ export function useAutoRefresh() {
   const workbuddyCurrentRefreshingRef = useRef(false);
   const qoderRefreshingRef = useRef(false);
   const qoderCurrentRefreshingRef = useRef(false);
+  const zcodeRefreshingRef = useRef(false);
+  const zcodeCurrentRefreshingRef = useRef(false);
   const traeRefreshingRef = useRef(false);
   const traeCurrentRefreshingRef = useRef(false);
   const traeSoloRefreshingRef = useRef(false);
@@ -383,6 +392,7 @@ export function useAutoRefresh() {
                     codebuddyCnAutoRefreshMinutes: config.codebuddy_cn_auto_refresh_minutes,
                     workbuddyAutoRefreshMinutes: config.workbuddy_auto_refresh_minutes,
                     qoderAutoRefreshMinutes: config.qoder_auto_refresh_minutes,
+                    zcodeAutoRefreshMinutes: config.zcode_auto_refresh_minutes,
                     traeAutoRefreshMinutes: config.trae_auto_refresh_minutes,
                     zedAutoRefreshMinutes: config.zed_auto_refresh_minutes,
                     closeBehavior: config.close_behavior || 'ask',
@@ -653,6 +663,20 @@ export function useAutoRefresh() {
               },
             },
             {
+              key: 'zcode',
+              label: 'ZCode',
+              intervalMinutes: config.zcode_auto_refresh_minutes,
+              currentMinutes: resolveCurrentMinutes('zcode', currentAccountEmails.zcode, currentRefreshMinutesMap),
+              fullRefreshingRef: zcodeRefreshingRef,
+              currentRefreshingRef: zcodeCurrentRefreshingRef,
+              runFullRefresh: async () => {
+                await refreshAllZcodeTokens();
+              },
+              runCurrentRefresh: async () => {
+                await runProviderCurrentRefresh(fetchCurrentZcodeAccountId, refreshZcodeToken);
+              },
+            },
+            {
               key: 'trae',
               label: 'Trae',
               intervalMinutes: config.trae_auto_refresh_minutes,
@@ -820,6 +844,7 @@ export function useAutoRefresh() {
     fetchCurrentGhcpAccountId,
     fetchCurrentKiroAccountId,
     fetchCurrentQoderAccountId,
+    fetchCurrentZcodeAccountId,
     fetchTraeAccounts,
     fetchCurrentWindsurfAccountId,
     fetchCurrentWorkbuddyAccountId,
@@ -835,6 +860,7 @@ export function useAutoRefresh() {
     refreshAllKiroTokens,
     refreshAllQuotas,
     refreshAllQoderTokens,
+    refreshAllZcodeTokens,
     refreshAllWindsurfTokens,
     refreshAllWorkbuddyTokens,
     refreshAllZedTokens,
@@ -846,6 +872,7 @@ export function useAutoRefresh() {
     refreshGhcpToken,
     refreshKiroToken,
     refreshQoderToken,
+    refreshZcodeToken,
     refreshTraeToken,
     refreshWindsurfToken,
     refreshWorkbuddyToken,

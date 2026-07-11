@@ -762,6 +762,8 @@
       "qoderAppPath": "Ruta de la aplicación Qoder",
       "qoderAppPathDesc": "Dejar en blanco para usar la ruta predeterminada",
       "qoderAppPathPlaceholder": "Ruta predeterminada",
+      "zcodeAutoRefresh": "Actualización automática de ZCode",
+      "zcodeAutoRefreshDesc": "Intervalo de actualización de cuota en segundo plano",
       "qoderAutoRefresh": "Actualización automática de cuota Qoder",
       "qoderAutoRefreshDesc": "Frecuencia de actualización automática en segundo plano",
       "qoderPathSelect": "Seleccionar",
@@ -3599,6 +3601,9 @@
       "title": "Configuración de WorkBuddy",
       "appPath": "Ruta de WorkBuddy"
     },
+    "zcode": {
+      "title": "Configuración de ZCode"
+    },
     "zed": {
       "title": "Configuración de Zed",
       "appPath": "Ruta de Zed"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "Faltan {{days}} días para la recompensa extra",
       "streakRewardToday": "¡Recompensa extra disponible hoy!",
       "recentDates": "Reciente: "
+    }
+  },
+  "zcode": {
+    "search": "Buscar cuentas de ZCode...",
+    "flowNotice": {
+      "title": "Guía de cuentas de ZCode",
+      "desc": "Cockpit lee y reescribe las credenciales locales cifradas de ZCode para cambiar de cuenta y vincular instancias.",
+      "permission": "Ámbito local: ~/.zcode/v2/credentials.json y directorios de instancias administradas.",
+      "network": "Ámbito de red: APIs de OAuth, usuario, suscripción y cuota. Las cuentas no se suben a un servicio de Cockpit."
+    },
+    "empty": "No hay cuentas de ZCode",
+    "addAccount": "Añadir cuenta de ZCode",
+    "oauth": {
+      "desc": "Cierra ZCode e inicia sesión en la ventana de autorización de Cockpit; Cockpit recibirá la devolución directamente.",
+      "title": "OAuth de ZCode",
+      "item1": "Inicio de sesión oficial con Z.ai y BigModel.",
+      "item2": "Guarda la cuenta y actualiza el plan y las cuotas de modelos.",
+      "item3": "Usa cuentas para cambiar el cliente y vincular varias instancias.",
+      "urlPlaceholder": "URL OAuth de ZCode",
+      "waiting": "Esperando la devolución OAuth de ZCode...",
+      "openWindow": "Abrir ventana de autorización",
+      "provider": "Servicio de acceso",
+      "success": "Inicio de sesión OAuth de ZCode correcto"
+    },
+    "token": {
+      "desc": "Pega el JSON de una cuenta de ZCode exportado por Cockpit."
+    },
+    "import": {
+      "localDesc": "Importa credenciales locales cifradas de ZCode o un archivo JSON.",
+      "localClient": "Importar desde ZCode local"
+    },
+  "usageNormal": "Correcto",
+    "usageAbnormal": "Error",
+    "usageViewDetail": "Detalles",
+    "usageDetailTitle": "Detalles de uso",
+    "usage": "Uso",
+    "quota": {
+      "models": "Cuota de modelos",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Actualizado: {{time}}",
+      "expireAt": "Caduca: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Error al consultar la cuota",
+      "empty": "Sin datos de cuota",
+      "sectionTitle": "Cuota"
+    },
+    "instances": {
+      "unsupported": "Las múltiples instancias de ZCode solo están disponibles en macOS, Windows y Linux."
     }
   },
   "zed": {

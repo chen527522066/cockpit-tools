@@ -12,6 +12,7 @@ import { QoderIcon } from '../icons/QoderIcon';
 import { TraeCnIcon, TraeIcon, TraeSoloCnIcon, TraeSoloIcon } from '../icons/TraeIcon';
 import { WorkbuddyIcon } from '../icons/WorkbuddyIcon';
 import { ZedIcon } from '../icons/ZedIcon';
+import { ZcodeIcon } from '../icons/ZcodeIcon';
 import { ManualHelpIconButton } from '../ManualHelpIconButton';
 import { PlatformId } from '../../types/platform';
 import {
@@ -36,6 +37,7 @@ export type PlatformOverviewHeaderId =
   | 'codebuddy'
   | 'codebuddy_cn'
   | 'qoder'
+  | 'zcode'
   | 'trae'
   | 'trae_solo'
   | 'trae_cn'
@@ -104,6 +106,10 @@ const CONFIGS: Record<PlatformOverviewHeaderId, PlatformOverviewConfig> = {
   qoder: {
     platformLabel: 'Qoder',
     overviewIcon: <QoderIcon className="tab-icon" />,
+  },
+  zcode: {
+    platformLabel: 'ZCode',
+    overviewIcon: <ZcodeIcon className="tab-icon" />,
   },
   trae: {
     platformLabel: 'Trae',

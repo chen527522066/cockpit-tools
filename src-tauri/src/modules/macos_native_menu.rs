@@ -421,6 +421,7 @@ mod imp {
             PlatformId::Codebuddy => "#4b74ff",
             PlatformId::CodebuddyCn => "#4b74ff",
             PlatformId::Qoder => "#5664ff",
+            PlatformId::Zcode => "#2f9f7f",
             PlatformId::Trae
             | PlatformId::TraeSolo
             | PlatformId::TraeCn
@@ -2902,6 +2903,7 @@ mod imp {
             PlatformId::Cursor => build_cursor_cards(lang),
             PlatformId::Gemini => build_gemini_cards(lang),
             PlatformId::Qoder => build_qoder_cards(lang),
+            PlatformId::Zcode => build_zcode_cards(lang),
             PlatformId::Trae
             | PlatformId::TraeSolo
             | PlatformId::TraeCn
@@ -3843,6 +3845,105 @@ mod imp {
         (cards, current_id, None)
     }
 
+    fn build_zcode_cards(lang: &str) -> (Vec<AccountCard>, Option<String>, Option<String>) {
+        let mut accounts = modules::zcode_account::list_accounts_checked().unwrap_or_default();
+        let current_id = modules::zcode_account::current_account_id().ok().flatten();
+        accounts
+            .sort_by_key(|account| std::cmp::Reverse(account.last_used.max(account.created_at)));
+        let cards = accounts
+            .into_iter()
+            .map(|account| {
+                let mut rows = Vec::new();
+                if let Some(balances) = account.quota_raw.as_ref().and_then(Value::as_array) {
+                    for balance in balances {
+                        let total = balance
+                            .get("total_units")
+                            .and_then(parse_json_number)
+                            .unwrap_or(0.0)
+                            .max(0.0);
+                        let used = balance
+                            .get("used_units")
+                            .and_then(parse_json_number)
+                            .unwrap_or(0.0)
+                            .max(0.0);
+                        let remaining = balance
+                            .get("remaining_units")
+                            .or_else(|| balance.get("available_units"))
+                            .and_then(parse_json_number)
+                            .unwrap_or_else(|| (total - used).max(0.0));
+                        let used_percent = if total > 0.0 {
+                            clamp_percent((used / total) * 100.0)
+                        } else {
+                            0
+                        };
+                        let remaining_percent = if total > 0.0 {
+                            clamp_percent((remaining / total) * 100.0)
+                        } else {
+                            0
+                        };
+                        let remaining_text = format!("{remaining_percent}%");
+                        let reset_at = balance
+                            .get("period_end")
+                            .or_else(|| balance.get("expires_at"))
+                            .and_then(parse_json_number)
+                            .map(|value| value as i64);
+                        rows.push(make_progress_row(
+                            balance
+                                .get("show_name")
+                                .and_then(Value::as_str)
+                                .unwrap_or("ZCode")
+                                .to_string(),
+                            translate_or(
+                                lang,
+                                "common.shared.remaining",
+                                "剩余 {{value}}",
+                                &[("value", remaining_text.as_str())],
+                            ),
+                            used_percent,
+                            Some(format!(
+                                "{} / {}",
+                                format_quota_number(used),
+                                format_quota_number(total)
+                            )),
+                            cursor_usage_tone(used_percent),
+                        ));
+                        if let Some(subtext) = format_reset_subtext(lang, reset_at) {
+                            if let Some(row) = rows.last_mut() {
+                                row.subtext = Some(match row.subtext.take() {
+                                    Some(usage) => format!("{} · {}", usage, subtext),
+                                    None => subtext,
+                                });
+                            }
+                        }
+                    }
+                }
+                let title = if account.email.trim().is_empty()
+                    || account.email.eq_ignore_ascii_case("unknown@zcode.local")
+                {
+                    account
+                        .display_name
+                        .clone()
+                        .or(account.user_id.clone())
+                        .unwrap_or_else(|| account.id.clone())
+                } else {
+                    account.email.clone()
+                };
+                AccountCard {
+                    id: account.id,
+                    title,
+                    plan: account.plan_type,
+                    updated_at: display_updated_at(
+                        account.usage_updated_at,
+                        account.last_used,
+                        account.created_at,
+                    ),
+                    quota_rows: rows,
+                }
+            })
+            .collect();
+        (cards, current_id, None)
+    }
+
     fn build_trae_cards(
         lang: &str,
         platform: PlatformId,
@@ -4514,6 +4615,14 @@ mod imp {
                 (PlatformId::Qoder, None) => {
                     commands::qoder::refresh_all_qoder_tokens(app.clone()).await
                 }
+                (PlatformId::Zcode, Some(account_id)) => {
+                    commands::zcode::refresh_zcode_account(app.clone(), account_id)
+                        .await
+                        .map(|_| 0)
+                }
+                (PlatformId::Zcode, None) => {
+                    commands::zcode::refresh_all_zcode_accounts(app.clone()).await
+                }
                 (
                     PlatformId::Trae
                     | PlatformId::TraeSolo
@@ -4611,6 +4720,9 @@ mod imp {
                 PlatformId::Qoder => commands::qoder::inject_qoder_account(app, account_id)
                     .await
                     .map(|_| ()),
+                PlatformId::Zcode => {
+                    commands::zcode::inject_zcode_account(app, account_id).map(|_| ())
+                }
                 PlatformId::Trae
                 | PlatformId::TraeSolo
                 | PlatformId::TraeCn

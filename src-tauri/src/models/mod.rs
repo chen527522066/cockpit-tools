@@ -14,6 +14,7 @@ pub mod token;
 pub mod trae;
 pub mod windsurf;
 pub mod workbuddy;
+pub mod zcode;
 pub mod zed;
 
 pub use account::{Account, AccountIndex, AccountSummary, QuotaErrorInfo};

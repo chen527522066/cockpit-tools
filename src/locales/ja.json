@@ -762,6 +762,8 @@
       "qoderAppPath": "Qoder 起動パス",
       "qoderAppPathDesc": "空欄の場合はデフォルトパスを使用",
       "qoderAppPathPlaceholder": "デフォルトパス",
+      "zcodeAutoRefresh": "ZCode 自動更新",
+      "zcodeAutoRefreshDesc": "バックグラウンドでのクォータ更新間隔",
       "qoderAutoRefresh": "Qoder 自動配額更新",
       "qoderAutoRefreshDesc": "バックグラウンド自動更新頻度",
       "qoderPathSelect": "選択",
@@ -3599,6 +3601,9 @@
       "title": "WorkBuddy 設定",
       "appPath": "WorkBuddy パス"
     },
+    "zcode": {
+      "title": "ZCode 設定"
+    },
     "zed": {
       "title": "Zed 設定",
       "appPath": "Zed パス"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "ボーナス報酬まであと{{days}}日",
       "streakRewardToday": "本日はボーナス報酬を受け取れます！",
       "recentDates": "最近: "
+    }
+  },
+  "zcode": {
+    "search": "ZCode アカウントを検索...",
+    "flowNotice": {
+      "title": "ZCode アカウント管理について",
+      "desc": "Cockpit は ZCode の暗号化されたローカル認証情報を読み書きし、実際のアカウント切替とインスタンス連携に使用します。",
+      "permission": "ローカル範囲：~/.zcode/v2/credentials.json と管理対象インスタンスのディレクトリ。",
+      "network": "ネットワーク範囲：OAuth、ユーザー情報、サブスクリプション、クォータ API。アカウントを Cockpit サービスへ送信しません。"
+    },
+    "empty": "ZCode アカウントはありません",
+    "addAccount": "ZCode アカウントを追加",
+    "oauth": {
+      "desc": "ZCode を終了し、Cockpit の認証ウィンドウでログインしてください。コールバックは Cockpit が直接受信します。",
+      "title": "ZCode OAuth 認証",
+      "item1": "Z.ai と BigModel の公式ログインに対応。",
+      "item2": "認証後にアカウントを保存し、プランとモデルクォータを更新。",
+      "item3": "標準クライアントの切替と複数インスタンスの連携に使用可能。",
+      "urlPlaceholder": "ZCode OAuth 認証 URL",
+      "waiting": "ZCode OAuth コールバックを待機中...",
+      "openWindow": "認証ウィンドウを開く",
+      "provider": "ログインサービス",
+      "success": "ZCode OAuth ログインに成功しました"
+    },
+    "token": {
+      "desc": "Cockpit からエクスポートした ZCode アカウント JSON を貼り付けます。"
+    },
+    "import": {
+      "localDesc": "ローカルの暗号化された ZCode 認証情報または JSON ファイルからインポートします。",
+      "localClient": "ローカル ZCode からインポート"
+    },
+    "usageNormal": "正常",
+    "usageAbnormal": "エラー",
+    "usageViewDetail": "詳細",
+    "usageDetailTitle": "使用状況の詳細",
+    "usage": "使用状況",
+    "quota": {
+      "models": "モデルクォータ",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "更新：{{time}}",
+      "expireAt": "有効期限：{{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "クォータ取得失敗",
+      "empty": "クォータデータなし",
+      "sectionTitle": "クォータ"
+    },
+    "instances": {
+      "unsupported": "ZCode の複数インスタンスは macOS、Windows、Linux のみ対応しています。"
     }
   },
   "zed": {

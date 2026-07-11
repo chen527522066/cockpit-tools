@@ -1132,6 +1132,14 @@ func TestRelayServerProviderGatewayRoutesResponsesToChatCompletions(t *testing.T
 			},
 		}},
 		ModelIDs: []string{"deepseek-chat"},
+		ModelAliases: []modelAliasSpec{
+			{SourceModel: "deepseek-v4-flash", Alias: "gpt-5.5"},
+			{SourceModel: "deepseek-v4-pro", Alias: "gpt-5.4"},
+		},
+		aliasToSource: map[string]string{
+			"gpt-5.5": "deepseek-v4-flash",
+			"gpt-5.4": "deepseek-v4-pro",
+		},
 		apiKeyByValue: map[string]*apiKeySpec{
 			"client-key": {
 				ID:      "provider_gateway_account_1",
@@ -1155,7 +1163,7 @@ func TestRelayServerProviderGatewayRoutesResponsesToChatCompletions(t *testing.T
 		policy:   &requestPolicy{manifest: m},
 	}).router()
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(`{"model":"deepseek-v4-flash","input":"hello","stream":false}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(`{"model":"gpt-5.4","input":"hello","stream":false}`))
 	req.Header.Set("Authorization", "Bearer client-key")
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -1176,7 +1184,7 @@ func TestRelayServerProviderGatewayRoutesResponsesToChatCompletions(t *testing.T
 	if !strings.Contains(upstreamBody, `"messages"`) || !strings.Contains(upstreamBody, `"stream":false`) {
 		t.Fatalf("request should be converted to chat completions: %s", upstreamBody)
 	}
-	if !strings.Contains(upstreamBody, `"model":"deepseek-v4-flash"`) || strings.Contains(upstreamBody, `"model":"gpt-5.5"`) {
+	if !strings.Contains(upstreamBody, `"model":"deepseek-v4-pro"`) || strings.Contains(upstreamBody, `"model":"gpt-5.4"`) {
 		t.Fatalf("request should use provider upstream model: %s", upstreamBody)
 	}
 	if !strings.Contains(w.Body.String(), `"object":"response"`) || !strings.Contains(w.Body.String(), `"output_text"`) {
@@ -1190,8 +1198,8 @@ func TestRelayServerProviderGatewayRoutesResponsesToChatCompletions(t *testing.T
 	if modelW.Code != http.StatusOK {
 		t.Fatalf("unexpected models status: %d body=%s", modelW.Code, modelW.Body.String())
 	}
-	if !strings.Contains(modelW.Body.String(), "deepseek-v4-flash") || !strings.Contains(modelW.Body.String(), "deepseek-v4-pro") || strings.Contains(modelW.Body.String(), "gpt-5.5") {
-		t.Fatalf("provider gateway should expose DeepSeek models only: %s", modelW.Body.String())
+	if !strings.Contains(modelW.Body.String(), "gpt-5.5") || !strings.Contains(modelW.Body.String(), "gpt-5.4") || strings.Contains(modelW.Body.String(), "deepseek-v4-pro") {
+		t.Fatalf("provider gateway should expose client model slots only: %s", modelW.Body.String())
 	}
 }
 

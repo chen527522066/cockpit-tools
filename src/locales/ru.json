@@ -762,6 +762,8 @@
       "qoderAppPath": "Путь приложения Qoder",
       "qoderAppPathDesc": "Оставьте пустым для использования пути по умолчанию",
       "qoderAppPathPlaceholder": "Путь по умолчанию",
+      "zcodeAutoRefresh": "Автообновление ZCode",
+      "zcodeAutoRefreshDesc": "Интервал фонового обновления квоты",
       "qoderAutoRefresh": "Автообновление квоты Qoder",
       "qoderAutoRefreshDesc": "Частота автоматического обновления в фоне",
       "qoderPathSelect": "Выбрать",
@@ -3599,6 +3601,9 @@
       "title": "Настройки WorkBuddy",
       "appPath": "Путь WorkBuddy"
     },
+    "zcode": {
+      "title": "Настройки ZCode"
+    },
     "zed": {
       "title": "Настройки Zed",
       "appPath": "Путь Zed"
@@ -4588,6 +4593,55 @@
       "streakRewardCountdown": "До бонусной награды осталось {{days}} дней",
       "streakRewardToday": "Бонусная награда доступна сегодня!",
       "recentDates": "Недавние: "
+    }
+  },
+  "zcode": {
+    "search": "Поиск аккаунтов ZCode...",
+    "flowNotice": {
+      "title": "Управление аккаунтами ZCode",
+      "desc": "Cockpit читает и перезаписывает зашифрованные локальные данные ZCode для реального переключения аккаунтов и привязки экземпляров.",
+      "permission": "Локальный доступ: ~/.zcode/v2/credentials.json и каталоги управляемых экземпляров.",
+      "network": "Сетевой доступ: API OAuth, профиля, подписки и квот. Аккаунты не отправляются в сервис Cockpit."
+    },
+    "empty": "Нет аккаунтов ZCode",
+    "addAccount": "Добавить аккаунт ZCode",
+    "oauth": {
+      "desc": "Закройте ZCode и войдите через окно авторизации Cockpit; Cockpit получит обратный вызов напрямую.",
+      "title": "OAuth ZCode",
+      "item1": "Официальный вход через Z.ai и BigModel.",
+      "item2": "Сохраняет аккаунт и обновляет тариф и квоты моделей.",
+      "item3": "Используйте аккаунты для смены клиента и привязки экземпляров.",
+      "urlPlaceholder": "URL OAuth ZCode",
+      "waiting": "Ожидание обратного вызова OAuth ZCode...",
+      "openWindow": "Открыть окно авторизации",
+      "provider": "Сервис входа",
+      "success": "Вход через OAuth ZCode выполнен"
+    },
+    "token": {
+      "desc": "Вставьте JSON аккаунта ZCode, экспортированный из Cockpit."
+    },
+    "import": {
+      "localDesc": "Импортируйте зашифрованные локальные данные ZCode или файл JSON.",
+      "localClient": "Импорт из локального ZCode"
+    },
+    "usageNormal": "Норма",
+    "usageAbnormal": "Ошибка",
+    "usageViewDetail": "Подробнее",
+    "usageDetailTitle": "Сведения об использовании",
+    "usage": "Использование",
+    "quota": {
+      "models": "Квота моделей",
+      "usedOfTotal": "{{used}} / {{total}}",
+      "updatedAt": "Обновлено: {{time}}",
+      "expireAt": "Истекает: {{time}}"
+    },
+    "quotaQuery": {
+      "failedRefreshCompact": "Не удалось получить квоту",
+      "empty": "Нет данных о квоте",
+      "sectionTitle": "Квота"
+    },
+    "instances": {
+      "unsupported": "Несколько экземпляров ZCode доступны только в macOS, Windows и Linux."
     }
   },
   "zed": {

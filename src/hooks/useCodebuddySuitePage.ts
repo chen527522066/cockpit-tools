@@ -40,6 +40,7 @@ export interface UseCodebuddySuitePageOptions<TAccount extends CodebuddySuiteAcc
   tagFilter: string[];
   sortDirection: 'asc' | 'desc';
   getPlanBadge: (account: TAccount) => string;
+  getSearchText?: (account: TAccount) => string;
   isAbnormalAccount: (account: TAccount) => boolean;
   normalizeTag: (tag: string) => string;
   groupByTag: boolean;
@@ -71,6 +72,7 @@ export function useCodebuddySuitePage<TAccount extends CodebuddySuiteAccountBase
     tagFilter,
     sortDirection,
     getPlanBadge,
+    getSearchText,
     isAbnormalAccount,
     normalizeTag,
     groupByTag,
@@ -119,7 +121,14 @@ export function useCodebuddySuitePage<TAccount extends CodebuddySuiteAccountBase
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter((account) =>
-        [account.email, account.nickname || '', account.uid || '', account.enterprise_name || '', account.id]
+        [
+          account.email,
+          account.nickname || '',
+          account.uid || '',
+          account.enterprise_name || '',
+          account.id,
+          getSearchText?.(account) || '',
+        ]
           .some((item) => item.toLowerCase().includes(query))
       );
     }
@@ -148,7 +157,7 @@ export function useCodebuddySuitePage<TAccount extends CodebuddySuiteAccountBase
       return sortDirection === 'desc' ? diff : -diff;
     });
     return result;
-  }, [accounts, currentAccountId, searchQuery, filterTypes, isAbnormalAccount, resolvePlanKey, tagFilter, normalizeTag, sortDirection]);
+  }, [accounts, currentAccountId, searchQuery, filterTypes, getSearchText, isAbnormalAccount, resolvePlanKey, tagFilter, normalizeTag, sortDirection]);
 
   const filteredIds = useMemo(
     () => filteredAccounts.map((account) => account.id),
