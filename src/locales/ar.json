@@ -2168,7 +2168,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "إظهار حصة Code Review"
+      "showCodeReviewQuota": "إظهار حصة Code Review",
+      "showAdditionalQuota": "حصص خاصة بالنماذج"
     },
     "time": {
       "today": "اليوم {{time}}",

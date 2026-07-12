@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Zobrazit kvótu Code Review"
+      "showCodeReviewQuota": "Zobrazit kvótu Code Review",
+      "showAdditionalQuota": "Kvóty modelů"
     },
     "time": {
       "today": "Dnes {{time}}",

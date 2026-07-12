@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Hiển thị hạn mức Code Review"
+      "showCodeReviewQuota": "Hiển thị hạn mức Code Review",
+      "showAdditionalQuota": "Hạn mức theo model"
     },
     "time": {
       "today": "Hôm nay {{time}}",

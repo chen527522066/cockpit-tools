@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Code Review 配額を表示"
+      "showCodeReviewQuota": "Code Review 配額を表示",
+      "showAdditionalQuota": "モデル専用枠を表示"
     },
     "time": {
       "today": "今日 {{time}}",

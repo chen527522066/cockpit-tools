@@ -2828,7 +2828,8 @@
       "enterprise": "ENTERPRISE"
     },
     "list": {
-      "showCodeReviewQuota": "显示 Code Review 配额"
+      "showCodeReviewQuota": "显示 Code Review 配额",
+      "showAdditionalQuota": "显示模型专属配额"
     },
     "time": {
       "today": "今天 {{time}}",

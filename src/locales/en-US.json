@@ -2828,7 +2828,8 @@
       "enterprise": "ENTERPRISE"
     },
     "list": {
-      "showCodeReviewQuota": "Show Code Review quota"
+      "showCodeReviewQuota": "Show Code Review quota",
+      "showAdditionalQuota": "Show model-specific quota"
     },
     "time": {
       "today": "Today {{time}}",

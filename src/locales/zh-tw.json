@@ -2238,7 +2238,8 @@
       "enterprise": "ENTERPRISE"
     },
     "list": {
-      "showCodeReviewQuota": "顯示 Code Review 配額"
+      "showCodeReviewQuota": "顯示 Code Review 配額",
+      "showAdditionalQuota": "顯示模型專屬配額"
     },
     "time": {
       "today": "今天 {{time}}",

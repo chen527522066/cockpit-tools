@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Mostra quota Code Review"
+      "showCodeReviewQuota": "Mostra quota Code Review",
+      "showAdditionalQuota": "Quote per modello"
     },
     "time": {
       "today": "Oggi {{time}}",

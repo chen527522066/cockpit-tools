@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Mostrar cota de Code Review"
+      "showCodeReviewQuota": "Mostrar cota de Code Review",
+      "showAdditionalQuota": "Cotas por modelo"
     },
     "time": {
       "today": "Hoje {{time}}",

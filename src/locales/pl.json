@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Pokaż limit Code Review"
+      "showCodeReviewQuota": "Pokaż limit Code Review",
+      "showAdditionalQuota": "Limity modeli"
     },
     "time": {
       "today": "Dzisiaj {{time}}",

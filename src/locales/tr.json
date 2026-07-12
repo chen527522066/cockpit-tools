@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Code Review kotasını göster"
+      "showCodeReviewQuota": "Code Review kotasını göster",
+      "showAdditionalQuota": "Modele özel kotalar"
     },
     "time": {
       "today": "Bugün {{time}}",

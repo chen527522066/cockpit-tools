@@ -2121,7 +2121,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Code-Review-Kontingent anzeigen"
+      "showCodeReviewQuota": "Code-Review-Kontingent anzeigen",
+      "showAdditionalQuota": "Modellspezifische Kontingente"
     },
     "time": {
       "today": "Heute {{time}}",

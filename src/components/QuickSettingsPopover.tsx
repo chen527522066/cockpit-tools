@@ -2739,7 +2739,7 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
                 <div className="qs-row">
                   <div className="qs-row-label">
                     <Zap size={15} />
-                    <span>{t('codex.list.showAdditionalQuota', '显示模型专属配额（如 GPT-5.3）')}</span>
+                    <span>{t('codex.list.showAdditionalQuota', '显示模型专属配额')}</span>
                   </div>
                   <div className="qs-row-control">
                     <label className="qs-switch">

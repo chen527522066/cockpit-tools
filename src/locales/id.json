@@ -2296,7 +2296,8 @@
       "enterprise": "ENTERPRISE​"
     },
     "list": {
-      "showCodeReviewQuota": "Tampilkan kuota Code Review"
+      "showCodeReviewQuota": "Tampilkan kuota Code Review",
+      "showAdditionalQuota": "Kuota khusus model"
     },
     "time": {
       "today": "Hari ini {{time}}",
