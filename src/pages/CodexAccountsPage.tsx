@@ -171,7 +171,9 @@ import {
   type InstanceProfile,
 } from "../types/instance";
 import {
+  CODEX_ADDITIONAL_QUOTA_VISIBILITY_CHANGED_EVENT,
   CODEX_CODE_REVIEW_QUOTA_VISIBILITY_CHANGED_EVENT,
+  isCodexAdditionalQuotaVisibleByDefault,
   isCodexCodeReviewQuotaVisibleByDefault,
 } from "../utils/codexPreferences";
 import { emitAccountsChanged } from "../utils/accountSyncEvents";
@@ -3458,6 +3460,9 @@ export function CodexAccountsPage() {
   const [showCodeReviewQuota, setShowCodeReviewQuota] = useState<boolean>(
     isCodexCodeReviewQuotaVisibleByDefault,
   );
+  const [showAdditionalQuota, setShowAdditionalQuota] = useState<boolean>(
+    isCodexAdditionalQuotaVisibleByDefault,
+  );
   const [customSortOrder, setCustomSortOrder] = useState<string[]>(
     readCodexCustomSortOrder,
   );
@@ -4108,15 +4113,26 @@ export function CodexAccountsPage() {
     const syncCodeReviewVisibility = () => {
       setShowCodeReviewQuota(isCodexCodeReviewQuotaVisibleByDefault());
     };
+    const syncAdditionalQuotaVisibility = () => {
+      setShowAdditionalQuota(isCodexAdditionalQuotaVisibleByDefault());
+    };
 
     window.addEventListener(
       CODEX_CODE_REVIEW_QUOTA_VISIBILITY_CHANGED_EVENT,
       syncCodeReviewVisibility as EventListener,
     );
+    window.addEventListener(
+      CODEX_ADDITIONAL_QUOTA_VISIBILITY_CHANGED_EVENT,
+      syncAdditionalQuotaVisibility as EventListener,
+    );
     return () => {
       window.removeEventListener(
         CODEX_CODE_REVIEW_QUOTA_VISIBILITY_CHANGED_EVENT,
         syncCodeReviewVisibility as EventListener,
+      );
+      window.removeEventListener(
+        CODEX_ADDITIONAL_QUOTA_VISIBILITY_CHANGED_EVENT,
+        syncAdditionalQuotaVisibility as EventListener,
       );
     };
   }, []);
@@ -9118,6 +9134,24 @@ export function CodexAccountsPage() {
       ? t("accounts.defaultGroup", "默认分组")
       : groupKey;
 
+  const resolveVisibleQuotaItems = useCallback(
+    (
+      presentation: ReturnType<typeof buildCodexAccountPresentation>,
+      isApiKeyAccount: boolean,
+      isNewApiAccount: boolean,
+    ) => {
+      if (isApiKeyAccount && !isNewApiAccount) return [];
+      return presentation.quotaItems.filter((item) => {
+        if (!showCodeReviewQuota && item.key === "code_review") return false;
+        if (!showAdditionalQuota && item.key.startsWith("additional:")) {
+          return false;
+        }
+        return true;
+      });
+    },
+    [showAdditionalQuota, showCodeReviewQuota],
+  );
+
   const resolveCompactQuotaItems = useCallback(
     (presentation: ReturnType<typeof buildCodexAccountPresentation>) => {
       const standardQuotaItems = presentation.quotaItems.filter(
@@ -9315,14 +9349,11 @@ export function CodexAccountsPage() {
       const isSavingApiKeyName = savingApiKeyNameId === account.id;
       const planClass = presentation.planClass || "unknown";
       const isSelected = selected.has(account.id);
-      const quotaItems =
-        isApiKeyAccount && !isNewApiAccount
-          ? []
-          : showCodeReviewQuota
-            ? presentation.quotaItems
-            : presentation.quotaItems.filter(
-                (item) => item.key !== "code_review",
-              );
+      const quotaItems = resolveVisibleQuotaItems(
+        presentation,
+        isApiKeyAccount,
+        isNewApiAccount,
+      );
       const reauthErrorMeta = resolveQuotaErrorMeta(
         account.requires_reauth && account.reauth_reason
           ? {
@@ -10738,14 +10769,11 @@ export function CodexAccountsPage() {
         isApiKeyAccount && editingApiKeyNameId === account.id;
       const isSavingApiKeyName = savingApiKeyNameId === account.id;
       const planClass = presentation.planClass || "unknown";
-      const quotaItems =
-        isApiKeyAccount && !isNewApiAccount
-          ? []
-          : showCodeReviewQuota
-            ? presentation.quotaItems
-            : presentation.quotaItems.filter(
-                (item) => item.key !== "code_review",
-              );
+      const quotaItems = resolveVisibleQuotaItems(
+        presentation,
+        isApiKeyAccount,
+        isNewApiAccount,
+      );
       const reauthErrorMeta = resolveQuotaErrorMeta(
         account.requires_reauth && account.reauth_reason
           ? {

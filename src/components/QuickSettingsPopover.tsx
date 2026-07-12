@@ -23,7 +23,9 @@ import {
 } from '../utils/accountFilters';
 import { getSubscriptionTier } from '../utils/account';
 import {
+  isCodexAdditionalQuotaVisibleByDefault,
   isCodexCodeReviewQuotaVisibleByDefault,
+  persistCodexAdditionalQuotaVisible,
   persistCodexCodeReviewQuotaVisible,
 } from '../utils/codexPreferences';
 import {
@@ -490,6 +492,9 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
   const [codexAccountGroups, setCodexAccountGroups] = useState<CodexAccountGroup[]>([]);
   const [codexShowCodeReviewQuota, setCodexShowCodeReviewQuota] = useState(
     isCodexCodeReviewQuotaVisibleByDefault,
+  );
+  const [codexShowAdditionalQuota, setCodexShowAdditionalQuota] = useState(
+    isCodexAdditionalQuotaVisibleByDefault,
   );
   const [currentAccountRefreshMap, setCurrentAccountRefreshMap] =
     useState<CurrentAccountRefreshMinutesMap>(() => buildDefaultCurrentAccountRefreshMinutesMap());
@@ -1915,6 +1920,11 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
     persistCodexCodeReviewQuotaVisible(checked);
   };
 
+  const handleCodexAdditionalQuotaToggle = (checked: boolean) => {
+    setCodexShowAdditionalQuota(checked);
+    persistCodexAdditionalQuotaVisible(checked);
+  };
+
   const overlayContent = isOpen ? (
     <div className="qs-overlay">
       <div className="qs-modal" ref={modalRef}>
@@ -2720,6 +2730,23 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
                         type="checkbox"
                         checked={codexShowCodeReviewQuota}
                         onChange={(e) => handleCodexCodeReviewQuotaToggle(e.target.checked)}
+                      />
+                      <span className="qs-switch-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="qs-row">
+                  <div className="qs-row-label">
+                    <Zap size={15} />
+                    <span>{t('codex.list.showAdditionalQuota', '显示模型专属配额（如 GPT-5.3）')}</span>
+                  </div>
+                  <div className="qs-row-control">
+                    <label className="qs-switch">
+                      <input
+                        type="checkbox"
+                        checked={codexShowAdditionalQuota}
+                        onChange={(e) => handleCodexAdditionalQuotaToggle(e.target.checked)}
                       />
                       <span className="qs-switch-slider"></span>
                     </label>
