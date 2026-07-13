@@ -1164,7 +1164,9 @@
       "antigravityLaunchOnSwitch": "切换时启动 Antigravity",
       "antigravityLaunchOnSwitchDesc": "关闭后切号只写入 Antigravity 默认账号数据，不会关闭、启动或重启应用。",
       "tokenKeeper": "后台授权保活",
-      "tokenKeeperDesc": "仅在授权快过期时分批刷新账号 Token，降低大量账号场景下的后台请求压力。"
+      "tokenKeeperDesc": "仅在授权快过期时分批刷新账号 Token，降低大量账号场景下的后台请求压力。",
+      "autoImportFromLocal": "本机账号自动导入",
+      "autoImportFromLocalDesc": "开启后，当你在官方客户端更换登录账号时，Cockpit Tools 会自动将新账号导入到对应平台列表中。"
     },
     "network": {
       "apiTitle": "反重力驾驶舱 API",

@@ -349,6 +349,7 @@ pub fn run() {
             }
 
             modules::provider_token_keeper::ensure_started(app.handle().clone());
+            modules::auto_local_import::ensure_started(app.handle().clone());
             modules::wakeup_scheduler::restore_state_from_disk();
             modules::wakeup_scheduler::ensure_started(app.handle().clone());
             modules::codex_wakeup_scheduler::ensure_started(app.handle().clone());

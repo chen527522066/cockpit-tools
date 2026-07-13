@@ -133,6 +133,8 @@ pub struct GeneralConfig {
     pub app_auto_launch_enabled: bool,
     /// 是否启用后台账号授权保活
     pub token_keeper_enabled: bool,
+    /// 是否启用本机账号变更后自动导入
+    pub auto_import_from_local_enabled: bool,
     /// 是否在应用启动后触发 Antigravity IDE 唤醒
     pub antigravity_startup_wakeup_enabled: bool,
     /// Antigravity IDE 启动后唤醒延时（秒）
@@ -1042,6 +1044,7 @@ fn is_general_config_patch_field(key: &str) -> bool {
             | "floating_card_always_on_top"
             | "app_auto_launch_enabled"
             | "token_keeper_enabled"
+            | "auto_import_from_local_enabled"
             | "antigravity_startup_wakeup_enabled"
             | "antigravity_startup_wakeup_delay_seconds"
             | "codex_startup_wakeup_enabled"
@@ -2476,6 +2479,7 @@ pub fn get_general_config(app: tauri::AppHandle) -> Result<GeneralConfig, String
         floating_card_always_on_top: user_config.floating_card_always_on_top,
         app_auto_launch_enabled,
         token_keeper_enabled: user_config.token_keeper_enabled,
+        auto_import_from_local_enabled: user_config.auto_import_from_local_enabled,
         antigravity_startup_wakeup_enabled: user_config.antigravity_startup_wakeup_enabled,
         antigravity_startup_wakeup_delay_seconds: sanitize_startup_wakeup_delay_seconds(
             user_config.antigravity_startup_wakeup_delay_seconds,
@@ -2638,6 +2642,7 @@ pub fn patch_general_config(
 
     let mut language_changed = false;
     let mut token_keeper_enabled_changed = false;
+    let mut auto_import_from_local_enabled_changed = false;
     let mut floating_always_on_top_changed = false;
     #[cfg(target_os = "macos")]
     let mut hide_dock_icon_changed = false;
@@ -2647,6 +2652,7 @@ pub fn patch_general_config(
     let patch_result = config::patch_user_config(|current| {
         let previous_language = current.language.clone();
         let previous_token_keeper_enabled = current.token_keeper_enabled;
+        let previous_auto_import_from_local_enabled = current.auto_import_from_local_enabled;
         let previous_floating_always_on_top = current.floating_card_always_on_top;
         #[cfg(target_os = "macos")]
         let previous_hide_dock_icon = current.hide_dock_icon;
@@ -2658,6 +2664,8 @@ pub fn patch_general_config(
         language_changed = previous_language != current.language;
         token_keeper_enabled_changed =
             previous_token_keeper_enabled != current.token_keeper_enabled;
+        auto_import_from_local_enabled_changed = previous_auto_import_from_local_enabled
+            != current.auto_import_from_local_enabled;
         floating_always_on_top_changed =
             previous_floating_always_on_top != current.floating_card_always_on_top;
         #[cfg(target_os = "macos")]
@@ -2689,6 +2697,12 @@ pub fn patch_general_config(
         modules::provider_token_keeper::notify_config_changed(
             app.clone(),
             new_config.token_keeper_enabled,
+        );
+    }
+
+    if auto_import_from_local_enabled_changed {
+        modules::auto_local_import::notify_config_changed(
+            new_config.auto_import_from_local_enabled,
         );
     }
 
@@ -2763,6 +2777,7 @@ pub fn save_general_config(
     floating_card_always_on_top: Option<bool>,
     app_auto_launch_enabled: Option<bool>,
     token_keeper_enabled: Option<bool>,
+    auto_import_from_local_enabled: Option<bool>,
     antigravity_startup_wakeup_enabled: Option<bool>,
     antigravity_startup_wakeup_delay_seconds: Option<i32>,
     codex_startup_wakeup_enabled: Option<bool>,
@@ -2904,6 +2919,7 @@ pub fn save_general_config(
 
     let mut language_changed = false;
     let mut token_keeper_enabled_changed = false;
+    let mut auto_import_from_local_enabled_changed = false;
     let mut current_app_auto_launch_enabled = false;
     #[cfg(target_os = "macos")]
     let mut hide_dock_icon_changed = false;
@@ -2914,6 +2930,9 @@ pub fn save_general_config(
         language_changed = current.language != normalized_language;
         token_keeper_enabled_changed = token_keeper_enabled
             .map(|enabled| current.token_keeper_enabled != enabled)
+            .unwrap_or(false);
+        auto_import_from_local_enabled_changed = auto_import_from_local_enabled
+            .map(|enabled| current.auto_import_from_local_enabled != enabled)
             .unwrap_or(false);
         current_app_auto_launch_enabled = current.app_auto_launch_enabled;
         #[cfg(target_os = "macos")]
@@ -3020,6 +3039,9 @@ pub fn save_general_config(
         }
         if let Some(value) = token_keeper_enabled {
             current.token_keeper_enabled = value;
+        }
+        if let Some(value) = auto_import_from_local_enabled {
+            current.auto_import_from_local_enabled = value;
         }
         if let Some(value) = antigravity_startup_wakeup_enabled {
             current.antigravity_startup_wakeup_enabled = value;
@@ -3311,6 +3333,12 @@ pub fn save_general_config(
         modules::provider_token_keeper::notify_config_changed(
             app.clone(),
             new_config.token_keeper_enabled,
+        );
+    }
+
+    if auto_import_from_local_enabled_changed {
+        modules::auto_local_import::notify_config_changed(
+            new_config.auto_import_from_local_enabled,
         );
     }
 

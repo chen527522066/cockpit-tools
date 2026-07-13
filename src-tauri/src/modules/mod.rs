@@ -1,4 +1,5 @@
 pub mod account;
+pub mod auto_local_import;
 pub mod account_index_repair;
 pub mod announcement;
 pub mod antigravity_credential;

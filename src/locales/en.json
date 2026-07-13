@@ -1164,7 +1164,9 @@
       "antigravityLaunchOnSwitch": "Launch Antigravity on switch",
       "antigravityLaunchOnSwitchDesc": "When off, switching only writes the default Antigravity account data and will not close, launch, or restart the app.",
       "tokenKeeper": "Auth keep-alive",
-      "tokenKeeperDesc": "Refresh account tokens in small batches only when authorization is close to expiry, reducing background request pressure for large account sets."
+      "tokenKeeperDesc": "Refresh account tokens in small batches only when authorization is close to expiry, reducing background request pressure for large account sets.",
+      "autoImportFromLocal": "Auto-import local accounts",
+      "autoImportFromLocalDesc": "When enabled, Cockpit Tools automatically imports a new account into the matching platform list after you sign in with a different account in the official client."
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
