@@ -7058,7 +7058,7 @@ func (f *responsesSSEFramer) WriteChunk(w io.Writer, chunk []byte) error {
 		if frameLen == 0 {
 			break
 		}
-		if err := writeResponsesSSEChunk(w, f.pending[:frameLen]); err != nil {
+		if err := writeResponsesSSEFrame(w, f.pending[:frameLen]); err != nil {
 			return err
 		}
 		copy(f.pending, f.pending[frameLen:])
@@ -7071,7 +7071,7 @@ func (f *responsesSSEFramer) WriteChunk(w io.Writer, chunk []byte) error {
 	if !responsesSSECanEmitWithoutDelimiter(f.pending) {
 		return nil
 	}
-	if err := writeResponsesSSEChunk(w, f.pending); err != nil {
+	if err := writeResponsesSSEFrame(w, f.pending); err != nil {
 		return err
 	}
 	f.pending = f.pending[:0]
@@ -7090,10 +7090,82 @@ func (f *responsesSSEFramer) Flush(w io.Writer) error {
 		f.pending = f.pending[:0]
 		return nil
 	}
-	if err := writeResponsesSSEChunk(w, f.pending); err != nil {
+	if err := writeResponsesSSEFrame(w, f.pending); err != nil {
 		return err
 	}
 	f.pending = f.pending[:0]
+	return nil
+}
+
+const (
+	maxResponsesConcatenatedJSONDocuments = 16
+	maxResponsesConcatenatedJSONBytes     = 16 * 1024 * 1024
+)
+
+func splitResponsesConcatenatedJSONDocuments(payload []byte) ([][]byte, bool) {
+	payload = bytes.TrimSpace(payload)
+	if len(payload) == 0 || len(payload) > maxResponsesConcatenatedJSONBytes || json.Valid(payload) {
+		return nil, false
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	documents := make([][]byte, 0, 2)
+	for {
+		var raw json.RawMessage
+		err := decoder.Decode(&raw)
+		if err != nil {
+			if errors.Is(err, io.EOF) && len(documents) > 1 {
+				return documents, true
+			}
+			return nil, false
+		}
+
+		raw = bytes.TrimSpace(raw)
+		var envelope struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(raw, &envelope); err != nil {
+			return nil, false
+		}
+		eventType := strings.TrimSpace(envelope.Type)
+		if eventType == "" || strings.ContainsAny(eventType, "\r\n") {
+			return nil, false
+		}
+		if len(documents) == maxResponsesConcatenatedJSONDocuments {
+			return nil, false
+		}
+		documents = append(documents, bytes.Clone(raw))
+	}
+}
+
+func writeResponsesSSEFrame(w io.Writer, chunk []byte) error {
+	payload, ok := responsesSSEDataPayload(chunk)
+	if !ok {
+		return writeResponsesSSEChunk(w, chunk)
+	}
+	documents, repaired := splitResponsesConcatenatedJSONDocuments(payload)
+	if !repaired {
+		return writeResponsesSSEChunk(w, chunk)
+	}
+
+	for _, document := range documents {
+		var envelope struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(document, &envelope); err != nil {
+			return err
+		}
+		frame := make([]byte, 0, len(document)+len(envelope.Type)+17)
+		frame = append(frame, "event: "...)
+		frame = append(frame, strings.TrimSpace(envelope.Type)...)
+		frame = append(frame, '\n')
+		frame = append(frame, "data: "...)
+		frame = append(frame, document...)
+		frame = append(frame, '\n', '\n')
+		if err := writeResponsesSSEChunk(w, frame); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -7164,7 +7236,11 @@ func responsesSSECanEmitWithoutDelimiter(chunk []byte) bool {
 		if bytes.Equal(bytes.TrimSpace(payload), []byte("[DONE]")) {
 			return true
 		}
-		return json.Valid(payload)
+		if json.Valid(payload) {
+			return true
+		}
+		_, repaired := splitResponsesConcatenatedJSONDocuments(payload)
+		return repaired
 	}
 	return isSSEFieldChunk(trimmed)
 }

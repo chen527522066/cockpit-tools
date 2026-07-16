@@ -51,6 +51,73 @@ func TestResponsesSSEFramerBuffersPartialJSONAcrossChunks(t *testing.T) {
 	}
 }
 
+func TestResponsesSSEFramerRepairsConcatenatedJSONDocuments(t *testing.T) {
+	first := `{"type":"response.in_progress","response":{"id":"resp_1"}}`
+	second := `{"type":"response.output_item.added","output_index":0,"item":{"type":"message"}}`
+
+	tests := []struct {
+		name  string
+		chunk string
+	}{
+		{
+			name:  "plain JSON chunk",
+			chunk: first + second,
+		},
+		{
+			name:  "SSE data line",
+			chunk: "event: response.in_progress\ndata: " + first + second + "\n\n",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			framer := newRelayStreamFramer(sdktranslator.FormatOpenAIResponse, "/v1/responses")
+			var output strings.Builder
+			if err := framer.Write(&output, []byte(tc.chunk)); err != nil {
+				t.Fatalf("write concatenated chunk: %v", err)
+			}
+			if err := framer.Close(&output); err != nil {
+				t.Fatalf("close framer: %v", err)
+			}
+
+			frames := strings.Split(strings.TrimSpace(output.String()), "\n\n")
+			wantTypes := []string{"response.in_progress", "response.output_item.added"}
+			if len(frames) != len(wantTypes) {
+				t.Fatalf("frame count = %d, want %d; output=%q", len(frames), len(wantTypes), output.String())
+			}
+			for i, frame := range frames {
+				lines := strings.Split(frame, "\n")
+				if len(lines) != 2 {
+					t.Fatalf("frame %d lines = %d, want 2; frame=%q", i, len(lines), frame)
+				}
+				if got := strings.TrimSpace(strings.TrimPrefix(lines[0], "event:")); got != wantTypes[i] {
+					t.Fatalf("frame %d event = %q, want %q", i, got, wantTypes[i])
+				}
+				data := strings.TrimSpace(strings.TrimPrefix(lines[1], "data:"))
+				if !json.Valid([]byte(data)) {
+					t.Fatalf("frame %d data is invalid JSON: %q", i, data)
+				}
+				var envelope struct {
+					Type string `json:"type"`
+				}
+				if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+					t.Fatalf("decode frame %d: %v", i, err)
+				}
+				if envelope.Type != wantTypes[i] {
+					t.Fatalf("frame %d payload type = %q, want %q", i, envelope.Type, wantTypes[i])
+				}
+			}
+		})
+	}
+}
+
+func TestSplitResponsesConcatenatedJSONDocumentsRejectsMalformedPayload(t *testing.T) {
+	payload := []byte(`{"type":"response.in_progress"}{"missing_type":true}`)
+	if documents, repaired := splitResponsesConcatenatedJSONDocuments(payload); repaired || documents != nil {
+		t.Fatalf("malformed payload should not be repaired: %#v", documents)
+	}
+}
+
 func TestCodexClientModelsResponseShape(t *testing.T) {
 	response := buildCodexClientModelsResponse([]string{"gpt-5.4", "gpt-image-2", codexAutoReviewModel}, &apiKeySpec{})
 	models, ok := response["models"].([]map[string]any)
