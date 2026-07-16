@@ -3372,6 +3372,7 @@
         "optionsTitle": "خيارات التوجيه",
         "sessionAffinity": "تثبيت الجلسة",
         "sessionAffinityTtl": "TTL للتثبيت",
+        "responsesWebsockets": "استجابات WebSocket",
         "maxRetryCredentials": "حسابات retry",
         "maxRetryInterval": "انتظار retry",
         "disableCooling": "تعطيل cooldown",

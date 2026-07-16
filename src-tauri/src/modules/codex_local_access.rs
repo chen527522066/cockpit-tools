@@ -9446,6 +9446,7 @@ fn sidecar_api_key_manifest_values(collection: &CodexLocalAccessCollection) -> V
             "key": collection.api_key.trim(),
             "enabled": true,
             "accountIds": collection.account_ids.clone(),
+            "responsesWebsockets": collection.responses_websockets_enabled,
             "allowedModels": [],
             "excludedModels": [],
         }));
@@ -9463,6 +9464,8 @@ fn sidecar_api_key_manifest_values(collection: &CodexLocalAccessCollection) -> V
             "label": item.label.clone(),
             "key": item.key.trim(),
             "providerGateway": item.provider_gateway.clone(),
+            "responsesWebsockets": collection.responses_websockets_enabled
+                && item.provider_gateway.is_none(),
             "accountIds": account_ids,
             "modelPrefix": item.model_prefix.clone(),
             "allowedModels": item.allowed_models.clone(),
@@ -9755,8 +9758,7 @@ fn sidecar_auth_json_for_account(
         "plan_type": account.plan_type.clone(),
         "excluded_models": excluded_models,
         "disable_cooling": collection.disable_cooling,
-        // Enable upstream Codex Responses WebSocket executor for OAuth accounts.
-        "websockets": true,
+        "websockets": collection.responses_websockets_enabled,
     });
     if account_is_access_token_only(account) {
         value["auth_mode"] = json!("personal_access_token");
@@ -11354,17 +11356,29 @@ fn profile_api_key_supports_websockets(
     collection: &CodexLocalAccessCollection,
     api_key: &str,
 ) -> bool {
-    collection
-        .api_keys
-        .iter()
-        .find(|item| item.enabled && item.key.trim() == api_key.trim())
-        .map(|item| item.provider_gateway.is_none())
-        .unwrap_or(true)
+    collection.responses_websockets_enabled
+        && collection
+            .api_keys
+            .iter()
+            .find(|item| item.enabled && item.key.trim() == api_key.trim())
+            .map(|item| item.provider_gateway.is_none())
+            .unwrap_or(true)
 }
 
-fn write_local_access_profile_model_catalog(profile_dir: &Path) -> Result<(), String> {
-    let client_models =
+fn write_local_access_profile_model_catalog(
+    profile_dir: &Path,
+    supports_websockets: bool,
+) -> Result<(), String> {
+    let mut client_models =
         codex_protocol::build_codex_client_models_response(&supported_codex_model_ids());
+    if let Some(models) = client_models
+        .get_mut("models")
+        .and_then(Value::as_array_mut)
+    {
+        for model in models {
+            model["prefer_websockets"] = json!(supports_websockets);
+        }
+    }
     let catalog = json!({
         "models": client_models
             .get("models")
@@ -11409,14 +11423,15 @@ async fn write_local_access_profile_takeover(
         .filter(|value| !value.is_empty())
         .map(str::to_string)
         .unwrap_or_else(|| collection.api_key.clone());
+    let supports_websockets = profile_api_key_supports_websockets(collection, &runtime_api_key);
     let runtime_account = build_runtime_account(
         build_collection_base_url(collection),
         runtime_api_key.clone(),
         bound_oauth_account_id,
-        profile_api_key_supports_websockets(collection, &runtime_api_key),
+        supports_websockets,
     );
     codex_account::write_account_bundle_to_dir(profile_dir, &runtime_account)?;
-    write_local_access_profile_model_catalog(profile_dir)
+    write_local_access_profile_model_catalog(profile_dir, supports_websockets)
 }
 
 fn push_local_access_takeover_dir(
@@ -13459,6 +13474,7 @@ async fn ensure_runtime_loaded_without_start_with_profile_restore(
                 session_affinity: true,
                 session_affinity_ttl_ms: DEFAULT_SESSION_AFFINITY_TTL_MS,
                 session_affinity_default_enabled_migrated: true,
+                responses_websockets_enabled: false,
                 max_retry_credentials: 0,
                 max_retry_interval_ms: DEFAULT_MAX_RETRY_INTERVAL_MS,
                 timeouts: CodexLocalAccessTimeouts::default(),
@@ -14753,6 +14769,7 @@ fn new_empty_local_access_collection() -> Result<CodexLocalAccessCollection, Str
         session_affinity: true,
         session_affinity_ttl_ms: DEFAULT_SESSION_AFFINITY_TTL_MS,
         session_affinity_default_enabled_migrated: true,
+        responses_websockets_enabled: false,
         max_retry_credentials: 0,
         max_retry_interval_ms: DEFAULT_MAX_RETRY_INTERVAL_MS,
         timeouts: CodexLocalAccessTimeouts::default(),
@@ -17392,6 +17409,7 @@ fn new_local_access_collection() -> Result<CodexLocalAccessCollection, String> {
         session_affinity: true,
         session_affinity_ttl_ms: DEFAULT_SESSION_AFFINITY_TTL_MS,
         session_affinity_default_enabled_migrated: true,
+        responses_websockets_enabled: false,
         max_retry_credentials: 0,
         max_retry_interval_ms: DEFAULT_MAX_RETRY_INTERVAL_MS,
         timeouts: CodexLocalAccessTimeouts::default(),
@@ -17830,6 +17848,7 @@ pub async fn reprice_local_access_request_logs() -> Result<CodexLocalAccessState
 pub async fn update_local_access_routing_options(
     session_affinity: bool,
     session_affinity_ttl_ms: i64,
+    responses_websockets_enabled: bool,
     max_retry_credentials: u16,
     max_retry_interval_ms: u64,
     disable_cooling: bool,
@@ -17847,10 +17866,13 @@ pub async fn update_local_access_routing_options(
         return Err("本地接入集合尚未创建".to_string());
     };
 
+    let responses_websockets_changed =
+        collection.responses_websockets_enabled != responses_websockets_enabled;
     collection.session_affinity = session_affinity;
     collection.session_affinity_default_enabled_migrated = true;
     collection.session_affinity_ttl_ms =
         session_affinity_ttl_ms.clamp(SESSION_AFFINITY_TTL_MIN_MS, SESSION_AFFINITY_TTL_MAX_MS);
+    collection.responses_websockets_enabled = responses_websockets_enabled;
     collection.max_retry_credentials =
         max_retry_credentials.min(MAX_RETRY_CREDENTIALS_PER_REQUEST as u16);
     collection.max_retry_interval_ms =
@@ -17868,6 +17890,9 @@ pub async fn update_local_access_routing_options(
     }
 
     ensure_gateway_matches_runtime().await?;
+    if responses_websockets_changed {
+        ensure_local_access_profile_takeovers_from_runtime().await?;
+    }
     snapshot_state().await
 }
 
@@ -23673,6 +23698,7 @@ mod tests {
             session_affinity: true,
             session_affinity_ttl_ms: DEFAULT_SESSION_AFFINITY_TTL_MS,
             session_affinity_default_enabled_migrated: true,
+            responses_websockets_enabled: false,
             max_retry_credentials: 0,
             max_retry_interval_ms: DEFAULT_MAX_RETRY_INTERVAL_MS,
             timeouts: CodexLocalAccessTimeouts::default(),
@@ -23689,6 +23715,20 @@ mod tests {
             created_at: 0,
             updated_at: 0,
         }
+    }
+
+    #[test]
+    fn legacy_collection_defaults_responses_websockets_to_disabled() {
+        let mut legacy = serde_json::to_value(test_local_access_collection(Vec::new()))
+            .expect("serialize collection");
+        legacy
+            .as_object_mut()
+            .expect("collection should serialize as an object")
+            .remove("responsesWebsocketsEnabled");
+
+        let collection: CodexLocalAccessCollection =
+            serde_json::from_value(legacy).expect("deserialize legacy collection");
+        assert!(!collection.responses_websockets_enabled);
     }
 
     fn test_oauth_account_with_quota(
@@ -23758,6 +23798,20 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(account_ids, vec!["account-b", "account-c"]);
+        assert_eq!(
+            scoped.get("responsesWebsockets").and_then(Value::as_bool),
+            Some(false)
+        );
+
+        collection.responses_websockets_enabled = true;
+        let enabled = sidecar_api_key_manifest_values(&collection)
+            .into_iter()
+            .find(|value| value.get("key").and_then(Value::as_str) == Some("team-a-key"))
+            .expect("scoped key should still be emitted");
+        assert_eq!(
+            enabled.get("responsesWebsockets").and_then(Value::as_bool),
+            Some(true)
+        );
     }
 
     #[test]
@@ -25171,7 +25225,7 @@ wire_api = "responses"
                 refresh_token: Some("refresh-token".to_string()),
             },
         );
-        let collection = test_local_access_collection(vec![account.id.clone()]);
+        let mut collection = test_local_access_collection(vec![account.id.clone()]);
 
         let auth_json = sidecar_auth_json_for_account(&account, &collection, None);
 
@@ -25188,6 +25242,13 @@ wire_api = "responses"
         );
         assert_eq!(
             auth_json.get("websockets").and_then(Value::as_bool),
+            Some(false)
+        );
+
+        collection.responses_websockets_enabled = true;
+        let enabled_auth_json = sidecar_auth_json_for_account(&account, &collection, None);
+        assert_eq!(
+            enabled_auth_json.get("websockets").and_then(Value::as_bool),
             Some(true)
         );
     }
@@ -25234,6 +25295,15 @@ wire_api = "responses"
             last_used_at: None,
         });
 
+        assert!(!profile_api_key_supports_websockets(
+            &collection,
+            "deepseek-local-key"
+        ));
+        assert!(!profile_api_key_supports_websockets(
+            &collection,
+            &collection.api_key
+        ));
+        collection.responses_websockets_enabled = true;
         assert!(!profile_api_key_supports_websockets(
             &collection,
             "deepseek-local-key"
@@ -29292,7 +29362,11 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
             .expect("Spark should be present in the local access model catalog");
         assert_eq!(
             spark.get("display_name").and_then(Value::as_str),
-            Some("GPT-5.3 Codex Spark")
+            Some("GPT-5.3-Codex-Spark")
+        );
+        assert_eq!(
+            spark.get("prefer_websockets").and_then(Value::as_bool),
+            Some(false)
         );
         assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE).exists());
 

@@ -3548,6 +3548,7 @@
         "optionsTitle": "Routing Options",
         "sessionAffinity": "Session Affinity",
         "sessionAffinityTtl": "Affinity TTL",
+        "responsesWebsockets": "Responses WebSocket",
         "maxRetryCredentials": "Retry Accounts",
         "maxRetryInterval": "Retry Wait",
         "disableCooling": "Disable Cooldown",

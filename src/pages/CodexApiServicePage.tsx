@@ -790,6 +790,8 @@ export function CodexApiServicePage() {
   const [sessionAffinityDraft, setSessionAffinityDraft] = useState(true);
   const [sessionAffinityTtlDraft, setSessionAffinityTtlDraft] =
     useState("3600");
+  const [responsesWebsocketsEnabledDraft, setResponsesWebsocketsEnabledDraft] =
+    useState(false);
   const [maxRetryCredentialsDraft, setMaxRetryCredentialsDraft] = useState("0");
   const [maxRetryIntervalDraft, setMaxRetryIntervalDraft] = useState("3");
   const [disableCoolingDraft, setDisableCoolingDraft] = useState(false);
@@ -1477,6 +1479,9 @@ export function CodexApiServicePage() {
     setSessionAffinityTtlDraft(
       formatSeconds(collection?.sessionAffinityTtlMs ?? 3600000),
     );
+    setResponsesWebsocketsEnabledDraft(
+      collection?.responsesWebsocketsEnabled ?? false,
+    );
     setMaxRetryCredentialsDraft(String(collection?.maxRetryCredentials ?? 0));
     setMaxRetryIntervalDraft(
       formatSeconds(collection?.maxRetryIntervalMs ?? 3000),
@@ -1496,6 +1501,7 @@ export function CodexApiServicePage() {
     collection?.accountModelRules,
     collection?.sessionAffinity,
     collection?.sessionAffinityTtlMs,
+    collection?.responsesWebsocketsEnabled,
     collection?.maxRetryCredentials,
     collection?.maxRetryIntervalMs,
     collection?.disableCooling,
@@ -2629,6 +2635,7 @@ export function CodexApiServicePage() {
           await codexLocalAccessService.updateCodexLocalAccessRoutingOptions({
             sessionAffinity: sessionAffinityDraft,
             sessionAffinityTtlMs: ttlSeconds * 1000,
+            responsesWebsocketsEnabled: responsesWebsocketsEnabledDraft,
             maxRetryCredentials,
             maxRetryIntervalMs: maxRetryIntervalSeconds * 1000,
             disableCooling: disableCoolingDraft,
@@ -4629,6 +4636,22 @@ export function CodexApiServicePage() {
                       setSessionAffinityTtlDraft(event.target.value)
                     }
                     disabled={busy || !collection}
+                  />
+                </label>
+                <label>
+                  <span>
+                    {t(
+                      "codex.apiService.routing.responsesWebsockets",
+                      "Responses WebSocket",
+                    )}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={responsesWebsocketsEnabledDraft}
+                    onChange={(event) =>
+                      setResponsesWebsocketsEnabledDraft(event.target.checked)
+                    }
+                    disabled={busy || !collection || gatewayMode !== "sidecar"}
                   />
                 </label>
                 <label>

@@ -156,6 +156,7 @@ export async function repriceCodexLocalAccessRequestLogs(): Promise<CodexLocalAc
 export async function updateCodexLocalAccessRoutingOptions(payload: {
   sessionAffinity: boolean;
   sessionAffinityTtlMs: number;
+  responsesWebsocketsEnabled: boolean;
   maxRetryCredentials: number;
   maxRetryIntervalMs: number;
   disableCooling: boolean;

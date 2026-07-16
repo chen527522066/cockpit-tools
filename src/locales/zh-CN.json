@@ -3548,6 +3548,7 @@
         "optionsTitle": "调度选项",
         "sessionAffinity": "会话亲和",
         "sessionAffinityTtl": "亲和 TTL",
+        "responsesWebsockets": "WebSocket 响应传输",
         "maxRetryCredentials": "重试账号数",
         "maxRetryInterval": "重试等待",
         "disableCooling": "禁用冷却",

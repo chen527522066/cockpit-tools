@@ -478,6 +478,8 @@ pub struct CodexLocalAccessCollection {
     #[serde(default)]
     pub session_affinity_default_enabled_migrated: bool,
     #[serde(default)]
+    pub responses_websockets_enabled: bool,
+    #[serde(default)]
     pub max_retry_credentials: u16,
     #[serde(default = "default_max_retry_interval_ms")]
     pub max_retry_interval_ms: u64,

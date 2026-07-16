@@ -939,6 +939,10 @@ async fn run_codex_post_refresh_checks(app: &AppHandle) {
 /// 删除 Codex 账号
 #[tauri::command]
 pub async fn delete_codex_account(account_id: String) -> Result<(), String> {
+    // Keep deletion consistent with manually removing the account from the API
+    // Service pool first, then remove its local credential file.
+    codex_local_access::remove_deleted_accounts_from_local_access_pool(&[account_id.clone()])
+        .await?;
     codex_account::remove_account(&account_id)?;
     if let Err(error) = codex_wakeup::remove_deleted_accounts_from_tasks(&[account_id.clone()]) {
         logger::log_warn(&format!(
@@ -946,13 +950,14 @@ pub async fn delete_codex_account(account_id: String) -> Result<(), String> {
             account_id, error
         ));
     }
-    codex_local_access::remove_deleted_accounts_from_local_access_pool(&[account_id]).await?;
     Ok(())
 }
 
 /// 批量删除 Codex 账号
 #[tauri::command]
 pub async fn delete_codex_accounts(account_ids: Vec<String>) -> Result<(), String> {
+    // Match the manual API Service removal flow before deleting local files.
+    codex_local_access::remove_deleted_accounts_from_local_access_pool(&account_ids).await?;
     codex_account::remove_accounts(&account_ids)?;
     if let Err(error) = codex_wakeup::remove_deleted_accounts_from_tasks(&account_ids) {
         logger::log_warn(&format!(
@@ -961,7 +966,6 @@ pub async fn delete_codex_accounts(account_ids: Vec<String>) -> Result<(), Strin
             error
         ));
     }
-    codex_local_access::remove_deleted_accounts_from_local_access_pool(&account_ids).await?;
     Ok(())
 }
 
@@ -3283,6 +3287,7 @@ pub async fn codex_local_access_reprice_request_logs() -> Result<CodexLocalAcces
 pub async fn codex_local_access_update_routing_options(
     session_affinity: bool,
     session_affinity_ttl_ms: i64,
+    responses_websockets_enabled: bool,
     max_retry_credentials: u16,
     max_retry_interval_ms: u64,
     disable_cooling: bool,
@@ -3292,6 +3297,7 @@ pub async fn codex_local_access_update_routing_options(
     codex_local_access::update_local_access_routing_options(
         session_affinity,
         session_affinity_ttl_ms,
+        responses_websockets_enabled,
         max_retry_credentials,
         max_retry_interval_ms,
         disable_cooling,

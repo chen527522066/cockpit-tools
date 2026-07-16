@@ -3325,6 +3325,7 @@
         "optionsTitle": "라우팅 옵션",
         "sessionAffinity": "세션 고정",
         "sessionAffinityTtl": "고정 TTL",
+        "responsesWebsockets": "WebSocket Responses 전송",
         "maxRetryCredentials": "재시도 계정",
         "maxRetryInterval": "재시도 대기",
         "disableCooling": "쿨다운 끄기",

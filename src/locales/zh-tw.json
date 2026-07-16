@@ -3325,6 +3325,7 @@
         "optionsTitle": "調度選項",
         "sessionAffinity": "會話親和",
         "sessionAffinityTtl": "親和 TTL",
+        "responsesWebsockets": "WebSocket 回應傳輸",
         "maxRetryCredentials": "重試帳號數",
         "maxRetryInterval": "重試等待",
         "disableCooling": "停用冷卻",

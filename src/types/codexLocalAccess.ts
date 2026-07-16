@@ -132,6 +132,7 @@ export interface CodexLocalAccessCollection {
   sessionAffinity: boolean;
   sessionAffinityTtlMs: number;
   sessionAffinityDefaultEnabledMigrated?: boolean;
+  responsesWebsocketsEnabled: boolean;
   maxRetryCredentials: number;
   maxRetryIntervalMs: number;
   timeouts: CodexLocalAccessTimeouts;

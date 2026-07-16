@@ -3325,6 +3325,7 @@
         "optionsTitle": "Opcje routingu",
         "sessionAffinity": "Przywiązanie sesji",
         "sessionAffinityTtl": "TTL przywiązania",
+        "responsesWebsockets": "Responses przez WebSocket",
         "maxRetryCredentials": "Konta retry",
         "maxRetryInterval": "Czas retry",
         "disableCooling": "Wyłącz cooldown",

@@ -3372,6 +3372,7 @@
         "optionsTitle": "Opsi Routing",
         "sessionAffinity": "Afinitas Sesi",
         "sessionAffinityTtl": "TTL Afinitas",
+        "responsesWebsockets": "Responses melalui WebSocket",
         "maxRetryCredentials": "Akun retry",
         "maxRetryInterval": "Tunggu retry",
         "disableCooling": "Matikan cooldown",

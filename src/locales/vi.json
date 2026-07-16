@@ -3325,6 +3325,7 @@
         "optionsTitle": "Tùy chọn định tuyến",
         "sessionAffinity": "Gắn phiên",
         "sessionAffinityTtl": "TTL gắn phiên",
+        "responsesWebsockets": "Responses qua WebSocket",
         "maxRetryCredentials": "Tài khoản retry",
         "maxRetryInterval": "Chờ retry",
         "disableCooling": "Tắt cooldown",

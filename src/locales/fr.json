@@ -3325,6 +3325,7 @@
         "optionsTitle": "Options de routage",
         "sessionAffinity": "Affinité session",
         "sessionAffinityTtl": "TTL affinité",
+        "responsesWebsockets": "Responses via WebSocket",
         "maxRetryCredentials": "Comptes retry",
         "maxRetryInterval": "Attente retry",
         "disableCooling": "Désactiver cooldown",
