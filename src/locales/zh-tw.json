@@ -1907,7 +1907,10 @@
       "testConnectFailed": "無法連線到 {{url}}。請確認 API 服務已啟動、連接埠未被變更或阻擋。",
       "testAuthFailed": "服務可達，但驗證失敗：{{detail}}。請檢查 API 服務密鑰或帳號登入狀態。",
       "testServiceUnavailable": "服務可達，但目前不可用：{{detail}}。請檢查服務是否啟用、帳號集合是否為空或帳號是否可用。",
-      "gatewayErrors": {"authUnavailable": "帳號池目前沒有可調度帳號；帳號可能正在冷卻、授權失效或額度受限，請在 Cockpit Tools 的 API 服務頁查看帳號狀態。", "authNotFound": "帳號池目前沒有已設定的可用帳號，請在 Cockpit Tools 的 API 服務頁新增或啟用帳號。"},
+      "gatewayErrors": {
+        "authUnavailable": "帳號池目前沒有可調度帳號；帳號可能正在冷卻、授權失效或額度受限，請在 Cockpit Tools 的 API 服務頁查看帳號狀態。",
+        "authNotFound": "帳號池目前沒有已設定的可用帳號，請在 Cockpit Tools 的 API 服務頁新增或啟用帳號。"
+      },
       "testRateLimited": "服務可達，但上游限流或額度不足：{{detail}}。",
       "testHttpFailed": "服務可達，但請求返回 HTTP {{status}}：{{detail}}。",
       "activateAction": "啟動 API 服務",
@@ -4666,7 +4669,18 @@
       "payAsYouGoConsuming": "超額自動扣費：消耗中",
       "payAsYouGoEnabled": "超額自動扣費：已開啟",
       "payAsYouGoEmpty": "超額自動扣費：--",
-      "payAsYouGoLabel": "超額自動扣費"
+      "payAsYouGoLabel": "超額自動扣費",
+      "statusSynced": "狀態：已同步",
+      "statusSyncedPending": "狀態：已同步，剩餘額待確認",
+      "fastAvailable": "速通可用 {{times}}",
+      "fastTimes": "{{count}} 次",
+      "fastUnlimited": "無限次",
+      "fastPerMonth": "快請求/月：{{count}}",
+      "fastChannelPerMonth": "快通道: {{count}}/月",
+      "fastChannelStatus": "快通道: {{status}}",
+      "freeRemainingUnknown": "免費剩餘：--",
+      "timesRemainingUnknown": "剩餘次數：--",
+      "soloParallel": "權益包: Solo 並發 {{count}}"
     },
     "flowNotice": {
       "title": "Trae 帳號接入說明（點擊展開/收起）",
@@ -4678,6 +4692,10 @@
       "permissionWithPlatform": "權限範圍：讀寫本機 {{platform}} 設定目錄中的 storage.json 登入相關欄位，用於帳號匯入、切換注入與方案資訊顯示；所有資料僅在本機處理。",
       "networkGlobal": "網路範圍：{{platform}} OAuth 登入、權杖刷新與方案查詢會請求 trae.ai / traeapi.us 官方介面；不會向第三方服務上傳本機帳號檔或原始儲存內容。",
       "networkCn": "網路範圍：{{platform}} OAuth 登入、權杖刷新與方案查詢會請求 trae.cn / trae.com.cn 官方介面；不會向第三方服務上傳本機帳號檔或原始儲存內容。"
+    },
+    "token": {
+      "jsonOnlyDesc": "貼上完整 Trae CN 帳號 JSON。暫不支援裸 Token，避免匯入後無法穩定識別帳號或寫入不可用登入態。",
+      "jsonOnlyPlaceholder": "貼上完整 Trae CN JSON..."
     }
   },
   "codebuddyCn": {

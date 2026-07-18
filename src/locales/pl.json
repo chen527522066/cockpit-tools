@@ -1907,7 +1907,10 @@
       "testConnectFailed": "Nie można połączyć się z {{url}}. Sprawdź, czy usługa API działa, port się nie zmienił i nic go nie blokuje.",
       "testAuthFailed": "Usługa jest osiągalna, ale uwierzytelnianie nie powiodło się: {{detail}}. Sprawdź klucz usługi API lub stan logowania konta.",
       "testServiceUnavailable": "Usługa jest osiągalna, ale obecnie niedostępna: {{detail}}. Sprawdź, czy usługa jest włączona, kolekcja kont nie jest pusta i konta są używalne.",
-      "gatewayErrors": {"authUnavailable": "Obecnie nie ma konta dostępnego do routingu. Konto może być w czasie oczekiwania, bez autoryzacji lub ograniczone limitem. Sprawdź jego stan w usłudze API Cockpit Tools.", "authNotFound": "W puli kont nie skonfigurowano użytecznego konta. Dodaj lub włącz konto w usłudze API Cockpit Tools."},
+      "gatewayErrors": {
+        "authUnavailable": "Obecnie nie ma konta dostępnego do routingu. Konto może być w czasie oczekiwania, bez autoryzacji lub ograniczone limitem. Sprawdź jego stan w usłudze API Cockpit Tools.",
+        "authNotFound": "W puli kont nie skonfigurowano użytecznego konta. Dodaj lub włącz konto w usłudze API Cockpit Tools."
+      },
       "testRateLimited": "Usługa jest osiągalna, ale upstream jest ograniczony lub limit został wyczerpany: {{detail}}.",
       "testHttpFailed": "Usługa jest osiągalna, ale żądanie zwróciło HTTP {{status}}: {{detail}}.",
       "activateAction": "Uruchom usługę API",
@@ -4666,7 +4669,18 @@
       "payAsYouGoConsuming": "Rozliczanie za uzycie: w trakcie zuzycia",
       "payAsYouGoEnabled": "Rozliczanie za uzycie: wlaczone",
       "payAsYouGoEmpty": "Rozliczanie za uzycie: --",
-      "payAsYouGoLabel": "Uzycie na zadanie"
+      "payAsYouGoLabel": "Uzycie na zadanie",
+      "statusSynced": "Status: sync",
+      "statusSyncedPending": "Status: sync, reszta do potw.",
+      "fastAvailable": "Szybkie: {{times}}",
+      "fastTimes": "{{count}}",
+      "fastUnlimited": "Bez limitu",
+      "fastPerMonth": "Szybkie/mc: {{count}}",
+      "fastChannelPerMonth": "Express: {{count}}/mc",
+      "fastChannelStatus": "Szybki kanał: {{status}}",
+      "freeRemainingUnknown": "Free zostało: --",
+      "timesRemainingUnknown": "Zostało: --",
+      "soloParallel": "Pakiet: Solo ×{{count}}"
     },
     "flowNotice": {
       "title": "Przewodnik po kontach Trae (kliknij, aby rozwinac/zwinac)",
@@ -4678,6 +4692,10 @@
       "permissionWithPlatform": "Zakres uprawnień: odczyt i zapis pól logowania w lokalnym storage.json {{platform}} na potrzeby importu konta, przełączania kont i wyświetlania planu. Wszystkie dane są przetwarzane lokalnie.",
       "networkGlobal": "Zakres sieci: logowanie OAuth, odświeżanie tokenów i zapytania planu {{platform}} wywołują oficjalne API trae.ai / traeapi.us. Lokalne pliki kont i surowa zawartość nie są wysyłane do usług zewnętrznych.",
       "networkCn": "Zakres sieci: logowanie OAuth, odświeżanie tokenów i zapytania planu {{platform}} wywołują oficjalne API trae.cn / trae.com.cn. Lokalne pliki kont i surowa zawartość nie są wysyłane do usług zewnętrznych."
+    },
+    "token": {
+      "jsonOnlyDesc": "Wklej pełny JSON konta Trae CN. Surowy token nie jest obsługiwany.",
+      "jsonOnlyPlaceholder": "Pełny JSON Trae CN..."
     }
   },
   "codebuddyCn": {

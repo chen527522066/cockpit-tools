@@ -1907,7 +1907,10 @@
       "testConnectFailed": "{{url}}에 연결할 수 없습니다. API 서비스가 실행 중인지, 포트가 변경되지 않았는지, 차단되지 않았는지 확인하세요.",
       "testAuthFailed": "서비스에 연결되었지만 인증에 실패했습니다: {{detail}}. API 서비스 키 또는 계정 로그인 상태를 확인하세요.",
       "testServiceUnavailable": "서비스에 연결되었지만 현재 사용할 수 없습니다: {{detail}}. 서비스가 활성화되어 있는지, 계정 모음이 비어 있지 않은지, 계정을 사용할 수 있는지 확인하세요.",
-      "gatewayErrors": {"authUnavailable": "현재 라우팅할 수 있는 계정이 없습니다. 계정이 대기 중이거나 인증되지 않았거나 할당량이 제한되었을 수 있습니다. Cockpit Tools API 서비스에서 상태를 확인하세요.", "authNotFound": "계정 풀에 사용 가능한 계정이 설정되어 있지 않습니다. Cockpit Tools API 서비스에서 계정을 추가하거나 활성화하세요."},
+      "gatewayErrors": {
+        "authUnavailable": "현재 라우팅할 수 있는 계정이 없습니다. 계정이 대기 중이거나 인증되지 않았거나 할당량이 제한되었을 수 있습니다. Cockpit Tools API 서비스에서 상태를 확인하세요.",
+        "authNotFound": "계정 풀에 사용 가능한 계정이 설정되어 있지 않습니다. Cockpit Tools API 서비스에서 계정을 추가하거나 활성화하세요."
+      },
       "testRateLimited": "서비스에 연결되었지만 업스트림 제한 또는 할당량 부족입니다: {{detail}}.",
       "testHttpFailed": "서비스에 연결되었지만 요청이 HTTP {{status}}를 반환했습니다: {{detail}}.",
       "activateAction": "API 서비스 시작",
@@ -4666,7 +4669,18 @@
       "payAsYouGoConsuming": "종량제 사용: 사용 중",
       "payAsYouGoEnabled": "종량제 사용: 활성화됨",
       "payAsYouGoEmpty": "종량제 사용: --",
-      "payAsYouGoLabel": "종량제 사용"
+      "payAsYouGoLabel": "종량제 사용",
+      "statusSynced": "상태: 동기화됨",
+      "statusSyncedPending": "상태: 동기화됨, 잔여량 확인 중",
+      "fastAvailable": "빠른 요청 {{times}}",
+      "fastTimes": "{{count}}회",
+      "fastUnlimited": "무제한",
+      "fastPerMonth": "빠른 요청/월: {{count}}",
+      "fastChannelPerMonth": "빠른 채널: {{count}}/월",
+      "fastChannelStatus": "빠른 채널: {{status}}",
+      "freeRemainingUnknown": "무료 잔여: --",
+      "timesRemainingUnknown": "남은 횟수: --",
+      "soloParallel": "혜택: Solo 병렬 {{count}}"
     },
     "flowNotice": {
       "title": "Trae 계정 안내 (클릭하여 펼치기/접기)",
@@ -4678,6 +4692,10 @@
       "permissionWithPlatform": "권한 범위: 계정 가져오기, 계정 전환 주입, 플랜 표시를 위해 로컬 {{platform}} storage.json의 로그인 관련 필드를 읽고 씁니다. 모든 데이터는 로컬에서만 처리됩니다.",
       "networkGlobal": "네트워크 범위: {{platform}} OAuth 로그인, 토큰 갱신, 플랜 조회는 공식 trae.ai / traeapi.us API를 호출합니다. 로컬 계정 파일과 원본 저장 내용은 타사 서비스로 업로드되지 않습니다.",
       "networkCn": "네트워크 범위: {{platform}} OAuth 로그인, 토큰 갱신, 플랜 조회는 공식 trae.cn / trae.com.cn API를 호출합니다. 로컬 계정 파일과 원본 저장 내용은 타사 서비스로 업로드되지 않습니다."
+    },
+    "token": {
+      "jsonOnlyDesc": "전체 Trae CN 계정 JSON을 붙여넣으세요. 불안정한 식별·로그인 상태를 피하기 위해 원시 토큰은 지원하지 않습니다.",
+      "jsonOnlyPlaceholder": "전체 Trae CN JSON 붙여넣기..."
     }
   },
   "codebuddyCn": {

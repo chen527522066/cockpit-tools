@@ -4985,6 +4985,8 @@
       "resetUnknown": "订阅重置：--",
       "statusUnknown": "状态：--",
       "statusNormal": "状态：正常",
+      "statusSynced": "状态：已同步",
+      "statusSyncedPending": "状态：已同步，剩余额待确认",
       "statusExhaustedFree": "状态：用量已耗尽，建议升级方案",
       "statusExhaustedPro": "状态：用量已耗尽，建议升级方案或开启超额自动扣费",
       "bonusUsed": "Bonus：+{{amount}}",
@@ -4996,7 +4998,20 @@
       "payAsYouGoLabel": "超额自动扣费",
       "payAsYouGoConsuming": "超额自动扣费：消耗中",
       "payAsYouGoEnabled": "超额自动扣费：已开启",
-      "payAsYouGoEmpty": "超额自动扣费：--"
+      "payAsYouGoEmpty": "超额自动扣费：--",
+      "fastAvailable": "速通可用 {{times}}",
+      "fastTimes": "{{count}} 次",
+      "fastUnlimited": "无限次",
+      "fastPerMonth": "快请求/月：{{count}}",
+      "fastChannelPerMonth": "快通道: {{count}}/月",
+      "fastChannelStatus": "快通道: {{status}}",
+      "freeRemainingUnknown": "免费剩余：--",
+      "timesRemainingUnknown": "剩余次数：--",
+      "soloParallel": "权益包: Solo 并发 {{count}}"
+    },
+    "token": {
+      "jsonOnlyDesc": "粘贴完整 Trae CN 账号 JSON。暂不支持裸 Token，避免导入后无法稳定识别账号或写入不可用登录态。",
+      "jsonOnlyPlaceholder": "粘贴完整 Trae CN JSON..."
     },
     "flowNotice": {
       "title": "Trae 账号接入说明（点击展开/收起）",

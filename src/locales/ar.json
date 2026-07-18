@@ -1954,7 +1954,10 @@
       "testConnectFailed": "لا يمكن الاتصال بـ {{url}}. تأكد من تشغيل خدمة API، وأن المنفذ لم يتغير، ولا يوجد ما يحظره.",
       "testAuthFailed": "الخدمة قابلة للوصول، لكن المصادقة فشلت: {{detail}}. تحقق من مفتاح خدمة API أو حالة تسجيل الدخول للحساب.",
       "testServiceUnavailable": "الخدمة قابلة للوصول، لكنها غير متاحة حاليًا: {{detail}}. تحقق من تفعيل الخدمة، أو من أن مجموعة الحسابات ليست فارغة، أو من صلاحية الحسابات.",
-      "gatewayErrors": {"authUnavailable": "لا يوجد حاليًا حساب قابل للتوجيه. قد يكون الحساب في فترة تهدئة أو بلا مصادقة أو مقيّدًا بالحصّة. تحقّق من حالته في خدمة API داخل Cockpit Tools.", "authNotFound": "لا يوجد حساب صالح مُعدّ في مجموعة الحسابات. أضف حسابًا أو فعّله في خدمة API داخل Cockpit Tools."},
+      "gatewayErrors": {
+        "authUnavailable": "لا يوجد حاليًا حساب قابل للتوجيه. قد يكون الحساب في فترة تهدئة أو بلا مصادقة أو مقيّدًا بالحصّة. تحقّق من حالته في خدمة API داخل Cockpit Tools.",
+        "authNotFound": "لا يوجد حساب صالح مُعدّ في مجموعة الحسابات. أضف حسابًا أو فعّله في خدمة API داخل Cockpit Tools."
+      },
       "testRateLimited": "الخدمة قابلة للوصول، لكن upstream مقيّد أو الحصة نفدت: {{detail}}.",
       "testHttpFailed": "الخدمة قابلة للوصول، لكن الطلب أعاد HTTP {{status}}: {{detail}}.",
       "activateAction": "تشغيل خدمة API",
@@ -4713,7 +4716,18 @@
       "payAsYouGoConsuming": "الاستخدام حسب الطلب: قيد الاستهلاك",
       "payAsYouGoEnabled": "الاستخدام حسب الطلب: مفعل",
       "payAsYouGoEmpty": "الاستخدام حسب الطلب: --",
-      "payAsYouGoLabel": "الاستخدام حسب الطلب"
+      "payAsYouGoLabel": "الاستخدام حسب الطلب",
+      "statusSynced": "الحالة: متزامن",
+      "statusSyncedPending": "الحالة: متزامن، المتبقي قيد التأكيد",
+      "fastAvailable": "سريع متبقي {{times}}",
+      "fastTimes": "{{count}}",
+      "fastUnlimited": "غير محدود",
+      "fastPerMonth": "سريع/شهر: {{count}}",
+      "fastChannelPerMonth": "Express: {{count}}/شهر",
+      "fastChannelStatus": "قناة سريعة: {{status}}",
+      "freeRemainingUnknown": "Free متبقي: --",
+      "timesRemainingUnknown": "المتبقي: --",
+      "soloParallel": "حزمة: Solo ×{{count}}"
     },
     "flowNotice": {
       "title": "دليل حساب Trae (انقر للتوسيع أو الطي)",
@@ -4725,6 +4739,10 @@
       "permissionWithPlatform": "نطاق الأذونات: قراءة وكتابة حقول تسجيل الدخول في ملف storage.json المحلي الخاص بـ {{platform}} لاستيراد الحساب وحقن تبديل الحساب وعرض الخطة. تتم معالجة كل البيانات محليًا فقط.",
       "networkGlobal": "نطاق الشبكة: تسجيل دخول OAuth وتحديث الرمز واستعلامات الخطة في {{platform}} تستدعي واجهات trae.ai / traeapi.us الرسمية. لا يتم رفع ملفات الحساب المحلية أو محتوى التخزين الخام إلى خدمات طرف ثالث.",
       "networkCn": "نطاق الشبكة: تسجيل دخول OAuth وتحديث الرمز واستعلامات الخطة في {{platform}} تستدعي واجهات trae.cn / trae.com.cn الرسمية. لا يتم رفع ملفات الحساب المحلية أو محتوى التخزين الخام إلى خدمات طرف ثالث."
+    },
+    "token": {
+      "jsonOnlyDesc": "الصق JSON حساب Trae CN الكامل. الرمز الخام غير مدعوم.",
+      "jsonOnlyPlaceholder": "JSON Trae CN كامل..."
     }
   },
   "codebuddyCn": {

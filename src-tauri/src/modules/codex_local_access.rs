@@ -18418,7 +18418,10 @@ pub async fn remove_deleted_accounts_from_local_access_pool(
         }
     };
     if runtime_loaded {
-        ensure_gateway_matches_runtime().await?;
+        reload_gateway_in_background(
+            "删除账号后同步 API 服务账号池",
+            ensure_gateway_matches_runtime(),
+        );
     }
 
     Ok(())

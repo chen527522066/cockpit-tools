@@ -5236,7 +5236,7 @@ func (s *relayServer) writeProviderGatewayChatStream(c *gin.Context, body io.Rea
 	}
 	if err := scanner.Err(); err != nil {
 		s.emitExecutorDiagnostic(c, "provider_gateway_stream_scan_failed", model, "provider_gateway_chat_stream", startedAt, err.Error())
-		writeStreamTerminalError(c, err)
+		writeStreamTerminalErrorForFormat(c, err, sdktranslator.FormatOpenAIResponse)
 		flusher.Flush()
 		return
 	}
@@ -5314,7 +5314,7 @@ func (s *relayServer) writeProviderGatewayTranslatedChatStream(c *gin.Context, b
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		writeStreamTerminalError(c, err)
+		writeStreamTerminalErrorForFormat(c, err, targetFormat)
 		flusher.Flush()
 	}
 }
@@ -5482,7 +5482,7 @@ func (s *relayServer) handleStream(c *gin.Context, body []byte, model string, so
 	if err != nil {
 		s.emitExecutorDiagnostic(c, "executor_failed", model, "execute_stream", startedAt, err.Error())
 		if immediateSSE {
-			writeStreamTerminalError(c, err)
+			writeStreamTerminalErrorForFormat(c, err, sourceFormat)
 			immediateFlusher.Flush()
 			return
 		}
@@ -5492,7 +5492,7 @@ func (s *relayServer) handleStream(c *gin.Context, body []byte, model string, so
 	if result == nil || result.Chunks == nil {
 		s.emitExecutorDiagnostic(c, "executor_failed", model, "execute_stream", startedAt, "upstream stream is unavailable")
 		if immediateSSE {
-			writeStreamTerminalError(c, relayStatusError{status: http.StatusBadGateway, message: "upstream stream is unavailable"})
+			writeStreamTerminalErrorForFormat(c, relayStatusError{status: http.StatusBadGateway, message: "upstream stream is unavailable"}, sourceFormat)
 			immediateFlusher.Flush()
 		} else {
 			writeAPIError(c, http.StatusBadGateway, "upstream stream is unavailable", "bad_gateway")
@@ -5538,7 +5538,7 @@ func (s *relayServer) handleStream(c *gin.Context, body []byte, model string, so
 			endReason = "stream_idle_timeout"
 			err := relayTimeoutError{phase: "stream_idle", timeout: timeouts.idle}
 			s.emitExecutorDiagnostic(c, "stream_idle_timeout", model, "stream_loop", startedAt, err.Error())
-			writeStreamTerminalError(c, err)
+			writeStreamTerminalErrorForFormat(c, err, sourceFormat)
 			flusher.Flush()
 			return
 		case <-c.Request.Context().Done():
@@ -5576,7 +5576,7 @@ func (s *relayServer) handleStream(c *gin.Context, body []byte, model string, so
 			if chunk.Err != nil {
 				endReason = "stream_error"
 				s.emitExecutorDiagnostic(c, "stream_error", model, "stream_loop", startedAt, chunk.Err.Error())
-				writeStreamTerminalError(c, chunk.Err)
+				writeStreamTerminalErrorForFormat(c, chunk.Err, sourceFormat)
 				flusher.Flush()
 				return
 			}
@@ -7090,6 +7090,19 @@ func writeStreamTerminalError(c *gin.Context, err error) {
 		return
 	}
 	_, _ = fmt.Fprintf(c.Writer, "data: %s\n\n", string(payload))
+}
+
+func writeStreamTerminalErrorForFormat(c *gin.Context, err error, sourceFormat sdktranslator.Format) {
+	if c == nil {
+		return
+	}
+	if !sourceFormatEqual(sourceFormat, sdktranslator.FormatOpenAIResponse) {
+		writeStreamTerminalError(c, err)
+		return
+	}
+	status := statusCodeFromError(err)
+	eventName, payload := sdkhandlers.BuildOpenAIResponsesStreamTerminalEvent(status, err, 0)
+	_, _ = fmt.Fprintf(c.Writer, "event: %s\ndata: %s\n\n", eventName, string(payload))
 }
 
 type relayStreamFrameMode int

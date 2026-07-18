@@ -7,6 +7,20 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [1.3.9] - 2026-07-17
+
+### 变更
+
+- **Trae CN / TRAE SOLO CN 配额与套餐逻辑对齐官方 v2 与社区方案（#1281）**：CN 账号刷新优先调用 pay v2（`ide_user_pay_status` / `ide_user_ent_usage`），并补充 `user_current_entitlement_list` 兜底；识别 `CNExpress(100)`、`Pro+ Pack(5)` 等 CN 产品类型；展示速通可用次数与 Solo 权益并发，有数据但算不出剩余时显示「已同步，剩余额待确认」，不猜测免费剩余；CN 添加账号页明确仅支持完整 JSON、不鼓励裸 Token。感谢 @sqmw（[#1281](https://github.com/jlcodes99/cockpit-tools/pull/1281)）。
+
+### 修复
+
+- **修复 Windows 当前用户级 NSIS 更新意外申请管理员权限的问题（#1642）**：Tauri 无法识别安装包类型时，更新器会对可写的用户级安装选择 NSIS，并对受保护目录继续保守回退 MSI；已明确识别的 NSIS/MSI 类型仍具有最高优先级，真正的系统级 MSI 安装保持原有更新行为。感谢 @xdd666t（[#1642](https://github.com/jlcodes99/cockpit-tools/pull/1642)）。
+- **修复 Codex Responses Lite 丢失带命名空间的协作工具问题（#1647）**：现在会保留顶层 `tools`、嵌套 `input[].additional_tools`、payload override 以及 namespace `tool_choice` 中的命名空间工具定义；派生 GPT 会话可再次使用 `spawn_agent`、`wait_agent`、`send_message`、`followup_task`、`interrupt_agent` 和 `list_agents`，并将派生请求中的 Sol / Terra / Luna 简写规范化为准确的 GPT-5.6 模型 ID。（[#1647](https://github.com/jlcodes99/cockpit-tools/issues/1647)）
+- **修复过期或残留的 Codex 账号删除后仍显示的问题（#1646）**：删除账号不再同步等待 API 服务网关重启，也不会仅因账号池同步暂时不可用而失败；账号池引用会先持久化清理，网关随后在后台同步，本地账号继续删除，因此无需再添加一个正常账号才能让问题账号消失。（[#1646](https://github.com/jlcodes99/cockpit-tools/issues/1646)）
+- **修复 HTTP 200 Responses 流内过载被当作不可重试 `400` 的问题（#1651）**：`server_is_overloaded` / `service_unavailable_error` 现在会让当前凭据短暂冷却，并仅在尚未输出内容时安全切换账号；`model_at_capacity` 会按可重试容量限制处理；最终失败时保留合法的 `response.failed` SSE 事件，使 Codex 展示真实上游错误，不再误报流提前断开。（[#1651](https://github.com/jlcodes99/cockpit-tools/issues/1651)）
+
+---
 ## [1.3.8] - 2026-07-17
 
 ### 新增

@@ -1907,7 +1907,10 @@
       "testConnectFailed": "Impossibile connettersi a {{url}}. Verifica che il servizio API sia in esecuzione, che la porta non sia cambiata e che non sia bloccata.",
       "testAuthFailed": "Il servizio è raggiungibile, ma l’autenticazione non è riuscita: {{detail}}. Controlla la chiave del servizio API o lo stato di accesso dell’account.",
       "testServiceUnavailable": "Il servizio è raggiungibile, ma al momento non disponibile: {{detail}}. Controlla se il servizio è abilitato, se la raccolta account è vuota o se gli account sono utilizzabili.",
-      "gatewayErrors": {"authUnavailable": "Nessun account del gruppo è attualmente utilizzabile. L’account potrebbe essere in pausa, non autorizzato o limitato dalla quota. Controlla lo stato nel servizio API di Cockpit Tools.", "authNotFound": "Nel gruppo non è configurato alcun account utilizzabile. Aggiungi o abilita un account nel servizio API di Cockpit Tools."},
+      "gatewayErrors": {
+        "authUnavailable": "Nessun account del gruppo è attualmente utilizzabile. L’account potrebbe essere in pausa, non autorizzato o limitato dalla quota. Controlla lo stato nel servizio API di Cockpit Tools.",
+        "authNotFound": "Nel gruppo non è configurato alcun account utilizzabile. Aggiungi o abilita un account nel servizio API di Cockpit Tools."
+      },
       "testRateLimited": "Il servizio è raggiungibile, ma l’upstream è limitato o la quota è esaurita: {{detail}}.",
       "testHttpFailed": "Il servizio è raggiungibile, ma la richiesta ha restituito HTTP {{status}}: {{detail}}.",
       "activateAction": "Avvia servizio API",
@@ -4666,7 +4669,18 @@
       "payAsYouGoConsuming": "Consumo on-demand: in consumo",
       "payAsYouGoEnabled": "Consumo on-demand: attivo",
       "payAsYouGoEmpty": "Consumo on-demand: --",
-      "payAsYouGoLabel": "Utilizzo on-demand"
+      "payAsYouGoLabel": "Utilizzo on-demand",
+      "statusSynced": "Stato: sync",
+      "statusSyncedPending": "Stato: sync, residuo da conf.",
+      "fastAvailable": "Fast: {{times}}",
+      "fastTimes": "{{count}}",
+      "fastUnlimited": "Illimitato",
+      "fastPerMonth": "Fast/mese: {{count}}",
+      "fastChannelPerMonth": "Express: {{count}}/mese",
+      "fastChannelStatus": "Canale rapido: {{status}}",
+      "freeRemainingUnknown": "Free residuo: --",
+      "timesRemainingUnknown": "Residuo: --",
+      "soloParallel": "Pack: Solo ×{{count}}"
     },
     "flowNotice": {
       "title": "Guida account Trae (clicca per espandere/ridurre)",
@@ -4678,6 +4692,10 @@
       "permissionWithPlatform": "Ambito permessi: legge e scrive i campi di accesso nello storage.json locale di {{platform}} per import account, iniezione del cambio account e visualizzazione del piano. Tutti i dati vengono elaborati localmente.",
       "networkGlobal": "Ambito rete: accesso OAuth, aggiornamento token e query piano di {{platform}} chiamano le API ufficiali trae.ai / traeapi.us. I file account locali e il contenuto grezzo non vengono caricati su servizi terzi.",
       "networkCn": "Ambito rete: accesso OAuth, aggiornamento token e query piano di {{platform}} chiamano le API ufficiali trae.cn / trae.com.cn. I file account locali e il contenuto grezzo non vengono caricati su servizi terzi."
+    },
+    "token": {
+      "jsonOnlyDesc": "Incolla il JSON completo dell'account Trae CN. Token grezzi non supportati.",
+      "jsonOnlyPlaceholder": "JSON Trae CN completo..."
     }
   },
   "codebuddyCn": {

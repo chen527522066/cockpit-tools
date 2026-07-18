@@ -1907,7 +1907,10 @@
       "testConnectFailed": "{{url}} に接続できません。API サービスが起動していること、ポートが変更されていないこと、ブロックされていないことを確認してください。",
       "testAuthFailed": "サービスには到達しましたが、認証に失敗しました: {{detail}}。API サービスキーまたはアカウントのログイン状態を確認してください。",
       "testServiceUnavailable": "サービスには到達しましたが、現在利用できません: {{detail}}。サービスが有効か、アカウント集合が空でないか、アカウントが利用可能かを確認してください。",
-      "gatewayErrors": {"authUnavailable": "現在、ルーティング可能なアカウントがありません。冷却中、認証失敗、またはクォータ制限の可能性があります。Cockpit Tools の API サービスで状態を確認してください。", "authNotFound": "利用可能なアカウントがアカウントプールに設定されていません。Cockpit Tools の API サービスで追加または有効化してください。"},
+      "gatewayErrors": {
+        "authUnavailable": "現在、ルーティング可能なアカウントがありません。冷却中、認証失敗、またはクォータ制限の可能性があります。Cockpit Tools の API サービスで状態を確認してください。",
+        "authNotFound": "利用可能なアカウントがアカウントプールに設定されていません。Cockpit Tools の API サービスで追加または有効化してください。"
+      },
       "testRateLimited": "サービスには到達しましたが、上流でレート制限またはクォータ不足です: {{detail}}。",
       "testHttpFailed": "サービスには到達しましたが、リクエストは HTTP {{status}} を返しました: {{detail}}。",
       "activateAction": "API サービスを起動",
@@ -4666,7 +4669,18 @@
       "payAsYouGoConsuming": "従量課金：消費中",
       "payAsYouGoEnabled": "従量課金：有効",
       "payAsYouGoEmpty": "従量課金：--",
-      "payAsYouGoLabel": "従量課金"
+      "payAsYouGoLabel": "従量課金",
+      "statusSynced": "状態：同期済み",
+      "statusSyncedPending": "状態：同期済み、残量未確定",
+      "fastAvailable": "高速枠 {{times}}",
+      "fastTimes": "{{count}} 回",
+      "fastUnlimited": "無制限",
+      "fastPerMonth": "高速/月：{{count}}",
+      "fastChannelPerMonth": "高速枠: {{count}}/月",
+      "fastChannelStatus": "高速枠: {{status}}",
+      "freeRemainingUnknown": "無料残量：--",
+      "timesRemainingUnknown": "残回数：--",
+      "soloParallel": "特典: Solo 並列 {{count}}"
     },
     "flowNotice": {
       "title": "Trae アカウントガイド（クリックで展開/折りたたみ）",
@@ -4678,6 +4692,10 @@
       "permissionWithPlatform": "権限範囲：アカウントインポート、切り替え注入、プラン表示のため、ローカル {{platform}} の storage.json 内のログイン関連フィールドを読み書きします。すべてのデータはローカルで処理されます。",
       "networkGlobal": "ネットワーク範囲：{{platform}} OAuth ログイン、トークン更新、プラン照会では公式 trae.ai / traeapi.us API を呼び出します。ローカルのアカウントファイルや生の保存内容を第三者サービスへアップロードしません。",
       "networkCn": "ネットワーク範囲：{{platform}} OAuth ログイン、トークン更新、プラン照会では公式 trae.cn / trae.com.cn API を呼び出します。ローカルのアカウントファイルや生の保存内容を第三者サービスへアップロードしません。"
+    },
+    "token": {
+      "jsonOnlyDesc": "完全な Trae CN アカウント JSON を貼り付けてください。生トークンは不安定な識別や利用不能なログイン状態を避けるため非対応です。",
+      "jsonOnlyPlaceholder": "完全な Trae CN JSON を貼り付け..."
     }
   },
   "codebuddyCn": {

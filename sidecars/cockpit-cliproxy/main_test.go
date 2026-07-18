@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,35 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 )
+
+type responsesTerminalEventTestError struct {
+	event []byte
+}
+
+func (e responsesTerminalEventTestError) Error() string { return "server overloaded" }
+func (e responsesTerminalEventTestError) StatusCode() int {
+	return http.StatusServiceUnavailable
+}
+func (e responsesTerminalEventTestError) ResponsesStreamEvent() []byte {
+	return bytes.Clone(e.event)
+}
+
+func TestWriteStreamTerminalErrorForResponsesPreservesResponseFailed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	event := []byte(`{"type":"response.failed","response":{"status":"failed","error":{"type":"service_unavailable_error","code":"server_is_overloaded","message":"Our servers are currently overloaded"}}}`)
+
+	writeStreamTerminalErrorForFormat(c, responsesTerminalEventTestError{event: event}, sdktranslator.FormatOpenAIResponse)
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "event: response.failed") {
+		t.Fatalf("expected response.failed event name, got %q", body)
+	}
+	if !strings.Contains(body, `"type":"response.failed"`) {
+		t.Fatalf("expected top-level response.failed type, got %q", body)
+	}
+}
 
 func TestResponsesSSEFramerBuffersPartialJSONAcrossChunks(t *testing.T) {
 	framer := newRelayStreamFramer(sdktranslator.FormatOpenAIResponse, "/v1/responses")

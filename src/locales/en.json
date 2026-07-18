@@ -4996,7 +4996,18 @@
       "payAsYouGoLabel": "On-Demand Usage",
       "payAsYouGoConsuming": "On-Demand Usage: Consuming",
       "payAsYouGoEnabled": "On-Demand Usage: Enabled",
-      "payAsYouGoEmpty": "On-Demand Usage: --"
+      "payAsYouGoEmpty": "On-Demand Usage: --",
+      "statusSynced": "Status: Synced",
+      "statusSyncedPending": "Status: Synced, remaining pending",
+      "fastAvailable": "Fast left: {{times}}",
+      "fastTimes": "{{count}}",
+      "fastUnlimited": "Unlimited",
+      "fastPerMonth": "Fast/mo: {{count}}",
+      "fastChannelPerMonth": "Express: {{count}}/mo",
+      "fastChannelStatus": "Express: {{status}}",
+      "freeRemainingUnknown": "Free left: --",
+      "timesRemainingUnknown": "Left: --",
+      "soloParallel": "Pack: Solo x{{count}}"
     },
     "flowNotice": {
       "title": "Trae account guide (click to expand/collapse)",
@@ -5008,6 +5019,10 @@
       "permissionWithPlatform": "Permission scope: read and write login-related fields in the local {{platform}} storage.json for account import, account switching injection, and plan display. All data is processed locally on your machine.",
       "networkGlobal": "Network scope: {{platform}} OAuth sign-in, token refresh, and plan queries call official trae.ai / traeapi.us APIs. Local account files and raw storage contents are not uploaded to third-party services.",
       "networkCn": "Network scope: {{platform}} OAuth sign-in, token refresh, and plan queries call official trae.cn / trae.com.cn APIs. Local account files and raw storage contents are not uploaded to third-party services."
+    },
+    "token": {
+      "jsonOnlyDesc": "Paste full Trae CN account JSON. Raw tokens are unsupported to avoid unstable identity or unusable local login state.",
+      "jsonOnlyPlaceholder": "Paste full Trae CN JSON..."
     }
   },
   "codebuddyCn": {

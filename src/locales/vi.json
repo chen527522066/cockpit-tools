@@ -1907,7 +1907,10 @@
       "testConnectFailed": "Không thể kết nối tới {{url}}. Hãy xác nhận dịch vụ API đang chạy, cổng chưa bị đổi và không bị chặn.",
       "testAuthFailed": "Dịch vụ truy cập được nhưng xác thực thất bại: {{detail}}. Hãy kiểm tra khóa dịch vụ API hoặc trạng thái đăng nhập tài khoản.",
       "testServiceUnavailable": "Dịch vụ truy cập được nhưng hiện không khả dụng: {{detail}}. Hãy kiểm tra dịch vụ đã bật chưa, bộ sưu tập tài khoản có trống không hoặc tài khoản có dùng được không.",
-      "gatewayErrors": {"authUnavailable": "Hiện không có tài khoản nào có thể định tuyến. Tài khoản có thể đang tạm nghỉ, mất xác thực hoặc bị giới hạn hạn mức. Kiểm tra trạng thái trong dịch vụ API của Cockpit Tools.", "authNotFound": "Chưa cấu hình tài khoản khả dụng trong nhóm tài khoản. Hãy thêm hoặc bật tài khoản trong dịch vụ API của Cockpit Tools."},
+      "gatewayErrors": {
+        "authUnavailable": "Hiện không có tài khoản nào có thể định tuyến. Tài khoản có thể đang tạm nghỉ, mất xác thực hoặc bị giới hạn hạn mức. Kiểm tra trạng thái trong dịch vụ API của Cockpit Tools.",
+        "authNotFound": "Chưa cấu hình tài khoản khả dụng trong nhóm tài khoản. Hãy thêm hoặc bật tài khoản trong dịch vụ API của Cockpit Tools."
+      },
       "testRateLimited": "Dịch vụ truy cập được nhưng upstream bị giới hạn hoặc hết hạn mức: {{detail}}.",
       "testHttpFailed": "Dịch vụ truy cập được nhưng yêu cầu trả về HTTP {{status}}: {{detail}}.",
       "activateAction": "Khởi động dịch vụ API",
@@ -4666,7 +4669,18 @@
       "payAsYouGoConsuming": "Thanh toan theo muc dung: dang tieu thu",
       "payAsYouGoEnabled": "Thanh toan theo muc dung: da bat",
       "payAsYouGoEmpty": "Thanh toan theo muc dung: --",
-      "payAsYouGoLabel": "Su dung theo nhu cau"
+      "payAsYouGoLabel": "Su dung theo nhu cau",
+      "statusSynced": "Trạng thái: đã đồng bộ",
+      "statusSyncedPending": "Trạng thái: đã đồng bộ, còn lại chưa xác nhận",
+      "fastAvailable": "Nhanh còn {{times}}",
+      "fastTimes": "{{count}} lần",
+      "fastUnlimited": "Không giới hạn",
+      "fastPerMonth": "Nhanh/tháng: {{count}}",
+      "fastChannelPerMonth": "Express: {{count}}/tháng",
+      "fastChannelStatus": "Kênh nhanh: {{status}}",
+      "freeRemainingUnknown": "Free còn: --",
+      "timesRemainingUnknown": "Còn lại: --",
+      "soloParallel": "Gói: Solo ×{{count}}"
     },
     "flowNotice": {
       "title": "Huong dan tai khoan Trae (nhan de mo rong/thu gon)",
@@ -4678,6 +4692,10 @@
       "permissionWithPlatform": "Phạm vi quyền: đọc và ghi các trường đăng nhập trong storage.json cục bộ của {{platform}} để nhập tài khoản, ghi chuyển tài khoản và hiển thị gói. Tất cả dữ liệu chỉ được xử lý trên máy.",
       "networkGlobal": "Phạm vi mạng: đăng nhập OAuth, làm mới token và truy vấn gói của {{platform}} gọi API chính thức trae.ai / traeapi.us. Không tải tệp tài khoản cục bộ hoặc nội dung lưu trữ thô lên dịch vụ bên thứ ba.",
       "networkCn": "Phạm vi mạng: đăng nhập OAuth, làm mới token và truy vấn gói của {{platform}} gọi API chính thức trae.cn / trae.com.cn. Không tải tệp tài khoản cục bộ hoặc nội dung lưu trữ thô lên dịch vụ bên thứ ba."
+    },
+    "token": {
+      "jsonOnlyDesc": "Dán JSON tài khoản Trae CN đầy đủ. Không hỗ trợ token thô.",
+      "jsonOnlyPlaceholder": "JSON Trae CN đầy đủ..."
     }
   },
   "codebuddyCn": {
